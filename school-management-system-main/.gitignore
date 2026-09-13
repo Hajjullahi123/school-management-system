@@ -1,0 +1,58 @@
+# Dependencies
+node_modules/
+# package-lock.json should NOT be ignored to ensure stable builds
+
+# Production
+dist/
+build/
+out/
+
+# Environment
+.env
+.env.local
+.env.*
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+logs/
+*.log
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Database
+server/prisma/dev.db
+server/prisma/dev.db-journal
+server/prisma/dev.db-shm
+server/prisma/dev.db-wal
+
+# Uploads & PDF Cache
+server/uploads/*
+!server/uploads/.gitkeep
+uploads/*
+!uploads/.gitkeep
+uploads/pdf-cache/*
+!uploads/pdf-cache/.gitkeep
+
+# Temporary
+tmp/
+temp/
+scratch/
+
+# Desktop builds and release packages
+dist-desktop/
+*.exe
+*.apk
+*.aab
+*.blockmap
+latest.yml
+builder-debug.yml

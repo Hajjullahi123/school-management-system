@@ -1,0 +1,44 @@
+{
+  "settings": {
+    "id": 1,
+    "facebookUrl": null,
+    "instagramUrl": null,
+    "whatsappUrl": null,
+    "websiteUrl": null,
+    "contactPhone": null,
+    "contactEmail": null,
+    "platformPaystackKey": null,
+    "platformFlutterwaveKey": null,
+    "platformSecretKey": null,
+    "s3AccessKey": null,
+    "s3SecretKey": null,
+    "s3BucketName": null,
+    "s3Region": "us-east-1",
+    "enableAutoBackup": false,
+    "backupRetentionDays": 30,
+    "basicPrice": 50000,
+    "standardPrice": 120000,
+    "premiumPrice": 250000,
+    "updatedAt": "2026-01-01T23:48:22.764Z"
+  },
+  "superAdminUsers": [
+    {
+      "id": 2,
+      "username": "superadmin",
+      "role": "superadmin"
+    }
+  ],
+  "demoAdmin": {
+    "id": 13,
+    "schoolId": 5,
+    "username": "demo_admin",
+    "passwordHash": "$2a$10$xBiy1EjfPXSgnkI15nWlYeEmNQV3xh57rTHxVYgCJ9kRaFEf18yDu",
+    "email": "demo@edutechai.com",
+    "role": "admin",
+    "firstName": "Demo",
+    "lastName": "Administrator",
+    "isActive": true,
+    "mustChangePassword": false,
+    "createdAt": "2026-01-26T16:08:06.395Z"
+  }
+}

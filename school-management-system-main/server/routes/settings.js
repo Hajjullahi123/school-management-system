@@ -1,0 +1,617 @@
+const express = require('express');
+const router = express.Router();
+const prisma = require('../db');
+const path = require('path');
+const fs = require('fs');
+const { authenticate } = require('../middleware/auth');
+const { logAction } = require('../utils/audit');
+
+const { optionalAuth } = require('../middleware/auth');
+
+// Get school statistics summary
+router.get('/stats-summary', authenticate, async (req, res) => {
+  try {
+    const schoolId = req.schoolId;
+    const userId = req.user.id;
+    const role = req.user.role;
+
+    // For teachers, return only their assigned class/student counts
+    if (role === 'teacher') {
+      // Get current active term to filter assignments
+      const activeTerm = await prisma.term.findFirst({
+        where: { schoolId, isCurrent: true }
+      });
+      const termFilter = activeTerm ? { OR: [{ termId: activeTerm.id }, { termId: null }] } : {};
+
+      // Get all classes this teacher is associated with (Form Master OR Subject Teacher in CURRENT TERM)
+      const myClasses = await prisma.class.findMany({
+        where: { 
+          schoolId,
+          isActive: true,
+          OR: [
+            { classTeacherId: userId },
+            { 
+              subjects: { 
+                some: { 
+                  assignments: { some: { teacherId: userId, ...termFilter } } 
+                } 
+              } 
+            }
+          ]
+        },
+        include: {
+          _count: {
+            select: {
+              students: { where: { status: 'active' } }
+            }
+          }
+        }
+      });
+
+      const totalStudents = myClasses.reduce((acc, c) => acc + (c._count?.students || 0), 0);
+      
+      // Get subjects assigned to this teacher via TeacherAssignment -> ClassSubject (Current Term only)
+      const assignments = await prisma.teacherAssignment.findMany({
+          where: { schoolId, teacherId: userId, ...termFilter },
+          include: { classSubject: true }
+      });
+      
+      // Count unique subjects assigned across all their classes
+      const uniqueSubjectIds = new Set(assignments.map(a => a.classSubject.subjectId));
+
+      return res.json({
+        students: totalStudents,
+        classes: myClasses.length,
+        subjects: uniqueSubjectIds.size,
+        teachers: 1 // Self
+      });
+    }
+
+    // For admin/principal/superadmin, return full school metrics
+    const [studentCount, subjectCount, teacherCount, classCount] = await Promise.all([
+      prisma.student.count({ where: { schoolId, status: 'active' } }),
+      prisma.subject.count({ where: { schoolId } }),
+      prisma.user.count({ where: { schoolId, role: 'teacher', isActive: true } }),
+      prisma.class.count({ where: { schoolId, isActive: true } })
+    ]);
+
+    res.json({
+      students: studentCount,
+      subjects: subjectCount,
+      teachers: teacherCount,
+      classes: classCount
+    });
+  } catch (error) {
+    console.error('[StatsSummary] Error:', error);
+    res.status(500).json({ error: 'Failed to fetch statistics summary' });
+  }
+});
+
+// Get school settings
+// Can be accessed via schoolSlug (public) or via auth token (private)
+router.get('/', async (req, res) => {
+  try {
+    const schoolSlug = req.query.schoolSlug?.trim().toLowerCase();
+    const customDomain = req.query.customDomain?.trim().toLowerCase().replace(/^https?:\/\//i, '').replace(/^www\./i, '').replace(/\/+$/, '');
+    console.log(`Settings request for School Slug: [${schoolSlug}], Custom Domain: [${customDomain}]`);
+    // Use Promise.all for parallel fetching of school and session data
+    const [settings, currentSession] = await Promise.all([
+      (schoolSlug && schoolSlug !== 'null' && schoolSlug !== 'undefined') 
+        ? prisma.school.findFirst({ where: { OR: [{ slug: schoolSlug }, { customDomain: { equals: schoolSlug, mode: 'insensitive' } }] } })
+        : (async () => {
+            const token = req.headers.authorization?.split(' ')[1];
+            if (token) {
+              try {
+                const jwt = require('jsonwebtoken');
+                const JWT_SECRET = process.env.JWT_SECRET || 'darul-quran-secret-key-change-in-production';
+                const decoded = jwt.verify(token, JWT_SECRET);
+                
+                if (decoded?.schoolId) {
+                  return prisma.school.findUnique({ where: { id: decoded.schoolId } });
+                }
+                
+                // If it's a superadmin (no schoolId), return a mocked global config
+                if (decoded?.role === 'superadmin') {
+                  return {
+                    id: 'global-superadmin',
+                    schoolName: 'EduTechAI System',
+                    schoolMotto: 'Global Management Console',
+                    primaryColor: '#1d4ed8',
+                    secondaryColor: '#2563eb',
+                    accentColor: '#3b82f6',
+                    logoUrl: null
+                  };
+                }
+              } catch (e) {}
+            }
+
+            if (customDomain) {
+              const domainSchool = await prisma.school.findFirst({ where: { customDomain: { equals: customDomain, mode: 'insensitive' } } });
+              if (domainSchool) return domainSchool;
+              // customDomain was provided but didn't match any school — this is the platform's own domain
+              // Return platform-level branding so the frontend shows Login, not a random school's page
+              console.log(`[Settings] Custom domain "${customDomain}" is not a registered school domain — returning platform config`);
+              return {
+                id: 'global-superadmin',
+                schoolName: 'EduTechAI System',
+                schoolMotto: 'Smart School Management Platform',
+                primaryColor: '#1d4ed8',
+                secondaryColor: '#2563eb',
+                accentColor: '#3b82f6',
+                logoUrl: null
+              };
+            }
+            return prisma.school.findFirst(); // Final fallback for localhost/dev only
+          })(),
+      Promise.resolve(null)
+    ]);
+
+    if (!settings) {
+      return res.status(404).json({ error: `School domain '${schoolSlug}' not found` });
+    }
+
+    // Fetch current academic session now that we definitely have settings.id
+    // Only fetch if it's a real school (id is an integer/uuid, not the string 'global-superadmin')
+    let academicSession = null;
+    let currentTerm = null;
+
+    if (settings.id !== 'global-superadmin') {
+      const results = await Promise.all([
+        prisma.academicSession.findFirst({
+          where: { schoolId: settings.id, isCurrent: true }
+        }),
+        prisma.term.findFirst({
+          where: { schoolId: settings.id, isCurrent: true }
+        })
+      ]);
+      academicSession = results[0];
+      currentTerm = results[1];
+    }
+
+    // Sanitize sensitive fields
+    const sanitizedSettings = { ...settings };
+    delete sanitizedSettings.paystackSecretKey;
+    delete sanitizedSettings.flutterwaveSecretKey;
+    delete sanitizedSettings.emailPassword;
+    delete sanitizedSettings.smsApiKey;
+    delete sanitizedSettings.twilioAuthToken;
+    delete sanitizedSettings.metaAccessToken;
+    delete sanitizedSettings.metaVerifyToken;
+    delete sanitizedSettings.geminiApiKey;
+    delete sanitizedSettings.groqApiKey;
+    if (schoolSlug || customDomain) {
+      delete sanitizedSettings.examInvigilatorToken;
+    }
+
+    sanitizedSettings.schoolName = sanitizedSettings.name;
+    sanitizedSettings.schoolAddress = sanitizedSettings.address;
+    sanitizedSettings.schoolPhone = sanitizedSettings.phone;
+    sanitizedSettings.schoolEmail = sanitizedSettings.email;
+    sanitizedSettings.schoolMotto = sanitizedSettings.motto;
+    sanitizedSettings.currentSession = academicSession;
+    sanitizedSettings.currentTerm = currentTerm;
+
+    res.json(sanitizedSettings);
+  } catch (error) {
+    console.error('Error fetching settings:', error);
+    res.status(500).json({ error: 'Failed to fetch settings' });
+  }
+});
+
+// Update school settings
+router.put('/', authenticate, async (req, res) => {
+  const {
+    schoolName, schoolAddress, schoolPhone, schoolEmail, schoolMotto,
+    primaryColor, secondaryColor, accentColor,
+    paystackPublicKey, paystackSecretKey, flutterwavePublicKey, flutterwaveSecretKey, enableOnlinePayment,
+    enableOnlineAdmissionForm, admissionFormPrice, defaultInterviewDate, defaultInterviewVenue,
+    enableAdmissionExam, admissionExamPassMark, admissionExamDuration, defaultExaminationDate, defaultExamVenue,
+    requireExamInvigilatorToken, examInvigilatorToken,
+    facebookUrl, instagramUrl, whatsappUrl, twitterUrl, youtubeUrl, linkedinUrl,
+    academicCalendarUrl, eLibraryUrl, alumniNetworkUrl, brochureFileUrl, admissionGuideFileUrl,
+    emailUser, emailPassword, emailHost, emailPort, emailSecure,
+    smsUsername, smsApiKey, smsSenderId, enableSMS,
+    assignment1Weight, assignment2Weight, test1Weight, test2Weight, examWeight,
+    openingHours, welcomeTitle, welcomeMessage,
+    examMode, examModeType,
+    gradingSystem, passThreshold,
+    whatsappBotEnabled, whatsappProvider, whatsappPhoneNumber, 
+    twilioAccountSid, twilioAuthToken, 
+    metaAccessToken, metaPhoneNumberId, metaBusinessAccountId, metaVerifyToken,
+    geminiApiKey, groqApiKey,
+    staffExpectedArrivalTime, enableStaffAttendanceReport, staffClockInDeadline,
+    staffClockInMode, authorizedIP,
+    weekendDays,
+    reportFontFamily, reportColorScheme, showPositionOnReport, showFeesOnReport, showAttendanceOnReport, reportLayout,
+    certFontFamily, certBorderType, certPrimaryColor, certSecondaryColor,
+    testimFontFamily, testimBorderType, testimPrimaryColor, testimSecondaryColor,
+    websiteTheme, aboutUsText, testimonialsText, foundedYear, tuitionEstimatorConfig
+  } = req.body;
+
+  try {
+    const currentSettings = await prisma.school.findUnique({ where: { id: req.schoolId } });
+
+    // Validate weightings if provided
+    if (assignment1Weight !== undefined || assignment2Weight !== undefined || test1Weight !== undefined || test2Weight !== undefined || examWeight !== undefined) {
+      const total =
+        Number(assignment1Weight ?? currentSettings.assignment1Weight ?? 0) +
+        Number(assignment2Weight ?? currentSettings.assignment2Weight ?? 0) +
+        Number(test1Weight ?? currentSettings.test1Weight ?? 0) +
+        Number(test2Weight ?? currentSettings.test2Weight ?? 0) +
+        Number(examWeight ?? currentSettings.examWeight ?? 0);
+
+      if (total !== 100) {
+        return res.status(400).json({ error: `Total weighting must equal 100%. Current total: ${total}%` });
+      }
+    }
+
+    // Validate gradingSystem JSON
+    if (gradingSystem !== undefined) {
+      try {
+        const parsed = JSON.parse(gradingSystem);
+        if (!Array.isArray(parsed)) throw new Error('Must be an array');
+        const isValid = parsed.every(g => typeof g.grade === 'string' && typeof g.remark === 'string' && typeof g.min === 'number' && typeof g.max === 'number');
+        if (!isValid) throw new Error('Invalid grade schema');
+      } catch (e) {
+        return res.status(400).json({ error: 'Invalid grading system format' });
+      }
+    }
+
+    // Build update object dynamically to avoid setting required fields to undefined
+    const updateData = {};
+
+    if (schoolName !== undefined) updateData.name = schoolName;
+    if (schoolAddress !== undefined) updateData.address = schoolAddress;
+    if (schoolPhone !== undefined) updateData.phone = schoolPhone;
+    if (schoolEmail !== undefined) updateData.email = schoolEmail;
+    if (schoolMotto !== undefined) updateData.motto = schoolMotto;
+    if (openingHours !== undefined) updateData.openingHours = openingHours;
+    if (welcomeTitle !== undefined) updateData.welcomeTitle = welcomeTitle;
+    if (welcomeMessage !== undefined) updateData.welcomeMessage = welcomeMessage;
+    if (websiteTheme !== undefined) updateData.websiteTheme = websiteTheme;
+    if (aboutUsText !== undefined) updateData.aboutUsText = aboutUsText;
+    if (testimonialsText !== undefined) updateData.testimonialsText = testimonialsText;
+    if (foundedYear !== undefined) updateData.foundedYear = foundedYear ? Number(foundedYear) : null;
+    if (tuitionEstimatorConfig !== undefined) updateData.tuitionEstimatorConfig = tuitionEstimatorConfig;
+
+    if (primaryColor !== undefined) updateData.primaryColor = primaryColor;
+    if (secondaryColor !== undefined) updateData.secondaryColor = secondaryColor;
+    if (accentColor !== undefined) updateData.accentColor = accentColor;
+    if (req.body.principalSignatureUrl !== undefined) updateData.principalSignatureUrl = req.body.principalSignatureUrl;
+
+    if (paystackPublicKey !== undefined) updateData.paystackPublicKey = paystackPublicKey;
+    if (paystackSecretKey !== undefined) updateData.paystackSecretKey = paystackSecretKey;
+    if (flutterwavePublicKey !== undefined) updateData.flutterwavePublicKey = flutterwavePublicKey;
+    if (flutterwaveSecretKey !== undefined) updateData.flutterwaveSecretKey = flutterwaveSecretKey;
+    if (enableOnlinePayment !== undefined) updateData.enableOnlinePayment = !!enableOnlinePayment;
+    if (enableOnlineAdmissionForm !== undefined) updateData.enableOnlineAdmissionForm = enableOnlineAdmissionForm === 'true' || enableOnlineAdmissionForm === true;
+    if (admissionFormPrice !== undefined) updateData.admissionFormPrice = Number(admissionFormPrice);
+    if (defaultInterviewDate !== undefined) updateData.defaultInterviewDate = defaultInterviewDate ? new Date(defaultInterviewDate) : null;
+    if (defaultInterviewVenue !== undefined) updateData.defaultInterviewVenue = defaultInterviewVenue ? defaultInterviewVenue.trim() : null;
+    if (enableAdmissionExam !== undefined) updateData.enableAdmissionExam = enableAdmissionExam === 'true' || enableAdmissionExam === true;
+    if (admissionExamPassMark !== undefined) updateData.admissionExamPassMark = Number(admissionExamPassMark);
+    if (admissionExamDuration !== undefined) updateData.admissionExamDuration = Number(admissionExamDuration);
+    if (defaultExaminationDate !== undefined) updateData.defaultExaminationDate = defaultExaminationDate ? new Date(defaultExaminationDate) : null;
+    if (defaultExamVenue !== undefined) updateData.defaultExamVenue = defaultExamVenue ? defaultExamVenue.trim() : null;
+    if (requireExamInvigilatorToken !== undefined) updateData.requireExamInvigilatorToken = !!requireExamInvigilatorToken;
+    if (examInvigilatorToken !== undefined) updateData.examInvigilatorToken = examInvigilatorToken ? examInvigilatorToken.trim() : null;
+
+    if (facebookUrl !== undefined) updateData.facebookUrl = facebookUrl;
+    if (instagramUrl !== undefined) updateData.instagramUrl = instagramUrl;
+    if (whatsappUrl !== undefined) updateData.whatsappUrl = whatsappUrl;
+    if (twitterUrl !== undefined) updateData.twitterUrl = twitterUrl;
+    if (youtubeUrl !== undefined) updateData.youtubeUrl = youtubeUrl;
+    if (linkedinUrl !== undefined) updateData.linkedinUrl = linkedinUrl;
+
+    if (academicCalendarUrl !== undefined) updateData.academicCalendarUrl = academicCalendarUrl;
+    if (eLibraryUrl !== undefined) updateData.eLibraryUrl = eLibraryUrl;
+    if (alumniNetworkUrl !== undefined) updateData.alumniNetworkUrl = alumniNetworkUrl;
+    if (brochureFileUrl !== undefined) updateData.brochureFileUrl = brochureFileUrl;
+    if (admissionGuideFileUrl !== undefined) updateData.admissionGuideFileUrl = admissionGuideFileUrl;
+
+    if (emailUser !== undefined) updateData.emailUser = emailUser;
+    if (emailPassword !== undefined) updateData.emailPassword = emailPassword;
+    if (emailHost !== undefined) updateData.emailHost = emailHost;
+    if (emailPort !== undefined) updateData.emailPort = Number(emailPort);
+    if (emailSecure !== undefined) updateData.emailSecure = !!emailSecure;
+
+    if (smsUsername !== undefined) updateData.smsUsername = smsUsername;
+    if (smsApiKey !== undefined) updateData.smsApiKey = smsApiKey;
+    if (smsSenderId !== undefined) updateData.smsSenderId = smsSenderId;
+    if (enableSMS !== undefined) updateData.enableSMS = !!enableSMS;
+
+    if (assignment1Weight !== undefined) updateData.assignment1Weight = Number(assignment1Weight);
+    if (assignment2Weight !== undefined) updateData.assignment2Weight = Number(assignment2Weight);
+    if (test1Weight !== undefined) updateData.test1Weight = Number(test1Weight);
+    if (test2Weight !== undefined) updateData.test2Weight = Number(test2Weight);
+    if (examWeight !== undefined) updateData.examWeight = Number(examWeight);
+
+    if (examMode !== undefined) updateData.examMode = !!examMode;
+    if (examModeType !== undefined) updateData.examModeType = examModeType;
+
+    if (gradingSystem !== undefined) updateData.gradingSystem = gradingSystem;
+    if (passThreshold !== undefined) updateData.passThreshold = Number(passThreshold);
+
+    if (whatsappBotEnabled !== undefined) updateData.whatsappBotEnabled = !!whatsappBotEnabled;
+    if (whatsappProvider !== undefined) updateData.whatsappProvider = whatsappProvider;
+    if (whatsappPhoneNumber !== undefined) updateData.whatsappPhoneNumber = whatsappPhoneNumber;
+    if (twilioAccountSid !== undefined) updateData.twilioAccountSid = twilioAccountSid;
+    if (twilioAuthToken !== undefined) updateData.twilioAuthToken = twilioAuthToken;
+    if (metaAccessToken !== undefined) updateData.metaAccessToken = metaAccessToken;
+    if (metaPhoneNumberId !== undefined) updateData.metaPhoneNumberId = metaPhoneNumberId;
+    if (metaBusinessAccountId !== undefined) updateData.metaBusinessAccountId = metaBusinessAccountId;
+    if (metaVerifyToken !== undefined) updateData.metaVerifyToken = metaVerifyToken;
+    if (geminiApiKey !== undefined) updateData.geminiApiKey = geminiApiKey;
+    if (groqApiKey !== undefined) updateData.groqApiKey = groqApiKey;
+
+    if (staffExpectedArrivalTime !== undefined) updateData.staffExpectedArrivalTime = staffExpectedArrivalTime;
+    if (staffClockInDeadline !== undefined) updateData.staffClockInDeadline = staffClockInDeadline;
+    if (enableStaffAttendanceReport !== undefined) updateData.enableStaffAttendanceReport = !!enableStaffAttendanceReport;
+    if (staffClockInMode !== undefined) updateData.staffClockInMode = staffClockInMode;
+    if (authorizedIP !== undefined) updateData.authorizedIP = authorizedIP;
+    if (weekendDays !== undefined) updateData.weekendDays = weekendDays;
+
+    // Report Card Customization
+    if (reportFontFamily !== undefined) updateData.reportFontFamily = reportFontFamily;
+    if (reportColorScheme !== undefined) updateData.reportColorScheme = reportColorScheme;
+    if (showPositionOnReport !== undefined) updateData.showPositionOnReport = !!showPositionOnReport;
+    if (showFeesOnReport !== undefined) updateData.showFeesOnReport = !!showFeesOnReport;
+    if (showAttendanceOnReport !== undefined) updateData.showAttendanceOnReport = !!showAttendanceOnReport;
+    if (reportLayout !== undefined) updateData.reportLayout = reportLayout;
+
+    // Document Customization (Certificates)
+    if (certFontFamily !== undefined) updateData.certFontFamily = certFontFamily;
+    if (certBorderType !== undefined) updateData.certBorderType = certBorderType;
+    if (certPrimaryColor !== undefined) updateData.certPrimaryColor = certPrimaryColor;
+    if (certSecondaryColor !== undefined) updateData.certSecondaryColor = certSecondaryColor;
+
+    // Document Customization (Testimonials)
+    if (testimFontFamily !== undefined) updateData.testimFontFamily = testimFontFamily;
+    if (testimBorderType !== undefined) updateData.testimBorderType = testimBorderType;
+    if (testimPrimaryColor !== undefined) updateData.testimPrimaryColor = testimPrimaryColor;
+    if (testimSecondaryColor !== undefined) updateData.testimSecondaryColor = testimSecondaryColor;
+
+    // Automatically complete setup if basic info is provided
+    if (schoolName && schoolAddress && schoolPhone) {
+      updateData.isSetupComplete = true;
+    }
+
+    const settings = await prisma.school.update({
+      where: { id: req.schoolId },
+      data: updateData
+    });
+
+    // Cleanup stale SchoolHoliday records if weekendDays was updated
+    if (weekendDays !== undefined) {
+      try {
+        const newWeekendIndices = (weekendDays || "").split(',')
+          .map(n => n.trim())
+          .filter(n => n !== "")
+          .map(n => parseInt(n));
+
+        const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+        const staleWeekends = await prisma.schoolHoliday.findMany({
+          where: {
+            schoolId: req.schoolId,
+            OR: [
+              { type: 'weekend' },
+              { name: { in: dayNames } }
+            ]
+          }
+        });
+
+        for (const record of staleWeekends) {
+          const dayOfWeek = new Date(record.date).getUTCDay();
+          if (!newWeekendIndices.includes(dayOfWeek)) {
+            await prisma.schoolHoliday.delete({
+              where: { id: record.id }
+            });
+          }
+        }
+      } catch (cleanupError) {
+        console.error('Error cleaning up stale weekend records:', cleanupError);
+      }
+    }
+
+    // Sanitize response
+    const sanitizedSettings = { ...settings };
+    delete sanitizedSettings.paystackSecretKey;
+    delete sanitizedSettings.flutterwaveSecretKey;
+    delete sanitizedSettings.emailPassword;
+    delete sanitizedSettings.smsApiKey;
+    sanitizedSettings.schoolName = sanitizedSettings.name;
+
+    res.json({ success: true, settings: sanitizedSettings });
+
+    // Log the update
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'UPDATE',
+      resource: 'SCHOOL_SETTINGS',
+      details: {
+        updatedFields: Object.keys(updateData).filter(k => !k.toLowerCase().includes('key') && !k.toLowerCase().includes('password'))
+      },
+      ipAddress: req.ip
+    });
+  } catch (error) {
+    console.error('Error updating settings:', error);
+    res.status(500).json({ error: 'Failed to update settings: ' + error.message });
+  }
+});
+
+// ========== FILE-BASED IMAGE UPLOADS (multer + storageService) ==========
+const multer = require('multer');
+const { uploadFile } = require('../services/storageService');
+
+// Configure multer storage to memory for cloud uploading
+const brandingStorage = multer.memoryStorage();
+
+const brandingUpload = multer({
+  storage: brandingStorage,
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed (PNG, JPG, WEBP, etc.)'), false);
+    }
+  },
+  limits: { fileSize: 5 * 1024 * 1024 } // 5MB max
+});
+
+// Upload School Logo (cloud)
+router.post('/upload-logo', authenticate, brandingUpload.single('logo'), async (req, res) => {
+  console.log(`===Logo file upload=== school: ${req.schoolId}`);
+
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No logo file provided' });
+    }
+
+    const logoUrl = await uploadFile(req.file, `logos/school-${req.schoolId}`);
+    console.log(`Logo saved via storageService: ${logoUrl.substring(0, 50)}... (${(req.file.size / 1024).toFixed(1)}KB)`);
+
+    // Store the URL in the database
+    await prisma.school.update({
+      where: { id: req.schoolId },
+      data: { logoUrl }
+    });
+
+    res.json({ success: true, logoUrl });
+
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'UPDATE',
+      resource: 'SCHOOL_LOGO',
+      details: { method: 'cloud_upload', size: req.file.size, filename: req.file.originalname },
+      ipAddress: req.ip
+    });
+  } catch (error) {
+    console.error('Error uploading logo:', error);
+    res.status(500).json({ error: 'Failed to save logo: ' + error.message });
+  }
+});
+
+// Upload Principal Signature (cloud)
+router.post('/upload-signature', authenticate, brandingUpload.single('signature'), async (req, res) => {
+  console.log(`===Signature file upload=== school: ${req.schoolId}`);
+
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No signature file provided' });
+    }
+
+    const signatureUrl = await uploadFile(req.file, `signatures/school-${req.schoolId}`);
+    console.log(`Signature saved via storageService: ${signatureUrl.substring(0, 50)}... (${(req.file.size / 1024).toFixed(1)}KB)`);
+
+    await prisma.school.update({
+      where: { id: req.schoolId },
+      data: { principalSignatureUrl: signatureUrl }
+    });
+
+    res.json({ success: true, principalSignatureUrl: signatureUrl });
+
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'UPDATE',
+      resource: 'PRINCIPAL_SIGNATURE',
+      details: { method: 'cloud_upload', size: req.file.size, filename: req.file.originalname },
+      ipAddress: req.ip
+    });
+  } catch (error) {
+    console.error('Error uploading signature:', error);
+    res.status(500).json({ error: 'Failed to save signature: ' + error.message });
+  }
+});
+
+// Test SMS configuration
+router.post('/test-sms', async (req, res) => {
+  const { smsUsername, smsApiKey, smsSenderId, testPhone } = req.body;
+
+  if (!smsUsername || !smsApiKey || !testPhone) {
+    return res.status(400).json({ error: 'Username, API Key, and Test Phone are required' });
+  }
+
+  try {
+    const AfricasTalking = require('africastalking');
+    const at = AfricasTalking({ apiKey: smsApiKey, username: smsUsername });
+    const sms = at.SMS;
+
+    const response = await sms.send({
+      to: [testPhone],
+      message: 'This is a test message from your School Management System.',
+      from: smsSenderId || undefined
+    });
+
+    console.log('✅ SMS Test Response:', response);
+    res.json({ success: true, response });
+
+    // Log the action
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'TEST_SMS',
+      resource: 'SCHOOL_SETTINGS',
+      details: {
+        testPhone
+      },
+      ipAddress: req.ip
+    });
+  } catch (error) {
+    console.error('❌ SMS Test failed:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Test WhatsApp configuration
+router.post('/test-whatsapp', authenticate, async (req, res) => {
+  const { 
+    whatsappProvider, whatsappPhoneNumber, 
+    twilioAccountSid, twilioAuthToken, 
+    metaAccessToken, metaPhoneNumberId,
+    testPhone 
+  } = req.body;
+
+  if (!whatsappProvider || !testPhone) {
+    return res.status(400).json({ error: 'Provider and Test Phone are required' });
+  }
+
+  try {
+    const WhatsAppService = require('../services/WhatsAppService');
+    const whatsappService = new WhatsAppService({
+      whatsappProvider,
+      twilioAccountSid,
+      twilioAuthToken,
+      whatsappPhoneNumber,
+      metaAccessToken,
+      metaPhoneNumberId
+    });
+
+    const testMessage = `Hello! This is a test message from your School Management System's WhatsApp integration. If you are reading this, your settings are correct! 🚀`;
+    const response = await whatsappService.send(testPhone, testMessage);
+
+    console.log('✅ WhatsApp Test Response:', response);
+    res.json({ success: true, response });
+
+    // Log the action
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'TEST_WHATSAPP',
+      resource: 'SCHOOL_SETTINGS',
+      details: {
+        testPhone,
+        provider: whatsappProvider
+      },
+      ipAddress: req.ip
+    });
+  } catch (error) {
+    console.error('❌ WhatsApp Test failed:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+module.exports = router;

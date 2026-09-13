@@ -1,0 +1,236 @@
+import React from 'react';
+import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { api, API_BASE_URL } from '../../api';
+import { formatNumber, formatDateVerbose } from '../../utils/formatters';
+
+const StudentDashboard = ({ user, currentTerm, currentSession }) => {
+  const studentId = user?.student?.id;
+
+  // 1. Fetch Notices
+  const { data: notices = [] } = useQuery({
+    queryKey: ['notices'],
+    queryFn: async () => {
+      const res = await api.get('/api/notices');
+      return res.ok ? res.json() : [];
+    }
+  });
+
+  // 2. Fetch Student Profile
+  const { data: studentData } = useQuery({
+    queryKey: ['studentProfile', studentId],
+    queryFn: async () => {
+      const res = await api.get(`/api/students/${studentId}`);
+      return res.ok ? res.json() : null;
+    },
+    enabled: !!studentId
+  });
+
+  // 3. Fetch Fee Record
+  const { data: studentFeeRecord } = useQuery({
+    queryKey: ['studentFeeRecord', studentId, currentTerm?.id, currentSession?.id],
+    queryFn: async () => {
+      const res = await api.get(`/api/fees/student/${studentId}/summary?termId=${currentTerm.id}&academicSessionId=${currentSession.id}`);
+      return res.ok ? res.json() : null;
+    },
+    enabled: !!studentId && !!currentTerm && !!currentSession
+  });
+
+  // 4. Fetch Attendance and Stats (Combined for simplicity)
+  const { data: stats = { attendanceRate: 0 } } = useQuery({
+    queryKey: ['studentStats', studentId],
+    queryFn: async () => {
+      let attendanceRate = 0;
+      try {
+        const attRes = await api.get(`/api/attendance/student/${studentId}/summary`);
+        if (attRes.ok) {
+          const summary = await attRes.json();
+          attendanceRate = summary.total > 0 ? ((summary.present + summary.late) / summary.total * 100).toFixed(1) : 0;
+        }
+      } catch (e) {}
+      
+      return { attendanceRate };
+    },
+    enabled: !!studentId
+  });
+
+  return (
+    <div className="space-y-3 sm:space-y-6">
+      {/* Welcome Header with Photo */}
+      <div className="bg-gradient-to-r from-primary to-primary/80 text-white p-5 sm:p-6 rounded-lg shadow-lg">
+        <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
+          {(() => {
+            const photoUrl = user.photoUrl || studentData?.photoUrl;
+            return photoUrl ? (
+              <img
+                src={photoUrl.startsWith('data:') || photoUrl.startsWith('http') ? photoUrl : `${API_BASE_URL}${photoUrl}`}
+                alt="Student"
+                className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-2xl object-cover border-2 sm:border-4 border-white shadow-xl rotate-1 group-hover:rotate-0 transition-transform duration-500"
+              />
+            ) : (
+              <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-2xl bg-white flex items-center justify-center text-primary font-black text-xl sm:text-2xl md:text-3xl border-2 sm:border-4 border-white shadow-xl">
+                {user?.firstName?.[0]}{user?.lastName?.[0]}
+              </div>
+            );
+          })()}
+          <div className="text-center sm:text-left flex-1 min-w-0">
+            <h1 className="text-lg sm:text-2xl lg:text-3xl font-black italic tracking-tighter uppercase leading-tight">
+              Welcome Back,
+            </h1>
+            <p className="text-xl sm:text-3xl font-black tracking-tight">{user?.firstName}!</p>
+            <div className="flex flex-col mt-3 space-y-2">
+              <div className="flex flex-wrap justify-center sm:justify-start items-center gap-2">
+                <span className="text-white/90 text-[10px] sm:text-base font-bold uppercase tracking-widest opacity-80 truncate">
+                  {studentData?.classModel?.name} {studentData?.classModel?.arm || ''}
+                </span>
+                {currentTerm && (
+                  <span className="bg-white/20 backdrop-blur-sm text-white text-[8px] sm:text-xs px-2 py-0.5 rounded border border-white/20 font-black uppercase tracking-tighter italic">
+                    {currentTerm.name}
+                  </span>
+                )}
+              </div>
+              <div className="inline-flex items-center bg-white/10 backdrop-blur-sm px-3 py-1 rounded-full border border-white/20 w-fit mx-auto sm:mx-0">
+                 <span className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest text-white/70 mr-2">ADM:</span>
+                 <span className="text-[9px] sm:text-xs font-black text-white">{studentData?.admissionNumber || 'PENDING'}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Notices Section */}
+      {notices.length > 0 && (
+        <div className="bg-white rounded-lg shadow-md overflow-hidden border-l-4 border-orange-500">
+          <div className="p-4 bg-orange-50 border-b border-orange-100 italic font-black uppercase tracking-widest text-xs text-orange-800 flex items-center gap-2">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" /></svg>
+            Bulletin Intelligence
+          </div>
+          <div className="divide-y divide-gray-100">
+            {notices.slice(0, 3).map(notice => (
+              <div key={notice.id} className="p-4 hover:bg-gray-50 transition-colors">
+                <h4 className="font-bold text-gray-900 text-sm">{notice.title}</h4>
+                <p className="text-xs text-gray-500 mt-1 line-clamp-2">{notice.content}</p>
+                <div className="mt-2 text-[10px] text-gray-400 font-bold uppercase tracking-wider flex justify-between">
+                  <span>{formatDateVerbose(notice.createdAt)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Personal Information */}
+      <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-100 group">
+        <h2 className="text-[10px] sm:text-sm font-black uppercase tracking-widest text-gray-400 mb-4 border-b border-gray-50 pb-2 flex items-center gap-2">
+          <div className="w-1 h-3 bg-primary rounded-full"></div>
+          Identification Ledger
+        </h2>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-y-4 gap-x-2 text-[10px] sm:text-[11px]">
+          <div>
+            <p className="text-gray-400 font-bold uppercase tracking-tighter mb-0.5">Full Name</p>
+            <p className="font-black text-gray-900 break-words line-clamp-2">{user?.firstName} {user?.lastName}</p>
+          </div>
+          <div>
+            <p className="text-gray-400 font-bold uppercase tracking-tighter mb-0.5">Birth Ledger</p>
+            <p className="font-black text-gray-900">
+              {studentData?.dateOfBirth ? formatDateVerbose(studentData.dateOfBirth) : 'N/A'}
+            </p>
+          </div>
+          <div>
+            <p className="text-gray-400 font-bold uppercase tracking-tighter mb-0.5">Gender</p>
+            <p className="font-black text-gray-900 uppercase">{studentData?.gender || 'N/A'}</p>
+          </div>
+          <div>
+            <p className="text-gray-400 font-bold uppercase tracking-tighter mb-0.5">Blood / Genotype</p>
+            <p className="font-black text-gray-900 uppercase">
+              {studentData?.bloodGroup || 'N/A'} / {studentData?.genotype || 'N/A'}
+            </p>
+          </div>
+          <div>
+            <p className="text-gray-400 font-bold uppercase tracking-tighter mb-0.5">Origin</p>
+            <p className="font-black text-gray-900 uppercase truncate">{studentData?.nationality || 'N/A'}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Financial Overview */}
+      <div className="bg-slate-900 p-4 sm:p-8 rounded-[24px] overflow-hidden relative border border-white/5">
+        <div className="absolute top-0 right-0 w-32 sm:w-48 h-32 sm:h-48 bg-primary/20 rounded-full blur-[60px] sm:blur-[80px] -translate-y-1/2 translate-x-1/2"></div>
+        <div className="relative z-10">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-sm sm:text-lg font-black italic tracking-tighter text-white uppercase">Financial Ledger</h2>
+            <Link to="/dashboard/student/fees" className="bg-white/5 hover:bg-white/10 text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[8px] sm:text-[9px] font-black uppercase tracking-widest transition-all border border-white/10">
+              Audit
+            </Link>
+          </div>
+          {studentFeeRecord ? (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="bg-white/5 p-3 sm:p-4 rounded-xl border border-white/5">
+                <p className="text-[9px] sm:text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1">Expected</p>
+                <p className="text-lg sm:text-xl font-black text-white">₦{formatNumber(studentFeeRecord.expectedAmount || 0)}</p>
+              </div>
+              <div className="bg-white/5 p-3 sm:p-4 rounded-xl border border-white/5">
+                <p className="text-[9px] sm:text-[11px] font-black text-emerald-400 uppercase tracking-widest mb-1">Settled</p>
+                <p className="text-lg sm:text-xl font-black text-emerald-400">₦{formatNumber(studentFeeRecord.paidAmount || 0)}</p>
+              </div>
+              <div className={`p-3 sm:p-4 rounded-xl border ${studentFeeRecord.balance > 0 ? 'bg-red-500/10 border-red-500/20' : 'bg-white/5 border-white/5'}`}>
+                <p className="text-[9px] sm:text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1">Balance</p>
+                <p className={`text-lg sm:text-xl font-black ${studentFeeRecord.balance > 0 ? 'text-white' : 'text-slate-400'}`}>
+                  ₦{formatNumber(studentFeeRecord.balance || 0)}
+                </p>
+              </div>
+            </div>
+          ) : (
+            <p className="text-center py-4 text-slate-500 text-[10px] sm:text-xs italic">No tuition records found for this term.</p>
+          )}
+        </div>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="grid grid-cols-3 gap-3">
+        <Link to="/dashboard/term-report" className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center group hover:border-primary/50 transition-all">
+          <div className="text-primary mb-2 bg-primary/10 p-2 rounded-xl group-hover:bg-primary group-hover:text-white transition-all">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+          </div>
+          <span className="text-[9px] font-black uppercase tracking-widest text-gray-500">Grades</span>
+        </Link>
+        <Link to="/dashboard/cumulative-report" className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center group hover:border-blue-500/50 transition-all">
+          <div className="text-blue-600 mb-2 bg-blue-50 p-2 rounded-xl group-hover:bg-blue-600 group-hover:text-white transition-all">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253" /></svg>
+          </div>
+          <span className="text-[9px] font-black uppercase tracking-widest text-gray-500">History</span>
+        </Link>
+        <Link to="/dashboard/progressive-report" className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center group hover:border-purple-500/50 transition-all">
+          <div className="text-purple-600 mb-2 bg-purple-50 p-2 rounded-xl group-hover:bg-purple-600 group-hover:text-white transition-all">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6m6 6v-3m-6-6V7a2 2 0 114 0v2" /></svg>
+          </div>
+          <span className="text-[9px] font-black uppercase tracking-widest text-gray-500">Charts</span>
+        </Link>
+      </div>
+
+      <Link
+        to="/dashboard/student/quran"
+        className="block bg-gradient-to-r from-emerald-600 to-teal-700 text-white p-5 rounded-2xl shadow-lg hover:brightness-110 active:scale-[0.98] transition-all border border-white/10 group"
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="bg-white/20 p-2 rounded-xl group-hover:rotate-12 transition-transform">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Academic & Spiritual</p>
+              <h3 className="text-lg font-black tracking-tight">Qur'an Progress Tracker</h3>
+            </div>
+          </div>
+          <svg className="w-6 h-6 opacity-40 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M9 5l7 7-7 7" />
+          </svg>
+        </div>
+      </Link>
+    </div>
+  );
+};
+
+export default StudentDashboard;

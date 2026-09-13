@@ -1,0 +1,720 @@
+import React, { useState, useEffect } from 'react';
+import { api } from '../../api';
+import { toast } from 'react-hot-toast';
+import { motion, AnimatePresence } from 'framer-motion';
+import { generatePayrollReport } from '../../utils/payrollReportGenerator';
+import { useSchoolSettings } from '../../hooks/useSchoolSettings';
+
+const HRAdminDashboard = () => {
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('vouchers'); // vouchers, requests, records
+  const [vouchers, setVouchers] = useState([]);
+  const [requests, setRequests] = useState({ loans: [], leaves: [], materials: [], messages: [] });
+  const [staffPool, setStaffPool] = useState([]);
+  
+  const [showVoucherModal, setShowVoucherModal] = useState(false);
+  const [voucherForm, setVoucherForm] = useState({ month: new Date().getMonth() + 1, year: new Date().getFullYear(), id: null });
+  
+  const [selectedRecord, setSelectedRecord] = useState(null);
+  const [selectedVoucher, setSelectedVoucher] = useState(null);
+  const [recordForm, setRecordForm] = useState({ baseSalary: 0, allowances: [], deductions: [] });
+  const [rejectionModal, setRejectionModal] = useState({ show: false, type: '', id: '', reason: '' });
+  const [responseModal, setResponseModal] = useState({ show: false, id: '', response: '' });
+  const { settings: schoolSettings } = useSchoolSettings();
+
+  useEffect(() => {
+    fetchVouchers();
+    fetchRequests();
+    fetchStaff();
+  }, []);
+
+  const fetchVouchers = async () => {
+    try {
+      const res = await api.get('/api/hr/admin/vouchers');
+      if (res.ok) setVouchers(await res.json());
+    } catch (e) { toast.error('Voucher retrieval failed'); }
+  };
+
+  const fetchRequests = async () => {
+    try {
+      const res = await api.get('/api/hr/admin/requests');
+      if (res.ok) setRequests(await res.json());
+    } catch (e) { toast.error('Request retrieval failed'); }
+    finally { setLoading(false); }
+  };
+
+  const fetchStaff = async () => {
+    try {
+      const res = await api.get('/api/hr/admin/staff');
+      if (res.ok) setStaffPool(await res.json());
+    } catch (e) {}
+  };
+
+  const handleOpenVoucher = async (voucher) => {
+    try {
+      setLoading(true);
+      const res = await api.get(`/api/hr/admin/vouchers/${voucher.id}`);
+      if (res.ok) {
+        setSelectedVoucher(await res.json());
+        setActiveTab('records');
+      }
+    } catch (e) { toast.error('Voucher loading failed'); }
+    finally { setLoading(false); }
+  };
+
+  const handleCreateVoucher = async () => {
+    try {
+      if (voucherForm.id) {
+         const res = await api.patch(`/api/hr/admin/vouchers/${voucherForm.id}`, { month: voucherForm.month, year: voucherForm.year });
+         if (res.ok) {
+           toast.success('Voucher updated successfully');
+           setShowVoucherModal(false);
+           fetchVouchers();
+         } else {
+           const err = await res.json();
+           toast.error(err.error || 'Voucher update failed');
+         }
+      } else {
+         const res = await api.post('/api/hr/admin/vouchers', voucherForm);
+         if (res.ok) {
+           toast.success('Monthly payroll voucher drafted');
+           setShowVoucherModal(false);
+           fetchVouchers();
+         } else {
+           const err = await res.json();
+           toast.error(err.error || 'Voucher creation failed');
+         }
+      }
+    } catch (e) { toast.error('Operation failed'); }
+  };
+
+  const handleProcessRequest = async (type, id, status, reason = null) => {
+    if (status === 'REJECTED' && !reason && type !== 'message') {
+       setRejectionModal({ show: true, type, id, reason: '' });
+       return;
+    }
+    if (type === 'message' && !reason) {
+       setResponseModal({ show: true, id, response: '' });
+       return;
+    }
+    try {
+      let endpoint = '';
+      if (type === 'loan') endpoint = `/api/hr/admin/loan-requests/${id}`;
+      else if (type === 'leave') endpoint = `/api/hr/admin/leave-requests/${id}`;
+      else if (type === 'material') endpoint = `/api/hr/admin/material-requests/${id}`;
+      else if (type === 'message') endpoint = `/api/hr/admin/messages/${id}`;
+
+      let body = { status, rejectionReason: reason };
+      if (type === 'message') body = { status: 'RESPONDED', response: reason };
+
+      const res = await api.patch(endpoint, body);
+      if (res.ok) {
+        toast.success(type === 'message' ? 'Response sent successfully' : `Request ${status.toLowerCase()} successfully`);
+        setRejectionModal({ show: false, type: '', id: '', reason: '' });
+        setResponseModal({ show: false, id: '', response: '' });
+        fetchRequests();
+      }
+    } catch (e) { toast.error('Processing failed'); }
+  };
+
+  const openRecordEditor = async (record) => {
+    setSelectedRecord(record);
+    setRecordForm({
+      baseSalary: record.baseSalary,
+      allowances: record.allowances || [],
+      deductions: record.deductions || []
+    });
+  };
+
+  const handleUpdateRecord = async () => {
+    try {
+      const res = await api.patch(`/api/hr/admin/payroll-records/${selectedRecord.id}`, recordForm);
+      if (res.ok) {
+        toast.success('Personnel payroll record synchronized');
+        setSelectedRecord(null);
+        handleOpenVoucher(selectedVoucher);
+      }
+    } catch (e) { toast.error('Record update failed'); }
+  };
+
+  const handleFinalizeVoucher = async (id) => {
+    if (!window.confirm('Are you sure you want to finalize this voucher? This will permanently increment loan repayments and lock the records.')) return;
+    try {
+      const res = await api.patch(`/api/hr/admin/vouchers/${id}/finalize`);
+      if (res.ok) {
+        toast.success('Monthly payroll cycle finalized and locked');
+        fetchVouchers();
+      }
+    } catch (e) { toast.error('Finalization sequence failed'); }
+  };
+
+  const handleUnlockVoucher = async (id) => {
+    if (!window.confirm('Are you sure you want to unlock this voucher? This will allow you to edit staff salary records again.')) return;
+    try {
+      const res = await api.patch(`/api/hr/admin/vouchers/${id}/unlock`);
+      if (res.ok) {
+        toast.success('Monthly payroll cycle unlocked and reverted to draft');
+        fetchVouchers();
+      }
+    } catch (e) { toast.error('Unlock sequence failed'); }
+  };
+
+  const handleDeleteVoucher = async (id) => {
+    if (!window.confirm('Are you sure you want to permanently delete this draft voucher? All associated records will be lost.')) return;
+    try {
+      const res = await api.delete(`/api/hr/admin/vouchers/${id}`);
+      if (res.ok) {
+        toast.success('Voucher deleted successfully');
+        fetchVouchers();
+      } else {
+        const err = await res.json();
+        toast.error(err.error || 'Deletion sequence failed');
+      }
+    } catch (e) { toast.error('Deletion sequence failed'); }
+  };
+
+  if (loading) return <div className="p-20 text-center animate-pulse font-black text-gray-300 uppercase tracking-widest">Accessing HR Strategic Hub...</div>;
+
+  return (
+    <div className="space-y-8 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-700">
+       <div className="bg-slate-900 p-8 sm:p-12 rounded-[3rem] shadow-2xl relative overflow-hidden text-white">
+          <div className="relative z-10">
+             <div className="flex items-center gap-3 mb-4">
+                <span className="px-4 py-1.5 bg-indigo-500/20 backdrop-blur-md rounded-full text-[10px] font-black uppercase tracking-[0.2em] border border-indigo-500/30 text-indigo-400">HR Administrative Hub</span>
+             </div>
+             <h1 className="text-4xl sm:text-6xl font-black tracking-tighter leading-none mb-8 uppercase italic">Human Resources</h1>
+             
+             <div className="flex flex-wrap gap-3">
+                <button onClick={() => setActiveTab('vouchers')} className={`px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'vouchers' ? 'bg-indigo-600 text-white shadow-lg' : 'bg-white/5 text-white/40 hover:bg-white/10'}`}>Payroll Vouchers</button>
+                <button onClick={() => setActiveTab('requests')} className={`px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'requests' ? 'bg-indigo-600 text-white shadow-lg' : 'bg-white/5 text-white/40 hover:bg-white/10'}`}>Approval Center</button>
+                <button onClick={() => setActiveTab('analytics')} className={`px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'analytics' ? 'bg-indigo-600 text-white shadow-lg' : 'bg-white/5 text-white/40 hover:bg-white/10'}`}>Analytics</button>
+             </div>
+          </div>
+       </div>
+
+       <AnimatePresence mode="wait">
+          {activeTab === 'vouchers' && (
+             <motion.div key="vouchers" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="space-y-6">
+                <div className="flex justify-between items-center bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm">
+                   <div>
+                      <h3 className="text-xl font-black text-gray-900 uppercase tracking-tighter">Strategic Payroll</h3>
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Manage monthly vouchers & disbursement</p>
+                   </div>
+                   <button onClick={() => {
+                        setVoucherForm({ month: new Date().getMonth() + 1, year: new Date().getFullYear(), id: null });
+                        setShowVoucherModal(true);
+                    }} className="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-indigo-600/20 hover:scale-105 transition-all">Draft New Voucher</button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                   {vouchers.map(v => (
+                      <div key={v.id} className="bg-white p-6 sm:p-8 rounded-[2.5rem] sm:rounded-[3rem] shadow-xl border border-gray-100 flex flex-col justify-between group hover:scale-[1.02] transition-all">
+                         <div>
+                            <div className="flex justify-between items-start mb-6">
+                               <span className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest ${v.status === 'FINALIZED' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>{v.status}</span>
+                               <span className="text-[10px] font-black text-gray-400 uppercase">{v._count?.records || 0} Records</span>
+                            </div>
+                            <h4 className="text-2xl font-black text-gray-900 uppercase tracking-tight mb-1">{new Date(0, v.month-1).toLocaleString('default', {month:'long'})} {v.year}</h4>
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-6">Disbursement Sequence</p>
+                         </div>
+                         <div className="space-y-3">
+                            <div className="flex justify-between text-[11px] font-bold">
+                               <span className="text-gray-400 uppercase">Gross Total</span>
+                               <span className="text-gray-900">₦{v.totalGross.toLocaleString()}</span>
+                            </div>
+                            <div className="flex justify-between text-[11px] font-bold">
+                               <span className="text-gray-400 uppercase">Net Disbursement</span>
+                               <span className="text-indigo-600">₦{v.totalNet.toLocaleString()}</span>
+                            </div>
+                            <div className="flex gap-2 mt-4">
+                               <button onClick={() => handleOpenVoucher(v)} className="flex-1 py-4 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-indigo-600 transition-all">Open Records</button>
+                               {v.status === 'DRAFT' && (
+                                  <>
+                                     <button onClick={() => {
+                                         setVoucherForm({ month: v.month, year: v.year, id: v.id });
+                                         setShowVoucherModal(true);
+                                     }} className="px-3 py-4 bg-gray-100 text-gray-600 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-gray-200 transition-all" title="Edit Month/Year">Edit</button>
+                                     <button onClick={() => handleFinalizeVoucher(v.id)} className="px-6 py-4 bg-emerald-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-emerald-700 transition-all" title="Finalize & Lock">Finalize</button>
+                                     <button onClick={() => handleDeleteVoucher(v.id)} className="px-3 py-4 bg-rose-50 text-rose-600 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-rose-600 hover:text-white transition-all" title="Delete Draft">
+                                        <svg className="w-4 h-4 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                     </button>
+                                  </>
+                               )}
+                               {v.status === 'FINALIZED' && (
+                                  <button onClick={() => handleUnlockVoucher(v.id)} className="px-6 py-4 bg-amber-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-amber-700 transition-all" title="Unlock Voucher">Unlock</button>
+                               )}
+                            </div>
+                         </div>
+                      </div>
+                   ))}
+                </div>
+             </motion.div>
+          )}
+
+          {activeTab === 'requests' && (
+             <motion.div key="requests" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="space-y-12">
+                <section>
+                   <h3 className="text-2xl font-black text-gray-900 uppercase tracking-tighter mb-6 italic px-4">Credit Facilities</h3>
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {requests.loans.map(loan => (
+                         <div key={loan.id} className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-xl flex justify-between items-center">
+                            <div>
+                               <p className="text-sm font-black text-gray-900 uppercase">{loan.staff.firstName} {loan.staff.lastName}</p>
+                               <p className="text-lg font-black text-indigo-600 leading-none my-1">₦{loan.amount.toLocaleString()}</p>
+                               <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{loan.reason}</p>
+                            </div>
+                            {loan.status === 'PENDING' ? (
+                               <div className="flex gap-2">
+                                  <button onClick={() => handleProcessRequest('loan', loan.id, 'APPROVED')} className="p-3 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-600 hover:text-white transition-all"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg></button>
+                                  <button onClick={() => handleProcessRequest('loan', loan.id, 'REJECTED')} className="p-3 bg-rose-50 text-rose-600 rounded-xl hover:bg-rose-600 hover:text-white transition-all"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+                               </div>
+                            ) : (
+                               <span className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest ${loan.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>{loan.status}</span>
+                            )}
+                         </div>
+                      ))}
+                   </div>
+                </section>
+
+                <section>
+                   <h3 className="text-2xl font-black text-gray-900 uppercase tracking-tighter mb-6 italic px-4">Leave Management</h3>
+                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {requests.leaves.map(leave => (
+                         <div key={leave.id} className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-xl">
+                            <div className="flex justify-between items-start mb-4">
+                               <span className="text-[9px] font-black text-indigo-600 uppercase tracking-widest px-3 py-1 bg-indigo-50 rounded-lg">{leave.type}</span>
+                               <span className="text-[8px] font-black text-gray-400">{new Date(leave.createdAt).toLocaleDateString()}</span>
+                            </div>
+                            <p className="text-sm font-black text-gray-900 uppercase mb-1">{leave.staff.firstName} {leave.staff.lastName}</p>
+                            <p className="text-xs text-gray-500 mb-4 font-medium">{leave.reason}</p>
+                            <div className="flex justify-between items-center">
+                               <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">{new Date(leave.startDate).toLocaleDateString()} → {new Date(leave.endDate).toLocaleDateString()}</p>
+                               {leave.status === 'PENDING' ? (
+                                  <div className="flex gap-2">
+                                     <button onClick={() => handleProcessRequest('leave', leave.id, 'APPROVED')} className="text-emerald-600 font-black text-[10px] uppercase hover:underline">Approve</button>
+                                     <button onClick={() => handleProcessRequest('leave', leave.id, 'REJECTED')} className="text-rose-600 font-black text-[10px] uppercase hover:underline">Deny</button>
+                                  </div>
+                               ) : (
+                                  <span className={`text-[10px] font-black uppercase ${leave.status === 'APPROVED' ? 'text-emerald-600' : 'text-rose-600'}`}>{leave.status}</span>
+                               )}
+                            </div>
+                         </div>
+                      ))}
+                   </div>
+                </section>
+
+                <section>
+                   <h3 className="text-2xl font-black text-gray-900 uppercase tracking-tighter mb-6 italic px-4">Supply Requisitions</h3>
+                   <div className="hidden lg:block bg-white rounded-[3rem] shadow-xl border border-gray-100 overflow-hidden">
+                      <table className="w-full">
+                         <thead>
+                            <tr className="text-left border-b border-gray-50 bg-gray-50/50">
+                               <th className="p-6 text-[9px] font-black text-gray-400 uppercase tracking-widest">Staff</th>
+                               <th className="p-6 text-[9px] font-black text-gray-400 uppercase tracking-widest">Items</th>
+                               <th className="p-6 text-[9px] font-black text-gray-400 uppercase tracking-widest">Priority</th>
+                               <th className="p-6 text-[9px] font-black text-gray-400 uppercase tracking-widest text-right">Action</th>
+                            </tr>
+                         </thead>
+                         <tbody className="divide-y divide-gray-50">
+                            {requests.materials.map(m => (
+                               <tr key={m.id}>
+                                  <td className="p-6 font-black text-gray-900 uppercase text-xs">{m.staff.firstName} {m.staff.lastName}</td>
+                                  <td className="p-6 flex flex-wrap gap-1">
+                                     {(() => {
+                                        try {
+                                           return JSON.parse(m.items).map((it, i) => <span key={i} className="text-[9px] font-bold bg-indigo-50 text-indigo-600 px-2 py-1 rounded-lg">{it}</span>);
+                                        } catch(e) { return <span className="text-[9px] text-gray-400 italic">Invalid Data</span>; }
+                                     })()}
+                                  </td>
+                                  <td className="p-6"><span className={`text-[9px] font-black uppercase ${m.priority === 'URGENT' ? 'text-rose-600' : 'text-gray-400'}`}>{m.priority}</span></td>
+                                  <td className="p-6 text-right">
+                                     {m.status === 'PENDING' ? (
+                                         <div className="flex justify-end gap-2">
+                                            <button onClick={() => handleProcessRequest('material', m.id, 'APPROVED')} className="p-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-600 hover:text-white transition-all" title="Approve & Disburse">
+                                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+                                            </button>
+                                            <button onClick={() => handleProcessRequest('material', m.id, 'REJECTED')} className="p-2 bg-rose-50 text-rose-600 rounded-lg hover:bg-rose-600 hover:text-white transition-all" title="Reject Request">
+                                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
+                                            </button>
+                                         </div>
+                                     ) : (
+                                        <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">{m.status}</span>
+                                     )}
+                                  </td>
+                               </tr>
+                            ))}
+                         </tbody>
+                      </table>
+                   </div>
+                   <div className="lg:hidden space-y-4 px-2">
+                      {requests.materials.map(m => (
+                         <div key={m.id} className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-xl space-y-4">
+                            <div className="flex justify-between items-start">
+                               <div>
+                                  <p className="text-xs font-black text-gray-900 uppercase">{m.staff.firstName} {m.staff.lastName}</p>
+                                  <p className={`text-[8px] font-black uppercase tracking-widest mt-1 ${m.priority === 'URGENT' ? 'text-rose-600' : 'text-gray-400'}`}>{m.priority} Priority</p>
+                               </div>
+                               <span className={`text-[8px] font-black uppercase tracking-widest px-3 py-1 rounded-full ${m.status === 'PENDING' ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600'}`}>{m.status}</span>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                               {(() => {
+                                  try {
+                                     return JSON.parse(m.items).map((it, i) => <span key={i} className="text-[9px] font-bold bg-indigo-50 text-indigo-600 px-3 py-1 rounded-lg">{it}</span>);
+                                  } catch(e) { return <span className="text-[9px] text-gray-400 italic">Invalid Data</span>; }
+                               })()}
+                            </div>
+                            {m.status === 'PENDING' && (
+                               <div className="flex gap-2">
+                                  <button onClick={() => handleProcessRequest('material', m.id, 'APPROVED')} className="flex-1 bg-emerald-600 text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest">Approve</button>
+                                  <button onClick={() => handleProcessRequest('material', m.id, 'REJECTED')} className="flex-1 bg-rose-600 text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest">Reject</button>
+                               </div>
+                            )}
+                         </div>
+                      ))}
+                   </div>
+                </section>
+
+                <section>
+                   <h3 className="text-2xl font-black text-gray-900 uppercase tracking-tighter mb-6 italic px-4">HR Communications & Complaints</h3>
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {requests.messages?.map(msg => (
+                         <div key={msg.id} className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-xl space-y-4 flex flex-col justify-between">
+                            <div>
+                               <div className="flex justify-between items-start border-b border-gray-50 pb-4 mb-4">
+                                  <div>
+                                     <p className="text-sm font-black text-gray-900 uppercase">{msg.staff.firstName} {msg.staff.lastName}</p>
+                                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">{new Date(msg.createdAt).toLocaleString()}</p>
+                                  </div>
+                                  <span className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest ${
+                                     msg.status === 'RESPONDED' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'
+                                  }`}>{msg.status}</span>
+                               </div>
+                               
+                               <div>
+                                  <h4 className="text-[11px] font-black text-indigo-600 uppercase tracking-widest mb-2">{msg.subject}</h4>
+                                  <p className="text-sm font-medium text-gray-700 whitespace-pre-wrap">{msg.message}</p>
+                               </div>
+                            </div>
+
+                            {msg.status === 'PENDING' ? (
+                               <div className="pt-2">
+                                  <button onClick={() => handleProcessRequest('message', msg.id, 'RESPONDED')} className="w-full bg-indigo-50 text-indigo-600 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all">Reply to Message</button>
+                               </div>
+                            ) : (
+                               <div className="mt-4 p-4 bg-indigo-50/50 rounded-xl border border-indigo-100 relative">
+                                  <div className="absolute -top-2 left-4 px-2 bg-indigo-100 text-indigo-600 text-[8px] font-black uppercase tracking-widest rounded-full">Your Response</div>
+                                  <p className="text-sm font-medium text-indigo-900 whitespace-pre-wrap">{msg.response}</p>
+                               </div>
+                            )}
+                         </div>
+                      ))}
+                      {requests.messages?.length === 0 && (
+                         <div className="col-span-1 md:col-span-2 py-10 text-center border-2 border-dashed border-gray-100 rounded-[2.5rem]">
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">No pending communications</p>
+                         </div>
+                      )}
+                   </div>
+                </section>
+             </motion.div>
+          )}
+
+          {activeTab === 'records' && selectedVoucher && (
+             <motion.div key="records" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="space-y-6">
+                <div className="flex justify-between items-center bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm">
+                   <div>
+                      <h3 className="text-xl font-black text-gray-900 uppercase tracking-tighter">
+                         {new Date(0, selectedVoucher.month-1).toLocaleString('default', {month:'long'})} {selectedVoucher.year} Records
+                      </h3>
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Individual Payroll Breakdown</p>
+                   </div>
+                   <div className="flex gap-4">
+                       <button 
+                          onClick={() => generatePayrollReport(selectedVoucher, schoolSettings)}
+                          className="bg-gray-900 text-white px-6 py-2 rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-emerald-600 transition-all flex items-center gap-2"
+                       >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2-2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+                          Print Payroll
+                       </button>
+                      {selectedVoucher.status === 'DRAFT' && (
+                         <button 
+                            onClick={async () => {
+                               try {
+                                  const res = await api.post(`/api/hr/admin/vouchers/${selectedVoucher.id}/sync`);
+                                  const data = await res.json();
+                                  if (res.ok) {
+                                     toast.success(data.message);
+                                     handleOpenVoucher(selectedVoucher);
+                                  } else {
+                                     toast.error(data.error);
+                                  }
+                               } catch (e) { toast.error('Sync failed'); }
+                            }}
+                            className="bg-indigo-50 text-indigo-600 px-6 py-2 rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all"
+                         >
+                            Sync Personnel
+                         </button>
+                      )}
+                      <button onClick={() => setActiveTab('vouchers')} className="text-gray-400 font-black text-[10px] uppercase hover:text-gray-600">Back to Vouchers</button>
+                   </div>
+                </div>
+
+                <div className="bg-white rounded-[3rem] shadow-xl border border-gray-100 overflow-hidden">
+                   <table className="w-full">
+                      <thead>
+                         <tr className="text-left border-b border-gray-50 bg-gray-50/50">
+                            <th className="p-6 text-[9px] font-black text-gray-400 uppercase tracking-widest">Personnel</th>
+                            <th className="p-6 text-[9px] font-black text-gray-400 uppercase tracking-widest">Base Salary</th>
+                            <th className="p-6 text-[9px] font-black text-gray-400 uppercase tracking-widest">Allowances</th>
+                            <th className="p-6 text-[9px] font-black text-gray-400 uppercase tracking-widest">Deductions</th>
+                            <th className="p-6 text-[9px] font-black text-gray-400 uppercase tracking-widest">Net Pay</th>
+                            <th className="p-6 text-[9px] font-black text-gray-400 uppercase tracking-widest text-right">Action</th>
+                         </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-50">
+                         {selectedVoucher.records.map(r => (
+                            <tr key={r.id}>
+                               <td className="p-6">
+                                  <p className="font-black text-gray-900 uppercase text-xs">{r.staff.firstName} {r.staff.lastName}</p>
+                                  <p className="text-[9px] font-bold text-gray-400 uppercase">{r.staff.role}</p>
+                               </td>
+                               <td className="p-6 font-bold text-gray-600">₦{r.baseSalary.toLocaleString()}</td>
+                               <td className="p-6 text-emerald-600 font-bold">₦{r.totalAllowances.toLocaleString()}</td>
+                               <td className="p-6 text-rose-600 font-bold">₦{r.totalDeductions.toLocaleString()}</td>
+                               <td className="p-6 font-black text-indigo-600">₦{r.netPay.toLocaleString()}</td>
+                               <td className="p-6 text-right">
+                                  <button 
+                                     onClick={() => openRecordEditor(r)}
+                                     disabled={selectedVoucher.status === 'FINALIZED'}
+                                     className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${selectedVoucher.status === 'FINALIZED' ? 'bg-gray-50 text-gray-300' : 'bg-gray-900 text-white hover:bg-indigo-600'}`}
+                                  >
+                                     {selectedVoucher.status === 'FINALIZED' ? 'Locked' : 'Edit'}
+                                  </button>
+                               </td>
+                            </tr>
+                         ))}
+                      </tbody>
+                   </table>
+                </div>
+             </motion.div>
+          )}
+          {activeTab === 'analytics' && (
+             <motion.div key="analytics" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                   <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col justify-center items-center text-center">
+                      <p className="text-gray-400 text-[10px] uppercase font-black tracking-widest mb-2">Total Staff</p>
+                      <h3 className="text-4xl font-black text-indigo-900">{staffPool.length}</h3>
+                   </div>
+                   <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col justify-center items-center text-center">
+                      <p className="text-gray-400 text-[10px] uppercase font-black tracking-widest mb-2">Pending Leaves</p>
+                      <h3 className="text-4xl font-black text-amber-500">{requests.leaves?.filter(l => l.status === 'PENDING').length || 0}</h3>
+                   </div>
+                   <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col justify-center items-center text-center">
+                      <p className="text-gray-400 text-[10px] uppercase font-black tracking-widest mb-2">Pending Loans</p>
+                      <h3 className="text-4xl font-black text-emerald-500">{requests.loans?.filter(l => l.status === 'PENDING').length || 0}</h3>
+                   </div>
+                   <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col justify-center items-center text-center">
+                      <p className="text-gray-400 text-[10px] uppercase font-black tracking-widest mb-2">Approved Vouchers</p>
+                      <h3 className="text-4xl font-black text-blue-500">{vouchers.filter(v => v.status === 'APPROVED').length}</h3>
+                   </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                  <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+                     <h3 className="text-lg font-black uppercase tracking-tighter mb-4 text-slate-800">Department Breakdown</h3>
+                     <div className="space-y-4">
+                        {/* Calculate dynamic breakdown based on staffPool roles */}
+                        {Array.from(new Set(staffPool.map(s => s.role))).map(role => {
+                           const count = staffPool.filter(s => s.role === role).length;
+                           const percentage = Math.round((count / Math.max(staffPool.length, 1)) * 100);
+                           return (
+                              <div key={role}>
+                                 <div className="flex justify-between text-xs font-bold mb-1">
+                                    <span className="uppercase tracking-widest text-gray-500">{role.replace('_', ' ')}</span>
+                                    <span>{percentage}%</span>
+                                 </div>
+                                 <div className="w-full bg-gray-100 rounded-full h-2">
+                                    <div className="bg-indigo-500 h-2 rounded-full" style={{ width: `${percentage}%` }}></div>
+                                 </div>
+                              </div>
+                           );
+                        })}
+                     </div>
+                  </div>
+
+                  <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+                     <h3 className="text-lg font-black uppercase tracking-tighter mb-4 text-slate-800">Financial Overview (Latest Draft)</h3>
+                     {vouchers.find(v => v.status === 'DRAFT') ? (
+                        <div className="flex flex-col h-full justify-center">
+                           <p className="text-sm text-gray-500 mb-2 font-bold uppercase tracking-widest">Total Monthly Projection</p>
+                           <h2 className="text-5xl font-black text-indigo-900 tracking-tighter">
+                              {schoolSettings?.currencySymbol || '₦'}
+                              {vouchers.find(v => v.status === 'DRAFT')?.totalAmount?.toLocaleString() || '0.00'}
+                           </h2>
+                           <p className="text-xs text-emerald-500 font-bold mt-2 bg-emerald-50 inline-block px-3 py-1 rounded-lg w-max">
+                              {vouchers.find(v => v.status === 'DRAFT')?.records?.length || 0} Employees Processed
+                           </p>
+                        </div>
+                     ) : (
+                        <div className="flex flex-col items-center justify-center h-40 text-center border-2 border-dashed border-gray-200 rounded-2xl">
+                           <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">No Active Drafts to Analyze</p>
+                        </div>
+                     )}
+                  </div>
+                </div>
+             </motion.div>
+           )}
+       </AnimatePresence>
+
+       {showVoucherModal && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+             <div className="bg-white rounded-[3rem] w-full max-w-sm p-10 shadow-2xl border border-gray-100">
+                <h2 className="text-3xl font-black text-gray-900 uppercase tracking-tighter italic mb-8">{voucherForm.id ? 'Edit Voucher' : 'Draft Voucher'}</h2>
+                <div className="space-y-6">
+                   <div className="grid grid-cols-2 gap-4">
+                      <div>
+                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 mb-2 block">Month</label>
+                         <select value={voucherForm.month} onChange={e => setVoucherForm({...voucherForm, month: parseInt(e.target.value)})} className="w-full bg-gray-50 border-2 border-gray-50 rounded-2xl py-4 px-6 outline-none font-black text-sm">
+                            {[1,2,3,4,5,6,7,8,9,10,11,12].map(m => <option key={m} value={m}>{new Date(0, m-1).toLocaleString('default', {month:'short'})}</option>)}
+                         </select>
+                      </div>
+                      <div>
+                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 mb-2 block">Year</label>
+                         <input type="number" value={voucherForm.year} onChange={e => setVoucherForm({...voucherForm, year: parseInt(e.target.value)})} className="w-full bg-gray-50 border-2 border-gray-50 rounded-2xl py-4 px-6 outline-none font-black text-sm" />
+                      </div>
+                   </div>
+                   <div className="flex gap-4 pt-4">
+                      <button onClick={() => setShowVoucherModal(false)} className="flex-1 py-4 font-black uppercase text-[10px] tracking-widest text-gray-400">Abort</button>
+                      <button onClick={handleCreateVoucher} className="flex-2 bg-indigo-600 text-white py-4 px-8 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-indigo-600/20 hover:scale-105 transition-all">{voucherForm.id ? 'Update Sequence' : 'Initialize Sequence'}</button>
+                   </div>
+                </div>
+             </div>
+          </div>
+       )}
+
+       {selectedRecord && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+             <div className="bg-white rounded-[3rem] w-full max-w-xl p-10 shadow-2xl border border-gray-100 max-h-[90vh] overflow-y-auto">
+                <h2 className="text-3xl font-black text-gray-900 uppercase tracking-tighter italic mb-2">Edit Record</h2>
+                <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-8">{selectedRecord.staff.firstName} {selectedRecord.staff.lastName}</p>
+                
+                <div className="space-y-6">
+                   <div>
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 mb-2 block">Base Salary</label>
+                      <input type="number" value={recordForm.baseSalary} onChange={e => setRecordForm({...recordForm, baseSalary: parseFloat(e.target.value)})} className="w-full bg-gray-50 border-2 border-gray-50 rounded-2xl py-4 px-6 outline-none font-black text-sm" />
+                   </div>
+
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-4">
+                         <div className="flex justify-between items-center">
+                            <label className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Allowances</label>
+                            <button onClick={() => setRecordForm({...recordForm, allowances: [...recordForm.allowances, { type: 'Other', amount: 0, description: '' }]})} className="text-[9px] font-black uppercase text-indigo-600">+ Add</button>
+                         </div>
+                         {recordForm.allowances.map((a, i) => (
+                            <div key={i} className="flex gap-2 items-center">
+                               <input placeholder="Type" value={a.type} onChange={e => {
+                                  const next = [...recordForm.allowances];
+                                  next[i].type = e.target.value;
+                                  setRecordForm({...recordForm, allowances: next});
+                               }} className="flex-1 bg-gray-50 rounded-xl py-2 px-3 text-[10px] font-bold" />
+                               <input type="number" placeholder="Amount" value={a.amount} onChange={e => {
+                                  const next = [...recordForm.allowances];
+                                  next[i].amount = e.target.value;
+                                  setRecordForm({...recordForm, allowances: next});
+                               }} className="w-24 bg-gray-50 rounded-xl py-2 px-3 text-[10px] font-bold" />
+                               <button onClick={() => setRecordForm({...recordForm, allowances: recordForm.allowances.filter((_, idx) => idx !== i)})} className="text-rose-600">×</button>
+                            </div>
+                         ))}
+                      </div>
+
+                      <div className="space-y-4">
+                         <div className="flex justify-between items-center">
+                            <label className="text-[10px] font-black text-rose-600 uppercase tracking-widest">Deductions</label>
+                            <button onClick={() => setRecordForm({...recordForm, deductions: [...recordForm.deductions, { reason: 'Other', amount: 0 }]})} className="text-[9px] font-black uppercase text-indigo-600">+ Add</button>
+                         </div>
+                         {recordForm.deductions.map((d, i) => (
+                            <div key={i} className="flex gap-2 items-center">
+                               <input placeholder="Reason" value={d.reason} onChange={e => {
+                                  const next = [...recordForm.deductions];
+                                  next[i].reason = e.target.value;
+                                  setRecordForm({...recordForm, deductions: next});
+                               }} className="flex-1 bg-gray-50 rounded-xl py-2 px-3 text-[10px] font-bold" />
+                               <input type="number" placeholder="Amount" value={d.amount} onChange={e => {
+                                  const next = [...recordForm.deductions];
+                                  next[i].amount = e.target.value;
+                                  setRecordForm({...recordForm, deductions: next});
+                               }} className="w-24 bg-gray-50 rounded-xl py-2 px-3 text-[10px] font-bold" />
+                               <button onClick={() => setRecordForm({...recordForm, deductions: recordForm.deductions.filter((_, idx) => idx !== i)})} className="text-rose-600">×</button>
+                            </div>
+                         ))}
+                      </div>
+                   </div>
+
+                   <div className="flex gap-4 pt-4 border-t border-gray-50 mt-8">
+                      <button onClick={() => setSelectedRecord(null)} className="flex-1 py-4 font-black uppercase text-[10px] tracking-widest text-gray-400">Abort</button>
+                      <button onClick={handleUpdateRecord} className="flex-2 bg-indigo-600 text-white py-4 px-8 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-indigo-600/20 hover:scale-105 transition-all">Synchronize Record</button>
+                   </div>
+                </div>
+             </div>
+          </div>
+       )}
+        {rejectionModal.show && (
+           <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[110] flex items-center justify-center p-4">
+              <div className="bg-white rounded-[3rem] w-full max-w-sm p-10 shadow-2xl border border-gray-100">
+                 <h2 className="text-3xl font-black text-rose-600 uppercase tracking-tighter italic mb-2">Deny Request</h2>
+                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-8">Provide a reason for the rejection</p>
+                 
+                 <div className="space-y-6">
+                    <div>
+                       <textarea 
+                          value={rejectionModal.reason} 
+                          onChange={e => setRejectionModal({...rejectionModal, reason: e.target.value})} 
+                          className="w-full bg-gray-50 border-2 border-gray-50 rounded-2xl py-4 px-6 outline-none font-bold text-sm h-32 resize-none" 
+                          placeholder="Why is this request being denied?"
+                       ></textarea>
+                    </div>
+                    <div className="flex gap-4 pt-4">
+                       <button onClick={() => setRejectionModal({ show: false, type: '', id: '', reason: '' })} className="flex-1 py-4 font-black uppercase text-[10px] tracking-widest text-gray-400">Abort</button>
+                       <button 
+                          onClick={() => handleProcessRequest(rejectionModal.type, rejectionModal.id, 'REJECTED', rejectionModal.reason)} 
+                          className="flex-2 bg-rose-600 text-white py-4 px-8 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-rose-600/20 hover:scale-105 transition-all"
+                       >
+                          Confirm Denial
+                       </button>
+                    </div>
+                 </div>
+              </div>
+           </div>
+        )}
+         {responseModal.show && (
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[110] flex items-center justify-center p-4">
+               <div className="bg-white rounded-[3rem] w-full max-w-sm p-10 shadow-2xl border border-gray-100">
+                  <h2 className="text-3xl font-black text-indigo-600 uppercase tracking-tighter italic mb-2">Respond</h2>
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-8">Write a response to the staff member</p>
+                  
+                  <div className="space-y-6">
+                     <div>
+                        <textarea 
+                           value={responseModal.response} 
+                           onChange={e => setResponseModal({...responseModal, response: e.target.value})} 
+                           className="w-full bg-gray-50 border-2 border-gray-50 rounded-2xl py-4 px-6 outline-none font-bold text-sm h-32 resize-none focus:ring-4 focus:ring-indigo-500/10 transition-all" 
+                           placeholder="Enter your response here..."
+                        ></textarea>
+                     </div>
+                     <div className="flex gap-4 pt-4">
+                        <button onClick={() => setResponseModal({ show: false, id: '', response: '' })} className="flex-1 py-4 font-black uppercase text-[10px] tracking-widest text-gray-400">Abort</button>
+                        <button 
+                           onClick={() => handleProcessRequest('message', responseModal.id, 'RESPONDED', responseModal.response)} 
+                           className="flex-2 bg-indigo-600 text-white py-4 px-8 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-indigo-600/20 hover:scale-105 transition-all"
+                        >
+                           Send Response
+                        </button>
+                     </div>
+                  </div>
+               </div>
+            </div>
+         )}
+    </div>
+  );
+};
+
+export default HRAdminDashboard;

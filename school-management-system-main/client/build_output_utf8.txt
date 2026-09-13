@@ -1,0 +1,159 @@
+﻿
+> client@1.0.0 build
+> vite build
+
+[36mvite v6.4.1 [32mbuilding for production...[36m[39m
+node.exe : 
+[baseline-browser-mapping] 
+The data in this module is 
+over two months old.  To 
+ensure accurate Baseline 
+data, please update: `npm i ba
+seline-browser-mapping@latest 
+-D`
+At line:1 char:1
++ & "C:\Program 
+Files\nodejs/node.exe" 
+"C:\Program 
+Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~
+    + CategoryInfo          : 
+    NotSpecified: ([baseline  
+  -brows...ping@latest -D`:   
+ String) [], RemoteExcepti    
+on
+    + FullyQualifiedErrorId : 
+    NativeCommandError
+ 
+transforming...
+[32mÔ£ô[39m 2322 modules transformed.
+rendering chunks...
+computing gzip size...
+[2mdist/[22m[32mindex.html                                     [39m[1m[2m    2.93 kB[22m[1m[22m[2m Ôöé gzip:   1.28 kB[22m
+[2mdist/[22m[35massets/index-DM9_6qd9.css                      [39m[1m[2m  146.87 kB[22m[1m[22m[2m Ôöé gzip:  20.40 kB[22m
+[2mdist/[22m[36massets/toast-y-eomXZb.js                       [39m[1m[2m    0.19 kB[22m[1m[22m[2m Ôöé gzip:   0.16 kB[22m
+[2mdist/[22m[36massets/formatters-DOKCe7pS.js                  [39m[1m[2m    0.44 kB[22m[1m[22m[2m Ôöé gzip:   0.22 kB[22m
+[2mdist/[22m[36massets/useTermContext-BthxhVrE.js              [39m[1m[2m    0.64 kB[22m[1m[22m[2m Ôöé gzip:   0.39 kB[22m
+[2mdist/[22m[36massets/ParentDashboardWrapper-BbPvPtTc.js      [39m[1m[2m    0.70 kB[22m[1m[22m[2m Ôöé gzip:   0.42 kB[22m
+[2mdist/[22m[36massets/DemoRedirect-BftuTbhk.js                [39m[1m[2m    1.20 kB[22m[1m[22m[2m Ôöé gzip:   0.67 kB[22m
+[2mdist/[22m[36massets/ResultManager-COmyeTYU.js               [39m[1m[2m    1.40 kB[22m[1m[22m[2m Ôöé gzip:   0.63 kB[22m
+[2mdist/[22m[36massets/FileSaver.min-nxLbYBcu.js               [39m[1m[2m    2.64 kB[22m[1m[22m[2m Ôöé gzip:   1.27 kB[22m
+[2mdist/[22m[36massets/AttendanceTracker-C79hlmfm.js           [39m[1m[2m    3.20 kB[22m[1m[22m[2m Ôöé gzip:   1.41 kB[22m
+[2mdist/[22m[36massets/NoticeBoard-AXNDjGyG.js                 [39m[1m[2m    3.53 kB[22m[1m[22m[2m Ôöé gzip:   1.46 kB[22m
+[2mdist/[22m[36massets/AccountantDashboard-ZeBmhxgj.js         [39m[1m[2m    3.64 kB[22m[1m[22m[2m Ôöé gzip:   1.34 kB[22m
+[2mdist/[22m[36massets/AlumniLogin-D4t-Zskz.js                 [39m[1m[2m    3.76 kB[22m[1m[22m[2m Ôöé gzip:   1.51 kB[22m
+[2mdist/[22m[36massets/TranscriptVerification-5Ybh-Ie2.js      [39m[1m[2m    3.78 kB[22m[1m[22m[2m Ôöé gzip:   1.28 kB[22m
+[2mdist/[22m[36massets/Gallery-BFss3Du5.js                     [39m[1m[2m    4.55 kB[22m[1m[22m[2m Ôöé gzip:   1.73 kB[22m
+[2mdist/[22m[36massets/StudentList-BPWZ1jbC.js                 [39m[1m[2m    4.92 kB[22m[1m[22m[2m Ôöé gzip:   1.52 kB[22m
+[2mdist/[22m[36massets/SubjectManagement-B-7LCwix.js           [39m[1m[2m    5.03 kB[22m[1m[22m[2m Ôöé gzip:   1.74 kB[22m
+[2mdist/[22m[36massets/PaymentVerify-BKhQOK_D.js               [39m[1m[2m    5.03 kB[22m[1m[22m[2m Ôöé gzip:   1.84 kB[22m
+[2mdist/[22m[36massets/NewsEvents-XP5RJWxf.js                  [39m[1m[2m    5.10 kB[22m[1m[22m[2m Ôöé gzip:   1.81 kB[22m
+[2mdist/[22m[36massets/CertificateVerification-lTWXDeDW.js     [39m[1m[2m    5.23 kB[22m[1m[22m[2m Ôöé gzip:   1.48 kB[22m
+[2mdist/[22m[36massets/TestimonialVerification-CpF8yO7_.js     [39m[1m[2m    5.45 kB[22m[1m[22m[2m Ôöé gzip:   1.53 kB[22m
+[2mdist/[22m[36massets/GalleryManagement-CYr-dFJQ.js           [39m[1m[2m    6.13 kB[22m[1m[22m[2m Ôöé gzip:   2.18 kB[22m
+[2mdist/[22m[36massets/TeacherAvailability-mMOoraly.js         [39m[1m[2m    6.52 kB[22m[1m[22m[2m Ôöé gzip:   2.16 kB[22m
+[2mdist/[22m[36massets/SystemSettings-BqK6zWt8.js              [39m[1m[2m    7.06 kB[22m[1m[22m[2m Ôöé gzip:   2.00 kB[22m
+[2mdist/[22m[36massets/PeriodSetup-BaJvxa_O.js                 [39m[1m[2m    7.21 kB[22m[1m[22m[2m Ôöé gzip:   2.40 kB[22m
+[2mdist/[22m[36massets/AlumniPortal-HFV1upAV.js                [39m[1m[2m    7.22 kB[22m[1m[22m[2m Ôöé gzip:   2.39 kB[22m
+[2mdist/[22m[36massets/NewsEventsManagement-DpI13PQV.js        [39m[1m[2m    7.25 kB[22m[1m[22m[2m Ôöé gzip:   2.19 kB[22m
+[2mdist/[22m[36massets/AlumniDirectory-CFxWnxqK.js             [39m[1m[2m    7.29 kB[22m[1m[22m[2m Ôöé gzip:   2.69 kB[22m
+[2mdist/[22m[36massets/Contact-MWItTI4l.js                     [39m[1m[2m    7.40 kB[22m[1m[22m[2m Ôöé gzip:   2.40 kB[22m
+[2mdist/[22m[36massets/FeeStructureSetup-Dd77THb9.js           [39m[1m[2m    7.64 kB[22m[1m[22m[2m Ôöé gzip:   2.28 kB[22m
+[2mdist/[22m[36massets/TeacherProfile-BplymrwN.js              [39m[1m[2m    7.65 kB[22m[1m[22m[2m Ôöé gzip:   2.52 kB[22m
+[2mdist/[22m[36massets/ClassSubjects-BFt4rQkQ.js               [39m[1m[2m    7.80 kB[22m[1m[22m[2m Ôöé gzip:   2.64 kB[22m
+[2mdist/[22m[36massets/PromotionHistory-BmR3CH8t.js            [39m[1m[2m    8.71 kB[22m[1m[22m[2m Ôöé gzip:   2.85 kB[22m
+[2mdist/[22m[36massets/HistoryBulkCertificateView-vtHzETJw.js  [39m[1m[2m    9.25 kB[22m[1m[22m[2m Ôöé gzip:   2.76 kB[22m
+[2mdist/[22m[36massets/PsychomotorDomains-BkK2q3Jk.js          [39m[1m[2m    9.47 kB[22m[1m[22m[2m Ôöé gzip:   3.10 kB[22m
+[2mdist/[22m[36massets/BulkTestimonialView-A5QVlAdg.js         [39m[1m[2m    9.56 kB[22m[1m[22m[2m Ôöé gzip:   3.21 kB[22m
+[2mdist/[22m[36massets/BulkCertificateView-BR-MQCdY.js         [39m[1m[2m    9.62 kB[22m[1m[22m[2m Ôöé gzip:   2.86 kB[22m
+[2mdist/[22m[36massets/HistoryBulkTestimonialView-DQcPW7r4.js  [39m[1m[2m    9.62 kB[22m[1m[22m[2m Ôöé gzip:   3.24 kB[22m
+[2mdist/[22m[36massets/HolidayManager-zG16Ib68.js              [39m[1m[2m    9.79 kB[22m[1m[22m[2m Ôöé gzip:   2.77 kB[22m
+[2mdist/[22m[36massets/TeacherAssignments-D4Bp1lDb.js          [39m[1m[2m   10.04 kB[22m[1m[22m[2m Ôöé gzip:   2.90 kB[22m
+[2mdist/[22m[36massets/MiscellaneousFees-BX0ezuag.js           [39m[1m[2m   10.09 kB[22m[1m[22m[2m Ôöé gzip:   2.79 kB[22m
+[2mdist/[22m[36massets/ParentAttendanceView-CUsviY8s.js        [39m[1m[2m   10.10 kB[22m[1m[22m[2m Ôöé gzip:   2.94 kB[22m
+[2mdist/[22m[36massets/ChangePassword-C5YrJRQj.js              [39m[1m[2m   10.23 kB[22m[1m[22m[2m Ôöé gzip:   3.23 kB[22m
+[2mdist/[22m[36massets/PromotionManager-B8_rViqR.js            [39m[1m[2m   10.28 kB[22m[1m[22m[2m Ôöé gzip:   3.28 kB[22m
+[2mdist/[22m[36massets/ExamCardGenerator-N8XZcI05.js           [39m[1m[2m   10.30 kB[22m[1m[22m[2m Ôöé gzip:   3.41 kB[22m
+[2mdist/[22m[36massets/Billing-DPcdFUGQ.js                     [39m[1m[2m   10.41 kB[22m[1m[22m[2m Ôöé gzip:   3.57 kB[22m
+[2mdist/[22m[36massets/index-w52EPzdn.js                       [39m[1m[2m   10.51 kB[22m[1m[22m[2m Ôöé gzip:   4.22 kB[22m
+[2mdist/[22m[36massets/ParentQuranView-BBLs9zuJ.js             [39m[1m[2m   11.06 kB[22m[1m[22m[2m Ôöé gzip:   2.89 kB[22m
+[2mdist/[22m[36massets/StudentDashboard-CS0oI78d.js            [39m[1m[2m   11.12 kB[22m[1m[22m[2m Ôöé gzip:   3.18 kB[22m
+[2mdist/[22m[36massets/QuranProgress-Cg7iDat6.js               [39m[1m[2m   11.46 kB[22m[1m[22m[2m Ôöé gzip:   3.09 kB[22m
+[2mdist/[22m[36massets/TeacherMessages-R1eRiiwE.js             [39m[1m[2m   11.74 kB[22m[1m[22m[2m Ôöé gzip:   3.38 kB[22m
+[2mdist/[22m[36massets/ArrivalScanner-Cwf6gepN.js              [39m[1m[2m   12.44 kB[22m[1m[22m[2m Ôöé gzip:   3.71 kB[22m
+[2mdist/[22m[36massets/CertificateView-brhHgzjG.js             [39m[1m[2m   12.48 kB[22m[1m[22m[2m Ôöé gzip:   3.78 kB[22m
+[2mdist/[22m[36massets/CBTQuestionBank-Ds-faI1j.js             [39m[1m[2m   12.56 kB[22m[1m[22m[2m Ôöé gzip:   3.86 kB[22m
+[2mdist/[22m[36massets/ExamConfig-B8XHGAlX.js                  [39m[1m[2m   12.60 kB[22m[1m[22m[2m Ôöé gzip:   3.42 kB[22m
+[2mdist/[22m[36massets/ParentMessages-P19QdLwM.js              [39m[1m[2m   13.09 kB[22m[1m[22m[2m Ôöé gzip:   3.69 kB[22m
+[2mdist/[22m[36massets/Analytics-DpLrGnoH.js                   [39m[1m[2m   13.45 kB[22m[1m[22m[2m Ôöé gzip:   4.05 kB[22m
+[2mdist/[22m[36massets/LearningResources-CPawq5Kg.js           [39m[1m[2m   13.91 kB[22m[1m[22m[2m Ôöé gzip:   4.23 kB[22m
+[2mdist/[22m[36massets/TestimonialView-BG_fWcHi.js             [39m[1m[2m   14.27 kB[22m[1m[22m[2m Ôöé gzip:   4.52 kB[22m
+[2mdist/[22m[36massets/MyClass-gB9kg8cQ.js                     [39m[1m[2m   14.38 kB[22m[1m[22m[2m Ôöé gzip:   4.00 kB[22m
+[2mdist/[22m[36massets/AdminTeacherDashboard-BkiLo-CK.js       [39m[1m[2m   14.69 kB[22m[1m[22m[2m Ôöé gzip:   4.10 kB[22m
+[2mdist/[22m[36massets/TranscriptView-DraIqZAu.js              [39m[1m[2m   15.39 kB[22m[1m[22m[2m Ôöé gzip:   4.34 kB[22m
+[2mdist/[22m[36massets/LicenseManagement-Ctj5WMWO.js           [39m[1m[2m   16.11 kB[22m[1m[22m[2m Ôöé gzip:   3.60 kB[22m
+[2mdist/[22m[36massets/PasswordReset-CPGbwvxz.js               [39m[1m[2m   16.52 kB[22m[1m[22m[2m Ôöé gzip:   4.43 kB[22m
+[2mdist/[22m[36massets/index-LmTZoHIN.js                       [39m[1m[2m   16.69 kB[22m[1m[22m[2m Ôöé gzip:   6.29 kB[22m
+[2mdist/[22m[36massets/BulkStudentUpload-BUOM3YKY.js           [39m[1m[2m   17.15 kB[22m[1m[22m[2m Ôöé gzip:   5.33 kB[22m
+[2mdist/[22m[36massets/ClassManagement-24uOUPMW.js             [39m[1m[2m   17.28 kB[22m[1m[22m[2m Ôöé gzip:   4.49 kB[22m
+[2mdist/[22m[36massets/CBTPortal-srbHPXNh.js                   [39m[1m[2m   17.40 kB[22m[1m[22m[2m Ôöé gzip:   5.27 kB[22m
+[2mdist/[22m[36massets/StudentProfile-Cv3A5GFX.js              [39m[1m[2m   18.44 kB[22m[1m[22m[2m Ôöé gzip:   4.20 kB[22m
+[2mdist/[22m[36massets/ExamCardManagement-D6GigbS7.js          [39m[1m[2m   18.45 kB[22m[1m[22m[2m Ôöé gzip:   5.01 kB[22m
+[2mdist/[22m[36massets/ResultEntry-D7PAZAK0.js                 [39m[1m[2m   18.67 kB[22m[1m[22m[2m Ôöé gzip:   5.06 kB[22m
+[2mdist/[22m[36massets/AcademicSetup-Dyvw537P.js               [39m[1m[2m   18.77 kB[22m[1m[22m[2m Ôöé gzip:   4.26 kB[22m
+[2mdist/[22m[36massets/StudentFees-7DpLtYNd.js                 [39m[1m[2m   19.04 kB[22m[1m[22m[2m Ôöé gzip:   5.25 kB[22m
+[2mdist/[22m[36massets/papaparse.min-E7HB13Si.js               [39m[1m[2m   19.48 kB[22m[1m[22m[2m Ôöé gzip:   7.24 kB[22m
+[2mdist/[22m[36massets/ExamSubmissionTracker-DaURu4-U.js       [39m[1m[2m   19.86 kB[22m[1m[22m[2m Ôöé gzip:   5.12 kB[22m
+[2mdist/[22m[36massets/QuranTracker-DITggdp3.js                [39m[1m[2m   20.26 kB[22m[1m[22m[2m Ôöé gzip:   3.88 kB[22m
+[2mdist/[22m[36massets/CumulativeReport-DWflq41C.js            [39m[1m[2m   21.05 kB[22m[1m[22m[2m Ôöé gzip:   5.72 kB[22m
+[2mdist/[22m[36massets/MiscFeePayments-CCkxAC3b.js             [39m[1m[2m   21.61 kB[22m[1m[22m[2m Ôöé gzip:   5.37 kB[22m
+[2mdist/[22m[36massets/ProgressiveReport-DPohBXc8.js           [39m[1m[2m   21.81 kB[22m[1m[22m[2m Ôöé gzip:   5.17 kB[22m
+[2mdist/[22m[36massets/purify.es-C_uT9hQ1.js                   [39m[1m[2m   21.98 kB[22m[1m[22m[2m Ôöé gzip:   8.74 kB[22m
+[2mdist/[22m[36massets/Attendance-Cdfmf5Qf.js                  [39m[1m[2m   23.53 kB[22m[1m[22m[2m Ôöé gzip:   6.98 kB[22m
+[2mdist/[22m[36massets/AlumniDashboard-DS553fLq.js             [39m[1m[2m   23.83 kB[22m[1m[22m[2m Ôöé gzip:   5.98 kB[22m
+[2mdist/[22m[36massets/Homework-C11JnZnR.js                    [39m[1m[2m   24.07 kB[22m[1m[22m[2m Ôöé gzip:   5.77 kB[22m
+[2mdist/[22m[36massets/icons-Dbv_qmhc.js                       [39m[1m[2m   24.26 kB[22m[1m[22m[2m Ôöé gzip:   4.66 kB[22m
+[2mdist/[22m[36massets/StaffAttendanceReport-COAm7Y1x.js       [39m[1m[2m   24.26 kB[22m[1m[22m[2m Ôöé gzip:   6.15 kB[22m
+[2mdist/[22m[36massets/IDCardGenerator-BqXth78k.js             [39m[1m[2m   25.81 kB[22m[1m[22m[2m Ôöé gzip:   6.71 kB[22m
+[2mdist/[22m[36massets/ParentManagement-C_MXPKe8.js            [39m[1m[2m   28.69 kB[22m[1m[22m[2m Ôöé gzip:   6.09 kB[22m
+[2mdist/[22m[36massets/BulkResultUpload-DHneqzfs.js            [39m[1m[2m   29.16 kB[22m[1m[22m[2m Ôöé gzip:   8.66 kB[22m
+[2mdist/[22m[36massets/BulkReportDownload-X840g0zD.js          [39m[1m[2m   30.82 kB[22m[1m[22m[2m Ôöé gzip:   7.67 kB[22m
+[2mdist/[22m[36massets/ReportCard-N4jE_bHJ.js                  [39m[1m[2m   33.09 kB[22m[1m[22m[2m Ôöé gzip:   7.85 kB[22m
+[2mdist/[22m[36massets/TermReportCard-zyHVeNdp.js              [39m[1m[2m   33.11 kB[22m[1m[22m[2m Ôöé gzip:   8.27 kB[22m
+[2mdist/[22m[36massets/ParentDashboard-sNkap-JO.js             [39m[1m[2m   33.42 kB[22m[1m[22m[2m Ôöé gzip:   7.26 kB[22m
+[2mdist/[22m[36massets/UserManagement-IgZwd0SG.js              [39m[1m[2m   34.54 kB[22m[1m[22m[2m Ôöé gzip:   7.77 kB[22m
+[2mdist/[22m[36massets/PrintReceiptModal-DnAr7uCm.js           [39m[1m[2m   36.63 kB[22m[1m[22m[2m Ôöé gzip:   7.52 kB[22m
+[2mdist/[22m[36massets/CBTManagement-M2PhrdL3.js               [39m[1m[2m   37.37 kB[22m[1m[22m[2m Ôöé gzip:   8.82 kB[22m
+[2mdist/[22m[36massets/Settings-BlTCxefc.js                    [39m[1m[2m   38.79 kB[22m[1m[22m[2m Ôöé gzip:   8.13 kB[22m
+[2mdist/[22m[36massets/LandingPage-qHowGdFf.js                 [39m[1m[2m   40.05 kB[22m[1m[22m[2m Ôöé gzip:  10.13 kB[22m
+[2mdist/[22m[36massets/Timetable-Dqeaf2pl.js                   [39m[1m[2m   43.62 kB[22m[1m[22m[2m Ôöé gzip:  10.54 kB[22m
+[2mdist/[22m[36massets/SuperAdminDashboard-Bx3KrutJ.js         [39m[1m[2m   47.57 kB[22m[1m[22m[2m Ôöé gzip:   9.94 kB[22m
+[2mdist/[22m[36massets/StudentManagement-BQrqFU-I.js           [39m[1m[2m   48.90 kB[22m[1m[22m[2m Ôöé gzip:  11.15 kB[22m
+[2mdist/[22m[36massets/AlumniManagement-DrDzS6Ky.js            [39m[1m[2m   49.35 kB[22m[1m[22m[2m Ôöé gzip:  10.15 kB[22m
+[2mdist/[22m[36massets/AdvancedAnalytics-DBi8aKV3.js           [39m[1m[2m   55.46 kB[22m[1m[22m[2m Ôöé gzip:  11.65 kB[22m
+[2mdist/[22m[36massets/index.es-BDSWEH68.js                    [39m[1m[2m  159.50 kB[22m[1m[22m[2m Ôöé gzip:  53.48 kB[22m
+[2mdist/[22m[36massets/react-vendor-B23QTuiI.js                [39m[1m[2m  177.02 kB[22m[1m[22m[2m Ôöé gzip:  58.42 kB[22m
+[2mdist/[22m[36massets/chart-vendor-CyTPhzqQ.js                [39m[1m[2m  193.06 kB[22m[1m[22m[2m Ôöé gzip:  67.29 kB[22m
+[2mdist/[22m[36massets/html2canvas.esm-QH1iLAAe.js             [39m[1m[2m  202.38 kB[22m[1m[22m[2m Ôöé gzip:  48.04 kB[22m
+[2mdist/[22m[36massets/index-DZre3xQF.js                       [39m[1m[2m  279.48 kB[22m[1m[22m[2m Ôöé gzip:  75.44 kB[22m
+[2mdist/[22m[36massets/jspdf.plugin.autotable-BnPYSgiW.js      [39m[1m[2m  398.23 kB[22m[1m[22m[2m Ôöé gzip: 130.72 kB[22m
+[2mdist/[22m[36massets/xlsx-DraEgqC5.js                        [39m[1m[2m  424.74 kB[22m[1m[22m[2m Ôöé gzip: 141.76 kB[22m
+[2mdist/[22m[36massets/FeeManagement-Ce6_Pa8x.js               [39m[1m[33m1,058.38 kB[39m[22m[2m Ôöé gzip: 296.46 kB[22m
+[33m
+(!) Some chunks are larger 
+than 1000 kB after 
+minification. Consider:
+- Using dynamic import() to 
+code-split the application
+- Use build.rollupOptions.outp
+ut.manualChunks to improve 
+chunking: https://rollupjs.org
+/configuration-options/#output
+-manualchunks
+- Adjust chunk size limit for 
+this warning via build.chunkSi
+zeWarningLimit.[39m
+[32mÔ£ô built in 1m 41s[39m
+

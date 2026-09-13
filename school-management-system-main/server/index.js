@@ -1,0 +1,622 @@
+// Stability Overhaul v2
+// Build Marker: Parent Identification Enhancements - 2026-04-26 23:10
+const express = require('express');
+require('express-async-errors');
+const cors = require('cors');
+const cookieParser = require('cookie-parser');
+const fs = require('fs');
+const path = require('path');
+const compression = require('compression');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
+
+// Ensure requ ired directories exist
+[
+  'logs',
+  'uploads',
+  'uploads/students',
+  'uploads/teachers',
+  'uploads/teacher-photos',
+  'uploads/documents',
+  'uploads/certificates',
+  'uploads/gallery',
+  'uploads/news'
+].forEach(dir => {
+  if (!fs.existsSync(dir)) {
+    try {
+      fs.mkdirSync(dir, { recursive: true });
+      console.log(`[Server] Created directory: ${dir}`);
+    } catch (e) {
+      console.warn(`[Server] Could not create directory ${dir}:`, e.message);
+    }
+  }
+});
+
+const { initBackupService } = require('./services/backupService');
+initBackupService();
+
+const app = express();
+app.use(compression()); // Enable Gzip compression for all responses
+let activeServer = null;
+
+// Global error handlers
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  // process.exit(1);
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('==================== UNCAUGHT EXCEPTION ====================');
+  console.error('Error:', error);
+  console.error('Stack:', error.stack);
+  console.error('===========================================================');
+  process.exit(1); // Exit so Render/PM2 can restart the process
+});
+
+/**
+ * CRITICAL SYSTEM INTEGRITY GUARD
+ * Verifies that essential security and auth exports exist before booting.
+ * This prevents "undefined" middleware errors from crashing requests.
+ */
+try {
+  const auth = require('./middleware/auth');
+  const requiredAuthMethods = ['authenticate', 'authorize', 'optionalAuth'];
+
+  requiredAuthMethods.forEach(method => {
+    if (typeof auth[method] !== 'function') {
+      throw new Error(`[CRITICAL] Auth module is missing required function: ${method}. Check server/middleware/auth.js exports!`);
+    }
+  });
+  console.log('[Server] Security integrity checks passed.');
+} catch (integrityError) {
+  console.error('==================== INTEGRITY FAILURE ====================');
+  console.error(integrityError.message);
+  console.error('===========================================================');
+  process.exit(1);
+}
+
+// Ping route for health checks
+app.get('/ping', (req, res) => res.status(200).send('pong'));
+app.get('/api/version', (req, res) => res.json({ version: '1.0.9-ai-fix-v4', timestamp: new Date().toISOString() }));
+
+// Public Privacy Policy for App Stores
+app.get('/privacy-policy', (req, res) => {
+  res.send(`
+    <html>
+      <head>
+        <title>Privacy Policy - Darul Qur'an Academy</title>
+        <style>
+          body { font-family: sans-serif; line-height: 1.6; max-width: 800px; margin: 40px auto; padding: 20px; color: #333; }
+          h1 { color: #1a56db; }
+          h2 { border-bottom: 2px solid #eee; padding-bottom: 10px; margin-top: 30px; }
+        </style>
+      </head>
+      <body>
+        <h1>Privacy Policy</h1>
+        <p><strong>Effective Date: March 15, 2026</strong></p>
+        <p>Darul Qur'an Academy ("we", "our", or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, and safeguard your information when you use our mobile application and web portal.</p>
+        
+        <h2>1. Information We Collect</h2>
+        <ul>
+          <li><strong>Personal Information</strong>: Names, email addresses, phone numbers, and profile photos of students, parents, and staff.</li>
+          <li><strong>Academic Data</strong>: Student grades, results, transcripts, and attendance records.</li>
+          <li><strong>Financial Data</strong>: Records of school fee payments (we do not store credit card details; those are handled by secure third-party payment processors).</li>
+          <li><strong>Device Info</strong>: Usage data and device identifiers to improve app performance and security.</li>
+        </ul>
+
+        <h2>2. How We Use Your Information</h2>
+        <ul>
+          <li>To provide and maintain the School Management System services.</li>
+          <li>To notify you about changes to our services or school events.</li>
+          <li>To facilitate academic reporting and communication between school stakeholders.</li>
+          <li>To process payments and manage financial records.</li>
+        </ul>
+
+        <h2>3. Data Storage and Security</h2>
+        <p>Your data is stored securely using industry-standard encryption. Access is restricted to authorized users based on their specific roles (e.g., Teachers can only see their classes, Parents can only see their own children).</p>
+
+        <h2>4. Your Rights</h2>
+        <p>Users have the right to request access to their personal data or request corrections. Staff and administrators may contact the school's IT department to manage data deletion requests.</p>
+        
+        <p style="margin-top: 50px; font-size: 0.8em; color: #777;">&copy; 2026 Darul Qur'an Academy. All rights reserved.</p>
+      </body>
+    </html>
+  `);
+});
+
+// DEBUG ROUTE - Parent diagnostic
+app.get('/api/debug/inspect-parents', async (req, res) => {
+  try {
+    const prisma = require('./db');
+    const schools = await prisma.school.findMany({
+      select: { id: true, slug: true, name: true }
+    });
+    
+    const diagnostics = {};
+    for (const school of schools) {
+      const parentCount = await prisma.parent.count({ where: { schoolId: school.id } });
+      const parentUsers = await prisma.user.count({ where: { schoolId: school.id, role: 'parent' } });
+      const studentsWithParent = await prisma.student.count({ where: { schoolId: school.id, parentId: { not: null } } });
+      const totalStudents = await prisma.student.count({ where: { schoolId: school.id } });
+      
+      diagnostics[`${school.name} (ID:${school.id})`] = {
+        slug: school.slug,
+        parentRecords: parentCount,
+        usersWithParentRole: parentUsers,
+        studentsLinked: studentsWithParent,
+        totalStudents
+      };
+    }
+    
+    // Check orphaned parent users
+    const orphanedParentUsers = await prisma.user.findMany({
+      where: { role: 'parent' },
+      select: { 
+        id: true, username: true, firstName: true, lastName: true, schoolId: true,
+        Parent: { select: { id: true, phone: true, schoolId: true, parentChildren: { select: { id: true, admissionNumber: true } } } }
+      }
+    });
+    
+    const orphaned = orphanedParentUsers.filter(u => !u.Parent);
+    const withProfile = orphanedParentUsers.filter(u => u.Parent);
+    
+    res.json({ 
+      schools: diagnostics,
+      parentUsersTotal: orphanedParentUsers.length,
+      orphanedParentUsers: orphaned.map(u => ({ id: u.id, username: u.username, name: `${u.firstName} ${u.lastName}`, schoolId: u.schoolId })),
+      parentsWithProfile: withProfile.map(u => ({ 
+        userId: u.id, username: u.username, name: `${u.firstName} ${u.lastName}`,
+        parentId: u.Parent.id, parentSchoolId: u.Parent.schoolId, phone: u.Parent.phone,
+        childrenCount: u.Parent.parentChildren.length,
+        children: u.Parent.parentChildren.map(c => c.admissionNumber)
+      }))
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message, stack: err.stack });
+  }
+});
+
+// Serve uploaded files statically with caching
+app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
+  maxAge: '7d', // Cache for 7 days
+  immutable: true
+}));
+
+// Server-side request timeout — prevents infinite hangs on slow DB queries
+app.use('/api', (req, res, next) => {
+  const isPdfRoute = req.originalUrl?.includes('/generate-pdf') || req.originalUrl?.includes('/bulk-generate-pdf');
+  const TIMEOUT_MS = isPdfRoute ? 60000 : 25000; // 60s for PDF generation, 25s for normal routes
+  const timer = setTimeout(() => {
+    if (!res.headersSent) {
+      console.error(`[TIMEOUT] ${req.method} ${req.originalUrl} exceeded ${TIMEOUT_MS}ms`);
+      res.status(504).json({ error: 'Request timed out. The server is under heavy load. Please try again.' });
+    }
+  }, TIMEOUT_MS);
+
+  // Clear timeout when response finishes
+  res.on('finish', () => clearTimeout(timer));
+  res.on('close', () => clearTimeout(timer));
+  next();
+});
+
+// Lightweight request logger — API routes only (avoids logging every static asset)
+app.use('/api', (req, res, next) => {
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`[API] ${req.method} ${req.url}`);
+  }
+  next();
+});
+
+// Security Middleware Imports
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+
+// Basic Security Headers (CSP disabled to not break React frontend)
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false
+}));
+
+// Rate Limiting
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 500, // limit each IP to 500 requests per windowMs
+  message: { error: 'Too many requests from this IP, please try again after 15 minutes' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 50, // limit each IP to 50 requests per windowMs for auth routes
+  message: { error: 'Too many authentication attempts from this IP, please try again after 15 minutes' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Middleware
+// CORS configuration
+const allowedOrigins = [
+  'https://educatechportal.com',
+  'https://www.educatechportal.com',
+  'capacitor://localhost',
+  'ionic://localhost',
+  'http://localhost',
+  'http://localhost:5173',
+  'http://localhost:3000'
+];
+
+// Cache custom domains from DB for CORS validation (refreshes every 5 minutes)
+let cachedCustomDomains = [];
+let domainCacheTime = 0;
+const DOMAIN_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+const refreshCustomDomainCache = async () => {
+  try {
+    const prisma = require('./db');
+    const schools = await prisma.school.findMany({
+      where: { customDomain: { not: null } },
+      select: { customDomain: true }
+    });
+    cachedCustomDomains = schools.map(s => s.customDomain.toLowerCase());
+    domainCacheTime = Date.now();
+    if (cachedCustomDomains.length > 0) {
+      console.log(`[CORS] Loaded ${cachedCustomDomains.length} custom domain(s): ${cachedCustomDomains.join(', ')}`);
+    }
+  } catch (e) {
+    console.warn('[CORS] Failed to load custom domains from DB:', e.message);
+  }
+};
+
+// Load custom domains on startup
+refreshCustomDomainCache();
+
+const isAllowedCustomDomain = (origin) => {
+  if (!origin) return false;
+  try {
+    const originHost = new URL(origin).hostname.toLowerCase();
+    return cachedCustomDomains.some(d => originHost === d || originHost.endsWith('.' + d));
+  } catch {
+    return false;
+  }
+};
+
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
+    
+    if (process.env.NODE_ENV !== 'production' && origin.includes('localhost')) {
+      return callback(null, true);
+    }
+
+    // Allow platform domains
+    if (allowedOrigins.indexOf(origin) !== -1 || origin.endsWith('.educatechportal.com')) {
+      return callback(null, true);
+    }
+
+    // Refresh cache if stale
+    if (Date.now() - domainCacheTime > DOMAIN_CACHE_TTL) {
+      refreshCustomDomainCache();
+    }
+
+    // Allow custom domains registered in the database
+    if (isAllowedCustomDomain(origin)) {
+      return callback(null, true);
+    }
+
+    console.warn(`[CORS] Blocked request from origin: ${origin}`);
+    callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true
+}));
+
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
+// Apply Rate Limiters
+app.use('/api/', apiLimiter);
+app.use(cookieParser());
+
+app.post('/api/log-client-error', (req, res) => {
+  const body = req.body || {};
+  const logMsg = `[${new Date().toISOString()}] CLIENT ERROR: ${JSON.stringify(body)}\n`;
+  try {
+    fs.appendFileSync('logs/client-errors.log', logMsg);
+  } catch (e) { }
+  console.log('LOGGED CLIENT ERROR:', body.message || 'Unknown error message');
+  res.status(200).send('Logged');
+});
+
+const { authenticate, authorize, optionalAuth } = require('./middleware/auth');
+
+// Modular Seeder
+try {
+  require('./seeder')(app);
+} catch (e) {
+  console.error('[Seeder] Failed to load seeder:', e.message);
+}
+
+const authRoutes = require('./routes/auth');
+const { checkSubscription, requirePackage } = require('./middleware/subscription');
+const { resolveDomain } = require('./middleware/domainResolver');
+
+console.log('[Server] Starting route imports...');
+
+// Import Route Modules
+const userRoutes = require('./routes/users');
+const studentRoutes = require('./routes/students');
+const subjectRoutes = require('./routes/subjects');
+const examRoutes = require('./routes/exams');
+const resultsRoutes = require('./routes/results-enhanced');
+const reportRoutes = require('./routes/reports');
+const analyticsRoutes = require('./routes/analytics');
+const advancedAnalyticsRoutes = require('./routes/advanced-analytics');
+const academicSessionRoutes = require('./routes/academic-sessions');
+const termRoutes = require('./routes/terms');
+const classRoutes = require('./routes/classes');
+const classSubjectRoutes = require('./routes/class-subjects');
+const assignmentRoutes = require('./routes/assignments');
+const bulkResultRoutes = require('./routes/bulk-results');
+const emailRoutes = require('./routes/email');
+const uploadRoutes = require('./routes/upload');
+const teacherAssignmentRoutes = require('./routes/teacher-assignments');
+const bulkUploadRoutes = require('./routes/bulk-upload');
+const schoolSetupRoutes = require('./routes/school-setup');
+const scoresheetRoutes = require('./routes/generate-scoresheet');
+const feeRoutes = require('./routes/fee-management');
+const feeStructureRoutes = require('./routes/fee-structure');
+const examCardRoutes = require('./routes/exam-cards');
+const teacherProfileRoutes = require('./routes/teachers');
+const topStudentsRoutes = require('./routes/top-students');
+const licenseRoutes = require('./routes/license');
+const settingsRoutes = require('./routes/settings');
+const admissionsRoutes = require('./routes/admissions');
+const paymentRoutes = require('./routes/payments');
+const attendanceRoutes = require('./routes/attendance');
+const staffAttendanceRoutes = require('./routes/staff-attendance');
+const messageRoutes = require('./routes/messages');
+const timetableRoutes = require('./routes/timetable');
+const noticeRoutes = require('./routes/notices');
+const lmsRoutes = require('./routes/lms');
+const parentRoutes = require('./routes/parents');
+const statusRoutes = require('./routes/system-settings');
+const cbtRoutes = require('./routes/cbt');
+const reportExtraRoutes = require('./routes/report-extras');
+const quranTrackerRoutes = require('./routes/quran-tracker');
+const galleryRoutes = require('./routes/gallery');
+const newsEventsRoutes = require('./routes/news-events');
+const promotionRoutes = require('./routes/promotion');
+const alumniRoutes = require('./routes/alumni');
+const auditRoutes = require('./routes/audit');
+const teacherAvailabilityRoutes = require('./routes/teacher-availability');
+const superadminRoutes = require('./routes/superadmin');
+const interventionRoutes = require('./routes/interventions');
+const platformBillingRoutes = require('./routes/platform-billing');
+const backupRoutes = require('./routes/backup');
+const whatsappRoutes = require('./routes/whatsapp');
+const miscFeesRoutes = require('./routes/misc-fees');
+const holidayRoutes = require('./routes/holidays');
+const academicsRoutes = require('./routes/academics');
+const showcaseRoutes = require('./routes/showcase');
+const advertRoutes = require('./routes/adverts');
+const departmentRoutes = require('./routes/departments');
+const broadsheetRoutes = require('./routes/broadsheet');
+const hrRoutes = require('./routes/hr');
+const pushRoutes = require('./routes/push');
+const customPagesRoutes = require('./routes/custom-pages');
+
+console.log('[Server] All route modules imported.');
+
+// Resolve Custom Domains (White-Label)
+app.use(resolveDomain);
+
+// Public metadata (For login branding)
+app.get('/api/public/global-settings', async (req, res) => {
+  const prisma = require('./db');
+  try {
+    const settings = await prisma.globalSettings.findFirst();
+    res.json(settings || { id: 1 });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch settings' });
+  }
+});
+
+// Use Routes
+app.use('/api/auth', authLimiter, authRoutes);
+app.use('/api/users', authenticate, checkSubscription, userRoutes);
+app.use('/api/students', authenticate, checkSubscription, studentRoutes);
+app.use('/api/subjects', authenticate, checkSubscription, subjectRoutes);
+app.use('/api/exams', authenticate, checkSubscription, examRoutes);
+app.use('/api/results', authenticate, checkSubscription, resultsRoutes);
+app.use('/api/reports', authenticate, checkSubscription, reportRoutes);
+app.use('/api/analytics', authenticate, checkSubscription, analyticsRoutes);
+app.use('/api/advanced-analytics', authenticate, checkSubscription, advancedAnalyticsRoutes);
+app.use('/api/academic-sessions', authenticate, checkSubscription, academicSessionRoutes);
+app.use('/api/terms', authenticate, checkSubscription, termRoutes);
+app.use('/api/classes', authenticate, checkSubscription, classRoutes);
+app.use('/api/class-subjects', authenticate, checkSubscription, classSubjectRoutes);
+app.use('/api/assignments', authenticate, checkSubscription, assignmentRoutes);
+app.use('/api/bulk-results', authenticate, checkSubscription, bulkResultRoutes);
+app.use('/api/email', authenticate, checkSubscription, emailRoutes);
+app.use('/api/upload', authenticate, checkSubscription, uploadRoutes);
+app.use('/api/teacher-assignments', authenticate, checkSubscription, teacherAssignmentRoutes);
+app.use('/api/bulk-upload', authenticate, checkSubscription, bulkUploadRoutes);
+app.use('/api/school-setup', authenticate, checkSubscription, schoolSetupRoutes);
+app.use('/api/scoresheet', authenticate, checkSubscription, scoresheetRoutes);
+app.use('/api/fees', authenticate, checkSubscription, feeRoutes);
+app.use('/api/fee-management', authenticate, checkSubscription, feeRoutes);
+app.use('/api/fee-structure', authenticate, checkSubscription, feeStructureRoutes);
+app.use('/api/exam-cards', authenticate, checkSubscription, examCardRoutes);
+app.use('/api/teachers', authenticate, checkSubscription, teacherProfileRoutes);
+app.use('/api/top-students', topStudentsRoutes);
+app.use('/api/license', authenticate, licenseRoutes);
+app.use('/api/settings', settingsRoutes);
+app.use('/api/admissions', admissionsRoutes);
+app.use('/api/payments', authenticate, checkSubscription, paymentRoutes);
+app.use('/api/attendance', authenticate, checkSubscription, attendanceRoutes);
+app.use('/api/staff-attendance', authenticate, checkSubscription, staffAttendanceRoutes);
+app.use('/api/messages', authenticate, checkSubscription, messageRoutes);
+app.use('/api/timetable', authenticate, checkSubscription, timetableRoutes);
+app.use('/api/notices', authenticate, checkSubscription, noticeRoutes);
+app.use('/api/lms', authenticate, checkSubscription, lmsRoutes);
+app.use('/api/parents', authenticate, checkSubscription, parentRoutes);
+app.use('/api/system', authenticate, checkSubscription, statusRoutes);
+app.use('/api/cbt', authenticate, checkSubscription, cbtRoutes);
+app.use('/api/report-extras', authenticate, checkSubscription, reportExtraRoutes);
+app.use('/api/quran-tracker', authenticate, checkSubscription, quranTrackerRoutes);
+app.use('/api/gallery', authenticate, checkSubscription, galleryRoutes);
+app.use('/api/news-events', authenticate, checkSubscription, newsEventsRoutes);
+app.use('/api/promotion', promotionRoutes);
+app.use('/api/alumni', alumniRoutes);
+app.use('/api/certificates', require('./routes/certificates'));
+app.use('/api/testimonials', require('./routes/testimonials'));
+app.use('/api/interventions', authenticate, checkSubscription, interventionRoutes);
+app.use('/api/audit', authenticate, checkSubscription, auditRoutes);
+app.use('/api/teacher-availability', authenticate, checkSubscription, teacherAvailabilityRoutes);
+app.use('/api/superadmin', authenticate, authorize('superadmin'), superadminRoutes);
+app.use('/api/platform-billing', platformBillingRoutes);
+app.use('/api/backup', backupRoutes);
+app.use('/api/whatsapp', whatsappRoutes);
+app.use('/api/misc-fees', authenticate, checkSubscription, miscFeesRoutes);
+app.use('/api/superadmin/cms', authenticate, authorize('superadmin'), require('./routes/superadmin-cms'));
+app.use('/api/holidays', authenticate, checkSubscription, holidayRoutes);
+app.use('/api/academics', authenticate, checkSubscription, academicsRoutes);
+app.use('/api/showcase', showcaseRoutes);
+app.use('/api/adverts', advertRoutes);
+app.use('/api/public-school', require('./routes/public-school'));
+app.use('/api/public-superadmin', require('./routes/public-superadmin'));
+app.use('/api/departments', authenticate, checkSubscription, departmentRoutes);
+app.use('/api/broadsheet', authenticate, checkSubscription, broadsheetRoutes);
+app.use('/api/push', pushRoutes);
+app.use('/api/hr', authenticate, checkSubscription, hrRoutes);
+app.use('/api/custom-pages', customPagesRoutes);
+
+// Serve frontend in production
+if (process.env.NODE_ENV === 'production') {
+
+
+  const clientDistPath = path.join(__dirname, '../client/dist');
+  app.use('/assets', express.static(path.join(clientDistPath, 'assets'), {
+    maxAge: '1y', // Assets are hashed, so cache for 1 year
+    immutable: true
+  }));
+  app.use(express.static(clientDistPath, {
+    maxAge: '1y', // Cache assets for a long time
+    immutable: true,
+    index: false // Don't serve index.html via static middleware automatically
+  }));
+
+  // 1. API 404 Handler (JSON)
+  app.use('/api/*', (req, res) => {
+    console.warn(`[404] API Route not found: ${req.method} ${req.originalUrl}`);
+    res.status(404).json({
+      error: 'Not Found',
+      message: `The API endpoint ${req.originalUrl} does not exist on this server.`
+    });
+  });
+
+  // 2. Global Error Handler (JSON for API)
+  app.use((err, req, res, next) => {
+    if (req.url.startsWith('/api/')) {
+      console.error(`[API ERROR] ${req.method} ${req.url}:`, err);
+      return res.status(err.status || 500).json({
+        error: 'Server Error',
+        message: err.message || 'An unexpected error occurred on the server.'
+      });
+    }
+    next(err);
+  });
+
+  // 3. Frontend Fallback (HTML) - ONLY for non-API, non-Upload GET requests
+  app.get('*', (req, res) => {
+    if (req.url.startsWith('/uploads/') || req.url.startsWith('/api/') || req.url.startsWith('/assets/')) {
+      return res.status(404).json({ error: 'File or route not found' });
+    }
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+    res.set('Surrogate-Control', 'no-store');
+    res.sendFile(path.join(clientDistPath, 'index.html'));
+  });
+}
+
+// ===========================================================
+// CRITICAL STABILITY LAYER: GLOBAL ERROR HANDLER (CRASH NET)
+// ===========================================================
+app.use((err, req, res, next) => {
+  const isApiRequest = req.url.startsWith('/api/');
+  
+  // Log the full error details for debugging
+  console.error('==================== SERVER ERROR ====================');
+  console.error(`Timestamp: ${new Date().toISOString()}`);
+  console.error(`Method: ${req.method}`);
+  console.error(`Path: ${req.originalUrl}`);
+  console.error(`Error: ${err.message}`);
+  if (process.env.NODE_ENV !== 'production') {
+    console.error(`Stack: ${err.stack}`);
+  }
+  console.error('======================================================');
+
+  if (isApiRequest) {
+    // If it's an API request, send a clean JSON response instead of crashing
+    return res.status(err.status || 500).json({
+      error: 'Server Error',
+      message: process.env.NODE_ENV === 'production' 
+        ? 'An unexpected error occurred. Our team has been notified.' 
+        : err.message
+    });
+  }
+
+  // For non-API requests, let it continue (likely a frontend issue)
+  next(err);
+});
+
+
+const startServer = (portToTry, retryCount = 0) => {
+  const MAX_RETRIES = 5;
+  if (activeServer) {
+    try { activeServer.close(); } catch (e) { }
+    activeServer = null;
+  }
+
+  activeServer = app.listen(portToTry, () => {
+    console.log(`[Server] SUCCESSFULLY RUNNING ON PORT ${portToTry}`);
+
+    // KEEP-ALIVE: Prevent Render free-tier from sleeping (15min idle threshold)
+    // Self-ping every 13 minutes to maintain warm state
+    if (process.env.RENDER_EXTERNAL_URL || process.env.NODE_ENV === 'production') {
+      const KEEP_ALIVE_MS = 13 * 60 * 1000; // 13 minutes
+      const pingUrl = process.env.RENDER_EXTERNAL_URL
+        ? `${process.env.RENDER_EXTERNAL_URL}/ping`
+        : `http://localhost:${portToTry}/ping`;
+
+      setInterval(async () => {
+        try {
+          const https = pingUrl.startsWith('https') ? require('https') : require('http');
+          https.get(pingUrl, (res) => {
+            console.log(`[KeepAlive] Ping OK (${res.statusCode}) at ${new Date().toISOString()}`);
+          }).on('error', (err) => {
+            console.warn('[KeepAlive] Ping failed:', err.message);
+          });
+        } catch (e) {
+          console.warn('[KeepAlive] Ping error:', e.message);
+        }
+      }, KEEP_ALIVE_MS);
+      console.log(`[KeepAlive] Self-ping enabled every ${KEEP_ALIVE_MS / 60000} minutes`);
+    }
+  }).on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.warn(`[Server] Port ${portToTry} is in use.`);
+      if (retryCount < MAX_RETRIES) {
+        setTimeout(() => startServer(portToTry, retryCount + 1), 1000);
+      } else {
+        process.exit(1);
+      }
+    } else {
+      console.error('[Server] Fatal error:', err);
+      process.exit(1);
+    }
+  });
+};
+
+const INITIAL_PORT = process.env.PORT || 3000;
+startServer(parseInt(INITIAL_PORT));

@@ -1,0 +1,301 @@
+const express = require('express');
+const router = express.Router();
+const prisma = require('../db');
+const { authenticate, authorize } = require('../middleware/auth');
+const { logAction } = require('../utils/audit');
+
+// Get all targets for a class
+router.get('/targets/:classId', authenticate, async (req, res) => {
+  try {
+    const { classId } = req.params;
+    const { sessionId, termId } = req.query;
+
+    const where = {
+      schoolId: req.schoolId,
+      classId: parseInt(classId)
+    };
+
+    if (sessionId) where.academicSessionId = parseInt(sessionId);
+    if (termId) where.termId = parseInt(termId);
+
+    const targets = await prisma.quranTarget.findMany({
+      where,
+      include: {
+        subject: { select: { name: true } }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    res.json(targets);
+  } catch (error) {
+    console.error('Error fetching targets:', error);
+    res.status(500).json({ error: 'Failed to fetch targets' });
+  }
+});
+
+// Create a target (Admin or Teacher)
+router.post('/targets', authenticate, authorize(['admin', 'teacher']), async (req, res) => {
+  try {
+    const { classId, sessionId, termId, targetType, period, juzStart, juzEnd, surahStart, surahEnd, ayahStart, ayahEnd, pagesCount, description, startDate, endDate, subjectId } = req.body;
+
+    if (!classId || !sessionId || !termId || !targetType || !period || !startDate || !endDate) {
+      return res.status(400).json({ error: 'Missing required configuration fields' });
+    }
+
+    const target = await prisma.quranTarget.create({
+      data: {
+        schoolId: req.schoolId,
+        classId: parseInt(classId),
+        academicSessionId: parseInt(sessionId),
+        termId: parseInt(termId),
+        targetType,
+        period,
+        juzStart: juzStart ? parseInt(juzStart) : null,
+        juzEnd: juzEnd ? parseInt(juzEnd) : null,
+        surahStart,
+        surahEnd,
+        ayahStart: ayahStart ? parseInt(ayahStart) : null,
+        ayahEnd: ayahEnd ? parseInt(ayahEnd) : null,
+        pagesCount: pagesCount ? parseInt(pagesCount) : null,
+        description,
+        startDate: new Date(startDate),
+        endDate: new Date(endDate),
+        subjectId: subjectId ? parseInt(subjectId) : null
+      }
+    });
+
+    res.status(201).json(target);
+
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'CREATE',
+      resource: 'QURAN_TARGET',
+      details: { targetId: target.id, classId },
+      ipAddress: req.ip
+    });
+  } catch (error) {
+    console.error('Error creating target:', error);
+    res.status(500).json({ error: 'Failed to create target' });
+  }
+});
+
+// Delete a target
+router.delete('/targets/:id', authenticate, authorize(['admin', 'teacher']), async (req, res) => {
+  try {
+    await prisma.quranTarget.delete({
+      where: {
+        id: parseInt(req.params.id),
+        schoolId: req.schoolId
+      }
+    });
+    res.json({ message: 'Target deleted' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete target' });
+  }
+});
+
+// Get records for a student
+router.get('/records/:studentId', authenticate, async (req, res) => {
+  try {
+    const { studentId } = req.params;
+
+    const records = await prisma.quranRecord.findMany({
+      where: {
+        schoolId: req.schoolId,
+        studentId: parseInt(studentId)
+      },
+      include: {
+        teacher: {
+          select: { firstName: true, lastName: true }
+        },
+        subject: {
+          select: { name: true }
+        }
+      },
+      orderBy: { date: 'desc' }
+    });
+
+    res.json(records);
+  } catch (error) {
+    console.error('Error fetching records:', error);
+    res.status(500).json({ error: 'Failed to fetch records' });
+  }
+});
+
+// Add a progress record (Teacher)
+router.post('/records', authenticate, authorize(['admin', 'teacher']), async (req, res) => {
+  try {
+    const { studentId, date, type, juz, surah, ayahStart, ayahEnd, pages, status, comments, subjectId } = req.body;
+
+    if (!studentId || !date || !type || !status) {
+      return res.status(400).json({ error: 'Student, date, type and status are required' });
+    }
+
+    const record = await prisma.quranRecord.create({
+      data: {
+        schoolId: req.schoolId,
+        studentId: parseInt(studentId),
+        teacherId: req.user.id,
+        date: new Date(date),
+        type,
+        juz: juz ? parseInt(juz) : null,
+        surah,
+        ayahStart: ayahStart ? parseInt(ayahStart) : null,
+        ayahEnd: ayahEnd ? parseInt(ayahEnd) : null,
+        pages: pages ? parseFloat(pages) : null,
+        status,
+        comments,
+        subjectId: subjectId ? parseInt(subjectId) : null
+      }
+    });
+
+    res.status(201).json(record);
+
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'CREATE',
+      resource: 'QURAN_RECORD',
+      details: { recordId: record.id, studentId },
+      ipAddress: req.ip
+    });
+  } catch (error) {
+    console.error('Error creating record:', error);
+    res.status(500).json({ error: 'Failed to create record' });
+  }
+});
+
+// Add bulk progress records (Teacher)
+router.post('/records/bulk', authenticate, authorize(['admin', 'teacher']), async (req, res) => {
+  try {
+    const { studentIds, date, type, juz, surah, ayahStart, ayahEnd, pages, status, comments, subjectId } = req.body;
+
+    if (!studentIds || !Array.isArray(studentIds) || studentIds.length === 0 || !date || !type || !status) {
+      return res.status(400).json({ error: 'Students, date, type and status are required' });
+    }
+
+    const recordsData = studentIds.map(studentId => ({
+      schoolId: req.schoolId,
+      studentId: parseInt(studentId),
+      teacherId: req.user.id,
+      date: new Date(date),
+      type,
+      juz: juz ? parseInt(juz) : null,
+      surah,
+      ayahStart: ayahStart ? parseInt(ayahStart) : null,
+      ayahEnd: ayahEnd ? parseInt(ayahEnd) : null,
+      pages: pages ? parseFloat(pages) : null,
+      status,
+      comments,
+      subjectId: subjectId ? parseInt(subjectId) : null
+    }));
+
+    const records = await prisma.quranRecord.createMany({
+      data: recordsData
+    });
+
+    res.status(201).json({ count: records.count });
+
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'BATCH_CREATE',
+      resource: 'QURAN_RECORD',
+      details: { count: records.count, studentIds },
+      ipAddress: req.ip
+    });
+  } catch (error) {
+    console.error('Error creating bulk records:', error);
+    res.status(500).json({ error: 'Failed to create bulk records' });
+  }
+});
+
+// Get class progress summary
+router.get('/class-summary/:classId', authenticate, async (req, res) => {
+  try {
+    const { classId } = req.params;
+    const { startDate, endDate } = req.query;
+
+    const students = await prisma.student.findMany({
+      where: {
+        schoolId: req.schoolId,
+        classId: parseInt(classId),
+        status: 'active'
+      },
+      include: {
+        user: {
+          select: { firstName: true, lastName: true }
+        },
+        quranRecords: {
+          where: {
+            date: {
+              gte: startDate ? new Date(startDate) : undefined,
+              lte: endDate ? new Date(endDate) : undefined
+            }
+          },
+          include: {
+            subject: { select: { name: true } }
+          },
+          orderBy: { date: 'desc' }
+        }
+      }
+    });
+
+    res.json(students);
+  } catch (error) {
+    console.error('Error fetching class summary:', error);
+    res.status(500).json({ error: 'Failed to fetch class summary' });
+  }
+});
+
+// Update a record (Teacher)
+router.put('/records/:id', authenticate, authorize(['admin', 'teacher']), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { type, juz, surah, ayahStart, ayahEnd, pages, status, comments, date, subjectId } = req.body;
+
+    const record = await prisma.quranRecord.update({
+      where: { 
+        id: parseInt(id),
+        schoolId: req.schoolId 
+      },
+      data: {
+        date: date ? new Date(date) : undefined,
+        type,
+        juz: juz ? parseInt(juz) : undefined,
+        surah,
+        ayahStart: ayahStart ? parseInt(ayahStart) : undefined,
+        ayahEnd: ayahEnd ? parseInt(ayahEnd) : undefined,
+        pages: pages ? parseFloat(pages) : undefined,
+        status,
+        comments,
+        subjectId: subjectId ? parseInt(subjectId) : undefined
+      }
+    });
+
+    res.json(record);
+    logAction({ schoolId: req.schoolId, userId: req.user.id, action: 'UPDATE', resource: 'QURAN_RECORD', details: { recordId: id }, ipAddress: req.ip });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update record' });
+  }
+});
+
+// Delete a record (Teacher)
+router.delete('/records/:id', authenticate, authorize(['admin', 'teacher']), async (req, res) => {
+  try {
+    const { id } = req.params;
+    await prisma.quranRecord.delete({
+      where: { 
+        id: parseInt(id),
+        schoolId: req.schoolId 
+      }
+    });
+    res.json({ message: 'Record deleted successfully' });
+    logAction({ schoolId: req.schoolId, userId: req.user.id, action: 'DELETE', resource: 'QURAN_RECORD', details: { recordId: id }, ipAddress: req.ip });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete record' });
+  }
+});
+
+module.exports = router;

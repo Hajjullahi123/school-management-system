@@ -1,0 +1,1246 @@
+const express = require('express');
+const router = express.Router();
+const prisma = require('../db');
+const { authenticate, authorize } = require('../middleware/auth');
+const bcrypt = require('bcryptjs');
+const { logAction } = require('../utils/audit');
+const { generateAutoEmail, generateParentUsername } = require('../utils/usernameGenerator');
+const { getStudentFeeSummary } = require('../utils/feeCalculations');
+const ExcelJS = require('exceljs');
+const xlsx = require('xlsx');
+const multer = require('multer');
+// 1. Get My Children (Parent Dashboard)
+router.get('/my-wards', authenticate, authorize(['parent', 'admin', 'principal']), async (req, res) => {
+  try {
+
+    // 0. Emergency Sync: Automatically link students whose parentGuardianPhone matches this parent's phone
+    // This helps if the parent account was created but students weren't linked correctly
+    // NEW: Search across all schools for this user's parent profile to handle mismatches
+    let currentParent = await prisma.parent.findUnique({
+      where: { userId: req.user.id }
+    });
+
+    // If no parent profile at all, return error
+    if (!currentParent) {
+       console.log('No parent profile found for user:', req.user.id);
+       return res.status(404).json({ error: 'Parent profile not found' });
+    }
+
+    // If the parent profile's schoolId doesn't match the current context, 
+    // it might be a multi-school parent or a creation error.
+    // We update it to the current schoolId if it currently has no students linked in the old school.
+    if (currentParent.schoolId !== req.schoolId) {
+      const oldSchoolStudents = await prisma.student.count({ where: { parentId: currentParent.id, schoolId: currentParent.schoolId } });
+      if (oldSchoolStudents === 0) {
+        console.log(`[Sync] Updating parent ${currentParent.id} schoolId from ${currentParent.schoolId} to ${req.schoolId}`);
+        currentParent = await prisma.parent.update({
+          where: { id: currentParent.id },
+          data: { schoolId: req.schoolId }
+        });
+      }
+    }
+
+    if (currentParent.phone) {
+      const sanitizedPhone = currentParent.phone.replace(/\s+/g, '');
+      
+      // Find students in THIS school with matching phone but NO parentId or WRONG parentId.
+      // IMPORTANT: In SQLite, `NOT (field = value)` does NOT match NULLs, so we explicitly
+      // include { parentId: null } to catch unlinked students.
+      const unlinkedStudents = await prisma.student.findMany({
+        where: {
+          schoolId: req.schoolId,
+          AND: [
+            {
+              OR: [
+                { parentId: null },
+                { parentId: { not: currentParent.id } }
+              ]
+            },
+            {
+              OR: [
+                { parentGuardianPhone: { contains: sanitizedPhone } },
+                { parentGuardianPhone: { contains: sanitizedPhone.startsWith('0') ? sanitizedPhone.substring(1) : sanitizedPhone } }
+              ]
+            }
+          ]
+        }
+      });
+
+      if (unlinkedStudents.length > 0) {
+        console.log(`[Sync] Found ${unlinkedStudents.length} unlinked students for parent ${currentParent.id}. Linking...`);
+        await prisma.student.updateMany({
+          where: { id: { in: unlinkedStudents.map(s => s.id) } },
+          data: { parentId: currentParent.id }
+        });
+      }
+    }
+
+    const includeQuery = {
+      parentChildren: {
+        include: {
+          classModel: {
+            include: {
+              classTeacher: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                  phone: true,
+                  photoUrl: true,
+                  username: true,
+                  signatureUrl: true,
+                  teacher: {
+                    select: {
+                      publicPhone: true,
+                      publicEmail: true,
+                      publicWhatsapp: true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          user: { select: { firstName: true, lastName: true, email: true, photoUrl: true } },
+          results: {
+            where: { schoolId: req.schoolId },
+            orderBy: { createdAt: 'desc' },
+            take: 1
+          },
+          attendanceRecords: {
+            where: { schoolId: req.schoolId },
+            orderBy: { date: 'desc' },
+            take: 10
+          },
+          MiscellaneousFeePayment: {
+            where: { schoolId: req.schoolId },
+            include: { MiscellaneousFee: true },
+            orderBy: { paymentDate: 'desc' }
+          },
+          FeeRecord: {
+            where: { schoolId: req.schoolId },
+            include: {
+              AcademicSession: true,
+              Term: true,
+              FeePayment: {
+                where: { schoolId: req.schoolId },
+                orderBy: { paymentDate: 'desc' }
+              }
+            },
+            orderBy: { createdAt: 'desc' }
+          }
+        }
+      }
+    };
+
+    // Refresh the object to include wards after potential sync
+    const parentWithWards = await prisma.parent.findUnique({
+      where: { id: currentParent.id },
+      include: includeQuery
+    });
+
+    // Fetch current session and term for dynamic fee generation
+    const currentSession = await prisma.academicSession.findFirst({ where: { schoolId: req.schoolId, isCurrent: true } });
+    const currentTerm = await prisma.term.findFirst({ where: { schoolId: req.schoolId, isCurrent: true } });
+
+    // Map Prisma relation names to the camelCase versions the frontend expects
+    const mappedChildren = await Promise.all((parentWithWards.parentChildren || []).map(async (child) => {
+      // Get physical fee records
+      let mappedFeeRecords = (child.FeeRecord || []).map(fr => ({
+        ...fr,
+        academicSession: fr.AcademicSession,
+        term: fr.Term,
+        payments: fr.FeePayment || [],
+        AcademicSession: undefined,
+        Term: undefined,
+        FeePayment: undefined
+      }));
+
+      // If current session/term exist, dynamically calculate the current term's fee summary
+      // so the parent dashboard accurately shows arrears + current bill just like the report card.
+      if (currentSession && currentTerm) {
+        const feeSummary = await getStudentFeeSummary(req.schoolId, child.id, currentSession.id, currentTerm.id);
+        
+        if (feeSummary && feeSummary.currentRecord) {
+          const dynamicCurrentRecord = {
+            ...feeSummary.currentRecord,
+            academicSession: feeSummary.academicSession || currentSession,
+            term: feeSummary.term || currentTerm,
+            payments: feeSummary.payments || [],
+            // Ensure these exact frontend fields match the dynamic projection
+            expectedAmount: feeSummary.currentTermFee,
+            paidAmount: feeSummary.totalPaid,
+            balance: feeSummary.grandTotal // Parent dashboard depends on this for total
+          };
+
+          // Remove the raw physical record for the current term if it exists, replacing it with the comprehensive one
+          mappedFeeRecords = mappedFeeRecords.filter(
+            r => !(r.academicSessionId === currentSession.id && r.termId === currentTerm.id)
+          );
+          
+          // Add the dynamic record to the top
+          mappedFeeRecords.unshift(dynamicCurrentRecord);
+        }
+      }
+
+      return {
+        ...child,
+        miscFeePayments: (child.MiscellaneousFeePayment || []).map(mfp => ({
+          ...mfp,
+          fee: mfp.MiscellaneousFee,
+          MiscellaneousFee: undefined
+        })),
+        feeRecords: mappedFeeRecords,
+        MiscellaneousFeePayment: undefined,
+        FeeRecord: undefined
+      };
+    }));
+
+    console.log('Parent found:', parentWithWards.id, 'Students:', mappedChildren.length);
+    res.json(mappedChildren);
+  } catch (error) {
+    console.error('Get wards error:', error);
+    res.status(500).json({ error: 'Failed to fetch wards' });
+  }
+});
+
+
+// 2. Register Parent (Admin/Principal only)
+router.post('/register', authenticate, authorize(['admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin']), async (req, res) => {
+  try {
+    const { firstName, lastName, email, phone, address, studentIds } = req.body;
+
+    // Determine school name for email logic
+    const school = await prisma.school.findUnique({ where: { id: req.schoolId } });
+    
+    // Generate default email if not provided
+    const parentEmail = email || generateAutoEmail(firstName, lastName, school?.name);
+
+    let parentUsername;
+    let sanitizedPhone = null;
+
+    if (phone && phone.trim()) {
+      sanitizedPhone = phone.trim().replace(/\s+/g, '');
+      parentUsername = sanitizedPhone;
+
+      // Check if phone already registered in THIS school
+      const existingPhone = await prisma.user.findFirst({
+        where: {
+          username: sanitizedPhone,
+          schoolId: req.schoolId
+        }
+      });
+
+      if (existingPhone) return res.status(400).json({ error: 'Parent with this phone number already exists' });
+    } else {
+      // Generate a unique parent username/ID if no phone is provided
+      parentUsername = await generateParentUsername(req.schoolId, school?.code || school?.slug || 'SCH');
+    }
+
+    // Check if email already registered in THIS school
+    const existingEmail = await prisma.user.findFirst({
+      where: {
+        email: parentEmail,
+        schoolId: req.schoolId
+      }
+    });
+
+    if (existingEmail) return res.status(400).json({ error: 'Parent with this email already exists. Please provide a different email or phone number.' });
+
+    // Validate student IDs if provided
+    if (studentIds && studentIds.length > 0) {
+      const students = await prisma.student.findMany({
+        where: {
+          id: { in: studentIds.map(id => parseInt(id)) },
+          schoolId: req.schoolId
+        }
+      });
+
+      if (students.length !== studentIds.length) {
+        return res.status(400).json({
+          error: 'One or more student IDs are invalid or do not belong to this school'
+        });
+      }
+
+      // Check if any students are already linked to another parent
+      const alreadyLinked = students.filter(s => s.parentId !== null);
+      if (alreadyLinked.length > 0) {
+        return res.status(400).json({
+          error: `Some students are already linked to another parent: ${alreadyLinked.map(s => s.admissionNumber).join(', ')}`
+        });
+      }
+    }
+
+    // Create User
+    const passwordHash = await bcrypt.hash('parent123', 10);
+
+    // Transaction to create User + Parent + Link Students
+    const result = await prisma.$transaction(async (prisma) => {
+      const user = await prisma.user.create({
+        data: {
+          schoolId: req.schoolId,
+          firstName,
+          lastName,
+          email: parentEmail,
+          username: parentUsername,
+          phone: sanitizedPhone,
+          passwordHash,
+          role: 'parent',
+          isActive: true,
+          mustChangePassword: false
+        }
+      });
+
+      const parent = await prisma.parent.create({
+        data: {
+          schoolId: req.schoolId,
+          userId: user.id,
+          phone: sanitizedPhone,
+          address,
+          // Link students if provided
+          parentChildren: studentIds && studentIds.length > 0 ? {
+            connect: studentIds.map(id => ({ id: parseInt(id) }))
+          } : undefined
+        }
+      });
+
+      return { parent, user };
+    });
+
+    console.log('Parent created successfully:', {
+      username: parentUsername,
+      password: 'parent123',
+      userId: result.user.id,
+      parentId: result.parent.id
+    });
+
+    res.status(201).json({
+      message: 'Parent account created',
+      parentId: result.parent.id,
+      credentials: {
+        username: parentUsername,
+        password: 'parent123'
+      }
+    });
+
+    // Log the registration
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'CREATE',
+      resource: 'PARENT_ACCOUNT',
+      details: {
+        parentId: result.parent.id,
+        phone: sanitizedPhone,
+        studentCount: studentIds?.length || 0
+      },
+      ipAddress: req.ip
+    });
+  } catch (error) {
+    console.error('Create parent error:', error);
+
+    // Handle Prisma unique constraint errors
+    if (error.code === 'P2002') {
+      const field = error.meta?.target?.[1] || 'field';
+      if (field === 'email') {
+        return res.status(400).json({ error: 'A parent with this email already exists' });
+      } else if (field === 'username') {
+        return res.status(400).json({ error: 'A parent with this phone number already exists' });
+      }
+      return res.status(400).json({ error: `Duplicate ${field} detected` });
+    }
+
+    // Handle other Prisma errors
+    if (error.code) {
+      return res.status(400).json({ error: `Database error: ${error.message}` });
+    }
+
+    res.status(500).json({ error: 'Failed to register parent. Please try again.' });
+  }
+});
+
+// 3. Link Student to Parent (Admin/Principal)
+router.post('/link-student', authenticate, authorize(['admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin']), async (req, res) => {
+  try {
+    const { parentId, studentId } = req.body;
+
+    const student = await prisma.student.findFirst({
+      where: {
+        id: parseInt(studentId),
+        schoolId: req.schoolId
+      },
+      include: {
+        parent: {
+          include: {
+            user: { select: { firstName: true, lastName: true } }
+          }
+        }
+      }
+    });
+
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+
+    if (student.parentId !== null) {
+      return res.status(400).json({
+        error: `This student is already linked to ${student.parent.user.firstName} ${student.parent.user.lastName}. A student cannot be linked to multiple parents.`
+      });
+    }
+
+    // Link student to parent
+    await prisma.student.update({
+      where: {
+        id: parseInt(studentId),
+        schoolId: req.schoolId
+      },
+      data: { parentId: parseInt(parentId) }
+    });
+
+    res.json({ message: 'Student linked successfully' });
+
+    // Log the link
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'LINK_STUDENT',
+      resource: 'PARENT_STUDENT_LINK',
+      details: {
+        parentId: parseInt(parentId),
+        studentId: parseInt(studentId)
+      },
+      ipAddress: req.ip
+    });
+  } catch (error) {
+    console.error('Link student error:', error);
+    res.status(500).json({ error: 'Failed to link student' });
+  }
+});
+
+// 4. Get Parent Details (Admin/Principal)
+router.get('/', authenticate, authorize(['admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin']), async (req, res) => {
+  try {
+    const enhancedParents = await prisma.parent.findMany({
+      where: { schoolId: req.schoolId },
+      include: {
+        user: { select: { firstName: true, lastName: true, email: true, username: true } },
+        parentChildren: {
+          where: { schoolId: req.schoolId },
+          include: {
+            user: { select: { firstName: true, lastName: true, photoUrl: true } },
+            classModel: { select: { name: true, arm: true } }
+          }
+        }
+      }
+    });
+
+    const mappedParents = enhancedParents.map(p => ({
+      ...p,
+      user: p.user,
+      students: p.parentChildren || [],
+      parentChildren: undefined
+    }));
+    res.json(mappedParents);
+  } catch (e) {
+    console.error('Fetch parents error:', e);
+    res.status(500).json({ error: 'Failed to fetch parents' });
+  }
+});
+
+// 5. Update Parent (Admin/Principal)
+router.put('/:id', authenticate, authorize(['admin', 'principal']), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { firstName, lastName, email, phone, address } = req.body;
+
+    // Get parent with user info
+    const parent = await prisma.parent.findFirst({
+      where: {
+        id: parseInt(id),
+        schoolId: req.schoolId
+      },
+      include: { user: true }
+    });
+
+    if (!parent) {
+      return res.status(404).json({ error: 'Parent not found' });
+    }
+
+    const sanitizedPhone = phone && phone.trim() ? phone.trim().replace(/\s+/g, '') : null;
+    let newUsername = parent.user.username;
+
+    if (sanitizedPhone) {
+      if (!parent.user.username.includes('/PAR/')) {
+        newUsername = sanitizedPhone;
+      }
+
+      const existingPhone = await prisma.user.findFirst({
+        where: {
+          username: newUsername,
+          schoolId: req.schoolId,
+          id: { not: parent.userId }
+        }
+      });
+
+      if (existingPhone) {
+        return res.status(400).json({ error: 'Parent with this phone number already exists' });
+      }
+    }
+
+    // Update user and parent in transaction
+    await prisma.$transaction(async (prisma) => {
+      // Update user fields
+      await prisma.user.update({
+        where: {
+          id: parent.userId,
+          schoolId: req.schoolId
+        },
+        data: {
+          firstName,
+          lastName,
+          email: email || parent.user.email,
+          username: newUsername,
+          phone: sanitizedPhone
+        }
+      });
+
+      // Update parent fields
+      await prisma.parent.update({
+        where: {
+          id: parseInt(id),
+          schoolId: req.schoolId
+        },
+        data: {
+          phone: sanitizedPhone,
+          address
+        }
+      });
+    });
+
+    res.json({ message: 'Parent updated successfully' });
+
+    // Log the update
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'UPDATE',
+      resource: 'PARENT_ACCOUNT',
+      details: {
+        parentId: parseInt(id),
+        phone
+      },
+      ipAddress: req.ip
+    });
+  } catch (error) {
+    console.error('Update parent error:', error);
+    res.status(500).json({ error: 'Failed to update parent' });
+  }
+});
+
+// 6. Delete Parent Account (Admin/Principal)
+router.delete('/:id', authenticate, authorize(['admin', 'principal']), async (req, res) => {
+  try {
+    const parentId = parseInt(req.params.id);
+
+    // Get parent with user info using correct schema casing
+    const parent = await prisma.parent.findUnique({
+      where: { id: parentId },
+      include: { 
+        user: true, 
+        parentChildren: { select: { id: true } } 
+      }
+    });
+
+    if (!parent || parent.schoolId !== req.schoolId) {
+      return res.status(404).json({ error: 'Parent not found' });
+    }
+
+    // Execute in transaction to ensure data integrity
+    await prisma.$transaction(async (tx) => {
+      // 1. Unlink all students associated with this parent profile
+      await tx.student.updateMany({
+        where: { parentId: parentId },
+        data: { parentId: null }
+      });
+
+      // 2. Clear parentId from WhatsApp logs
+      await tx.whatsAppLog.updateMany({
+        where: { parentId: parentId },
+        data: { parentId: null }
+      });
+
+      // 3. Handle User-level dependencies if deleting the user account
+      // This prevents "Foreign Key Constraint" errors when the parent has sent/received messages or nudges
+      if (parent.user && parent.user.role === 'parent') {
+        const userId = parent.userId;
+
+        // Delete nudges sent to or by this parent
+        await tx.nudge.deleteMany({
+          where: { OR: [{ senderId: userId }, { receiverId: userId }] }
+        });
+
+        // Delete notices authored by this parent (unlikely for parents, but possible if they have mixed roles)
+        await tx.notice.deleteMany({
+          where: { authorId: userId }
+        });
+
+        // Null out userId in audit logs to preserve the log records
+        await tx.auditLog.updateMany({
+          where: { userId: userId },
+          data: { userId: null }
+        });
+
+        // Delete Parent-Teacher messages involving this user
+        await tx.parentTeacherMessage.deleteMany({
+          where: { OR: [{ senderId: userId }, { receiverId: userId }] }
+        });
+
+        // Delete Push Subscriptions (in case DB-level cascade is missing)
+        await tx.pushSubscription.deleteMany({
+          where: { userId: userId }
+        });
+      }
+
+      // 4. Delete the parent profile first
+      await tx.parent.delete({
+        where: { id: parentId }
+      });
+
+      // 5. Delete the associated user account if they only have the parent role
+      if (parent.user && parent.user.role === 'parent') {
+        await tx.user.delete({
+          where: { id: parent.userId }
+        });
+      }
+    });
+
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'DELETE_PARENT',
+      resource: 'PARENT',
+      details: { parentId, deletedUserId: parent.userId, phone: parent.phone },
+      ipAddress: req.ip
+    });
+
+    res.json({ message: 'Parent account and profile deleted successfully' });
+  } catch (error) {
+    console.error('[DeleteParent] Failed to delete parent:', error);
+    res.status(500).json({ error: `Failed to delete parent account: ${error.message}` });
+  }
+});
+
+// 7. Unlink Student from Parent (Admin/Principal)
+router.post('/unlink-student', authenticate, authorize(['admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin']), async (req, res) => {
+  try {
+    const { studentId } = req.body;
+
+    // Check if student exists
+    const student = await prisma.student.findFirst({
+      where: {
+        id: parseInt(studentId),
+        schoolId: req.schoolId
+      },
+      include: {
+        parent: {
+          include: {
+            user: { select: { firstName: true, lastName: true } }
+          }
+        }
+      }
+    });
+
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+
+    if (student.parentId === null) {
+      return res.status(400).json({ error: 'Student is not linked to any parent' });
+    }
+
+    // Unlink student from parent
+    await prisma.student.update({
+      where: {
+        id: parseInt(studentId),
+        schoolId: req.schoolId
+      },
+      data: { parentId: null }
+    });
+
+    res.json({
+      message: 'Student unlinked successfully',
+      studentId: student.id,
+      parentName: `${student.parent.user.firstName} ${student.parent.user.lastName}`
+    });
+
+    // Log the unlink
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'UNLINK_STUDENT',
+      resource: 'PARENT_STUDENT_LINK',
+      details: {
+        studentId: parseInt(studentId),
+        parentId: student.parentId
+      },
+      ipAddress: req.ip
+    });
+  } catch (error) {
+    console.error('Unlink student error:', error);
+    res.status(500).json({ error: 'Failed to unlink student' });
+  }
+});
+
+
+
+
+// 9. Get Student Attendance (Parent view their ward's attendance)
+router.get('/student-attendance', authenticate, authorize(['parent', 'admin', 'principal']), async (req, res) => {
+  try {
+    const { studentId, sessionId, termId, startDate, endDate } = req.query;
+
+    // Verify parent owns this student if not admin/principal
+    if (!['admin', 'principal'].includes(req.user.role)) {
+      const parent = await prisma.parent.findFirst({
+        where: {
+          userId: req.user.id,
+          schoolId: req.schoolId
+        },
+        include: {
+          parentChildren: {
+            where: { schoolId: req.schoolId },
+            select: { id: true }
+          }
+        }
+      });
+
+      if (!parent) {
+        return res.status(404).json({ error: 'Parent profile not found' });
+      }
+
+      const studentIds = parent.parentChildren.map(s => s.id);
+      if (!studentIds.includes(parseInt(studentId))) {
+        return res.status(403).json({ error: 'You can only view attendance for your own children' });
+      }
+    }
+
+    // Build where clause
+    const where = {
+      studentId: parseInt(studentId),
+      schoolId: req.schoolId
+    };
+
+    if (sessionId) {
+      where.academicSessionId = parseInt(sessionId);
+    }
+
+    if (termId) {
+      where.termId = parseInt(termId);
+    }
+
+    if (startDate || endDate) {
+      where.date = {};
+      if (startDate) {
+        const [sy, sm, sd] = startDate.split('-');
+        where.date.gte = new Date(Date.UTC(parseInt(sy), parseInt(sm) - 1, parseInt(sd), 0, 0, 0));
+      }
+      if (endDate) {
+        const [ey, em, ed] = endDate.split('-');
+        where.date.lte = new Date(Date.UTC(parseInt(ey), parseInt(em) - 1, parseInt(ed), 23, 59, 59, 999));
+      }
+    }
+
+    // Fetch attendance records for this student
+    const records = await prisma.attendanceRecord.findMany({
+      where,
+      include: {
+        academicSession: { select: { name: true } },
+        term: { select: { name: true } }
+      },
+      orderBy: { date: 'desc' }
+    });
+
+    // Fetch class-wide attendance dates so frontend can compute unmarked days
+    const student = await prisma.student.findFirst({
+      where: { id: parseInt(studentId), schoolId: req.schoolId },
+      select: { classId: true }
+    });
+
+    let classAttendanceDates = [];
+    if (student?.classId) {
+      // Build matching where clause for class dates (same filters as student)
+      const classWhere = {
+        schoolId: req.schoolId,
+        classId: student.classId
+      };
+      if (sessionId) classWhere.academicSessionId = parseInt(sessionId);
+      if (termId) classWhere.termId = parseInt(termId);
+      if (startDate || endDate) {
+        classWhere.date = {};
+        if (startDate) {
+          const [sy, sm, sd] = startDate.split('-');
+          classWhere.date.gte = new Date(Date.UTC(parseInt(sy), parseInt(sm) - 1, parseInt(sd), 0, 0, 0));
+        }
+        if (endDate) {
+          const [ey, em, ed] = endDate.split('-');
+          classWhere.date.lte = new Date(Date.UTC(parseInt(ey), parseInt(em) - 1, parseInt(ed), 23, 59, 59, 999));
+        }
+      }
+
+      const classDays = await prisma.attendanceRecord.groupBy({
+        by: ['date'],
+        where: classWhere
+      });
+      classAttendanceDates = classDays.map(d => d.date);
+    }
+
+    res.json({ records, classAttendanceDates });
+  } catch (error) {
+    console.error('Get student attendance error:', error);
+    res.status(500).json({ error: 'Failed to fetch attendance records' });
+  }
+});
+
+// 9. Get Recent In-App Alerts for Parent Dashboard
+router.get('/recent-alerts', authenticate, authorize(['parent', 'admin', 'principal']), async (req, res) => {
+  try {
+    const alerts = await prisma.parentTeacherMessage.findMany({
+      where: {
+        schoolId: req.schoolId,
+        receiverId: req.user.id,
+        messageType: 'attendance',
+        isRead: false
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 5
+    });
+    res.json(alerts);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 10. Sync all students to parents by phone matching (Admin tool)
+router.post('/sync-by-phone', authenticate, authorize(['admin', 'principal']), async (req, res) => {
+  try {
+    const parents = await prisma.parent.findMany({
+      where: { schoolId: req.schoolId }
+    });
+
+    let totalLinked = 0;
+    const results = [];
+
+    for (const parent of parents) {
+      if (!parent.phone) continue;
+      const sanitizedPhone = parent.phone.replace(/\s+/g, '');
+      
+      const unlinkedStudents = await prisma.student.findMany({
+        where: {
+          schoolId: req.schoolId,
+          parentId: null,
+          OR: [
+            { parentGuardianPhone: { contains: sanitizedPhone } },
+            { parentGuardianPhone: { contains: sanitizedPhone.startsWith('0') ? sanitizedPhone.substring(1) : sanitizedPhone } }
+          ]
+        }
+      });
+
+      if (unlinkedStudents.length > 0) {
+        await prisma.student.updateMany({
+          where: { id: { in: unlinkedStudents.map(s => s.id) } },
+          data: { parentId: parent.id }
+        });
+        totalLinked += unlinkedStudents.length;
+        results.push({ parentId: parent.id, phone: parent.phone, linked: unlinkedStudents.length });
+      }
+    }
+
+    res.json({ 
+      message: `Sync completed. ${totalLinked} students linked.`,
+      totalLinked,
+      details: results
+    });
+  } catch (error) {
+    console.error('Sync error:', error);
+    res.status(500).json({ error: 'Failed to sync parents' });
+  }
+});
+
+// ===== Bulk Phone Management Endpoints =====
+
+// GET /phone-template - Download pre-populated Excel template with parent phone numbers
+router.get('/phone-template', authenticate, authorize(['admin', 'principal']), async (req, res) => {
+  try {
+    const schoolIdInt = parseInt(req.schoolId);
+    const school = await prisma.school.findUnique({ where: { id: schoolIdInt } });
+
+    // Query all students with parent info (linked or guardian fields)
+    const students = await prisma.student.findMany({
+      where: {
+        schoolId: schoolIdInt,
+        OR: [
+          { parentId: { not: null } },
+          { parentGuardianName: { not: null } }
+        ]
+      },
+      include: {
+        classModel: true,
+        user: true,
+        parent: {
+          include: {
+            user: true
+          }
+        }
+      }
+    });
+
+    // Build rows
+    const rows = students.map(student => {
+      let parentName = '';
+      let phoneNumber = '';
+
+      if (student.parent) {
+        parentName = `${student.parent.user.firstName} ${student.parent.user.lastName}`;
+        phoneNumber = student.parent.phone || '';
+      } else {
+        parentName = student.parentGuardianName || '';
+        phoneNumber = student.parentGuardianPhone || '';
+      }
+
+      const className = student.classModel ? `${student.classModel.name}${student.classModel.arm ? ' ' + student.classModel.arm : ''}` : '';
+      const studentName = student.user ? `${student.user.firstName} ${student.user.lastName}` : (student.name || '');
+
+      return {
+        className,
+        studentName,
+        regNumber: student.admissionNumber || '',
+        parentName,
+        phoneNumber
+      };
+    });
+
+    // Sort by class name, then student name
+    rows.sort((a, b) => {
+      const classCompare = a.className.localeCompare(b.className);
+      if (classCompare !== 0) return classCompare;
+      return a.studentName.localeCompare(b.studentName);
+    });
+
+    // Build Excel workbook
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Parent Phone Numbers');
+
+    worksheet.columns = [
+      { header: 'S/N', key: 'sn', width: 6 },
+      { header: 'Class', key: 'className', width: 20 },
+      { header: 'Student Name', key: 'studentName', width: 30 },
+      { header: 'Registration Number', key: 'regNumber', width: 22 },
+      { header: 'Parent Name', key: 'parentName', width: 30 },
+      { header: 'Phone Number', key: 'phoneNumber', width: 20 }
+    ];
+
+    // Style header row
+    worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    worksheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1B3A5C' } };
+    worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' };
+    worksheet.getRow(1).height = 28;
+
+    // Add data rows
+    rows.forEach((row, index) => {
+      const rowIndex = index + 2;
+      const rowObj = worksheet.addRow({
+        sn: index + 1,
+        className: row.className,
+        studentName: row.studentName,
+        regNumber: row.regNumber,
+        parentName: row.parentName,
+        phoneNumber: row.phoneNumber
+      });
+
+      // Apply borders to all cells in this row
+      rowObj.eachCell((cell) => {
+        cell.border = {
+          top: { style: 'thin' },
+          left: { style: 'thin' },
+          bottom: { style: 'thin' },
+          right: { style: 'thin' }
+        };
+      });
+
+      // Get Phone Number column (F) cell
+      const phoneCell = worksheet.getCell(`F${rowIndex}`);
+      
+      // Highlight with light yellow
+      phoneCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFCC' } };
+
+      // Set cell format to text so leading zeros aren't dropped
+      phoneCell.numFmt = '@';
+
+      // Add data validation to only accept phone numbers
+      // Formula checks if the value becomes a number after removing '+' and spaces
+      phoneCell.dataValidation = {
+        type: 'custom',
+        allowBlank: true,
+        showInputMessage: true,
+        promptTitle: 'Phone Number',
+        prompt: 'Enter digits only (e.g., 08012345678 or +234...)',
+        showErrorMessage: true,
+        errorStyle: 'error',
+        errorTitle: 'Invalid Input',
+        error: 'Please enter a valid phone number. Text is not allowed.',
+        formulae: [`ISNUMBER(VALUE(SUBSTITUTE(SUBSTITUTE(F${rowIndex}, "+", ""), " ", "")))`]
+      };
+    });
+
+    // Set response headers
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename=Parent_Phone_Numbers_Template.xlsx');
+
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    console.error('Error generating phone template:', error);
+    res.status(500).json({ error: 'Failed to generate phone template' });
+  }
+});
+
+// POST /bulk-update-phones - Upload filled Excel and update parent phone numbers
+const phoneUpload = multer({ storage: multer.memoryStorage() });
+router.post('/bulk-update-phones', authenticate, authorize(['admin', 'principal']), phoneUpload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    const schoolIdInt = parseInt(req.schoolId);
+    const school = await prisma.school.findUnique({ where: { id: schoolIdInt } });
+
+    const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const jsonData = xlsx.utils.sheet_to_json(sheet, { header: 1 });
+
+    // Find header row
+    let headerRowIndex = -1;
+    let headers = {};
+    for (let i = 0; i < jsonData.length; i++) {
+      const row = jsonData[i];
+      if (row && row.some(cell => {
+        if (!cell) return false;
+        const c = cell.toString().toLowerCase();
+        return c.includes('registration') || c.includes('admission') || c.includes('adm no') || c.includes('reg no');
+      })) {
+        headerRowIndex = i;
+        row.forEach((cell, colIndex) => {
+          if (cell) {
+            headers[cell.toString().trim().toLowerCase()] = colIndex;
+          }
+        });
+        break;
+      }
+    }
+
+    if (headerRowIndex === -1) {
+      return res.status(400).json({ error: 'Could not find header row with "Registration Number" or "Admission Number" column' });
+    }
+
+    let regNumberCol, phoneNumberCol, parentNameCol;
+    for (const [header, index] of Object.entries(headers)) {
+      if (header.includes('registration') || header.includes('admission') || header.includes('reg no') || header.includes('adm no')) {
+        if (regNumberCol === undefined) regNumberCol = index;
+      }
+      if (header.includes('phone') || header.includes('contact')) {
+        if (phoneNumberCol === undefined) phoneNumberCol = index;
+      }
+      if (header.includes('parent') || header.includes('guardian')) {
+        if (parentNameCol === undefined) parentNameCol = index;
+      }
+    }
+
+    if (regNumberCol === undefined || phoneNumberCol === undefined) {
+      return res.status(400).json({ error: 'Required columns (Registration/Admission Number, Phone Number) not found' });
+    }
+
+    const results = {
+      updated: [],
+      created: [],
+      skipped: [],
+      failed: []
+    };
+
+    const processedParents = new Set();
+
+    // Process data rows
+    for (let i = headerRowIndex + 1; i < jsonData.length; i++) {
+      const row = jsonData[i];
+      if (!row) continue;
+
+      const regNumber = row[regNumberCol] ? row[regNumberCol].toString().trim() : '';
+      const phoneNumber = row[phoneNumberCol] ? row[phoneNumberCol].toString().trim() : '';
+      const parentName = row[parentNameCol] ? row[parentNameCol].toString().trim() : '';
+
+      if (!regNumber) continue;
+      if (!phoneNumber) {
+        continue;
+      }
+
+      try {
+        // Find student by admission number
+        const student = await prisma.student.findFirst({
+          where: { admissionNumber: regNumber, schoolId: schoolIdInt },
+          include: {
+            user: true,
+            parent: {
+              include: { user: true }
+            }
+          }
+        });
+
+        if (!student) {
+          results.failed.push({ regNumber, error: 'Student not found' });
+          continue;
+        }
+
+        const studentName = student.user ? `${student.user.firstName} ${student.user.lastName}` : (student.name || regNumber);
+
+        if (student.parentId) {
+          // Student has a linked parent
+          const parentKey = `parent-${student.parentId}`;
+          if (processedParents.has(parentKey)) {
+            results.skipped.push({ regNumber, reason: 'Duplicate parent already processed' });
+            continue;
+          }
+
+          const oldPhone = student.parent?.phone || '';
+          if (oldPhone === phoneNumber) {
+            results.skipped.push({ regNumber, reason: 'Phone unchanged' });
+            processedParents.add(parentKey);
+            continue;
+          }
+
+          await prisma.$transaction(async (tx) => {
+            await tx.parent.update({
+              where: { id: student.parentId },
+              data: { phone: phoneNumber }
+            });
+            const parent = await tx.parent.findUnique({ where: { id: student.parentId } });
+            await tx.user.update({
+              where: { id: parent.userId },
+              data: { username: phoneNumber }
+            });
+          });
+
+          processedParents.add(parentKey);
+          results.updated.push({ regNumber, studentName, oldPhone, newPhone: phoneNumber });
+        } else {
+          // Student has no linked parent - check if user with this phone already exists
+          const existingUser = await prisma.user.findFirst({
+            where: { schoolId: schoolIdInt, username: phoneNumber }
+          });
+
+          if (existingUser) {
+            if (existingUser.role !== 'parent') {
+              results.failed.push({ regNumber, error: 'Phone number already used by a non-parent account' });
+              continue;
+            }
+
+            let existingParent = await prisma.parent.findFirst({
+              where: { userId: existingUser.id }
+            });
+
+            await prisma.$transaction(async (tx) => {
+              if (!existingParent) {
+                existingParent = await tx.parent.create({
+                  data: { userId: existingUser.id, phone: phoneNumber, schoolId: schoolIdInt }
+                });
+              }
+
+              await tx.student.update({
+                where: { id: student.id },
+                data: { parentId: existingParent.id, parentGuardianPhone: phoneNumber }
+              });
+            });
+
+            results.updated.push({ regNumber, studentName, oldPhone: student.parentGuardianPhone || 'None', newPhone: phoneNumber });
+          } else {
+            // Create new parent account
+            let firstName = '';
+            let lastName = '';
+            if (parentName) {
+              const nameParts = parentName.split(' ');
+              firstName = nameParts[0] || student.firstName || 'Parent';
+              lastName = nameParts.slice(1).join(' ') || student.lastName || '';
+            } else {
+              firstName = student.parentGuardianName || student.firstName || 'Parent';
+              lastName = student.lastName || '';
+            }
+
+            const passwordHash = await bcrypt.hash('parent123', 10);
+            const email = generateAutoEmail(firstName, lastName, school?.name);
+
+            await prisma.$transaction(async (tx) => {
+              const newUser = await tx.user.create({
+                data: {
+                  firstName,
+                  lastName,
+                  username: phoneNumber,
+                  email,
+                  passwordHash,
+                  role: 'parent',
+                  schoolId: schoolIdInt
+                }
+              });
+
+              const newParent = await tx.parent.create({
+                data: {
+                  userId: newUser.id,
+                  phone: phoneNumber,
+                  schoolId: schoolIdInt
+                }
+              });
+
+              await tx.student.update({
+                where: { id: student.id },
+                data: {
+                  parentId: newParent.id,
+                  parentGuardianPhone: phoneNumber
+                }
+              });
+            });
+
+            results.created.push({
+              regNumber,
+              studentName,
+              parentName: `${firstName} ${lastName}`,
+              phone: phoneNumber,
+              username: phoneNumber,
+              password: 'parent123'
+            });
+          }
+        }
+      } catch (rowError) {
+        results.failed.push({ regNumber, error: rowError.message });
+      }
+    }
+
+    // Log the action
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'BULK_UPDATE_PHONES',
+      resource: 'PARENT',
+      details: { updatedCount: results.updated.length, createdCount: results.created.length, failedCount: results.failed.length },
+      ipAddress: req.ip
+    });
+
+    res.json({
+      message: `Bulk phone update complete. ${results.updated.length} updated, ${results.created.length} created, ${results.skipped.length} skipped, ${results.failed.length} failed.`,
+      updated: results.updated,
+      created: results.created,
+      skipped: results.skipped,
+      failed: results.failed
+    });
+  } catch (error) {
+    console.error('Bulk phone update error:', error);
+    res.status(500).json({ error: 'Failed to process bulk phone update' });
+  }
+});
+
+module.exports = router;

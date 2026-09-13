@@ -1,0 +1,1 @@
+﻿const { PrismaClient } = require('@prisma/client'); const prisma = new PrismaClient(); async function main() { const teachers = await prisma.user.findMany({ where: { role: 'teacher' }}); console.log(teachers); } main();

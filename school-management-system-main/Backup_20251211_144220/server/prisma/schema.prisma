@@ -1,0 +1,509 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// ============ AUTHENTICATION & USER MANAGEMENT ============
+
+model User {
+  id            Int       @id @default(autoincrement())
+  username      String    @unique
+  passwordHash  String
+  email         String?   @unique
+  role          String    // 'admin', 'teacher', 'student', 'accountant'
+  firstName     String
+  lastName      String
+  isActive      Boolean   @default(true)
+  mustChangePassword Boolean @default(false)
+  
+  // Relations
+  student         Student?
+  teacher         Teacher?
+  parent          Parent?
+  classesAsTeacher Class[]  @relation("ClassTeacher")
+  teacherAssignments TeacherAssignment[]
+  feeClearances   FeeRecord[] @relation("FeeClearance")
+  paymentsRecorded FeePayment[] @relation("PaymentRecorder")
+  notices         Notice[]
+  homeworks       Homework[]
+  resources       LearningResource[]
+  createdAt       DateTime @default(now())
+}
+
+model Parent {
+  id      Int @id @default(autoincrement())
+  userId  Int @unique
+  phone   String @unique
+  address String?
+
+  // Relations
+  user            User     @relation(fields: [userId], references: [id])
+  students        Student[]
+  createdAt       DateTime @default(now())
+}
+
+model Student {
+  id              Int      @id @default(autoincrement())
+  userId          Int      @unique
+  parentId        Int?     // Link to Parent Account
+  admissionNumber String   @unique // Auto-generated: YEAR-CLASS-INITIALS (e.g., 2024-SS1A-JD)
+  classId         Int?
+  
+  // Personal Information
+  middleName      String?  // Middle name or other name
+  dateOfBirth     DateTime?
+  gender          String?  // Male/Female
+  stateOfOrigin   String?
+  nationality     String?  @default("Nigerian")
+  address         String?
+  photoUrl        String?  // Student passport photo
+  
+  // Parent/Guardian Information (Offline/Reference)
+  parentGuardianName  String?
+  parentGuardianPhone String?
+  parentEmail         String?
+  
+  // Medical Information
+  bloodGroup      String?  // A+, A-, B+, B-, AB+, AB-, O+, O-
+  genotype        String?  // AA, AS, SS, AC, SC
+  disability      String?  // None, Physical, Visual, Hearing, Learning, Other
+  
+  // Legacy fields (keep for backward compatibility)
+  name            String?
+  rollNo          String?  @unique
+  class           String?
+  parentPhone     String?
+  
+  // Relations
+  user            User     @relation(fields: [userId], references: [id])
+  parent          Parent?  @relation(fields: [parentId], references: [id])
+  classModel      Class?   @relation(fields: [classId], references: [id])
+  results         Result[]
+  feeRecords      FeeRecord[]
+  examCards       ExamCard[]
+  onlinePayments  OnlinePayment[]
+  attendanceRecords AttendanceRecord[]
+  createdAt       DateTime @default(now())
+}
+
+model Teacher {
+  id              Int      @id @default(autoincrement())
+  userId          Int      @unique
+  staffId         String   @unique
+  specialization  String?
+  photoUrl        String?  // Staff passport photo
+  
+  // Relations
+  user            User     @relation(fields: [userId], references: [id])
+  createdAt       DateTime @default(now())
+}
+
+// ============ ACADEMIC STRUCTURE ============
+
+model AcademicSession {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique // e.g., "2024/2025"
+  startDate   DateTime
+  endDate     DateTime
+  isCurrent   Boolean  @default(false)
+  
+  // Relations
+  terms       Term[]
+  results     Result[]
+  feeRecords  FeeRecord[]
+  feeStructures ClassFeeStructure[]
+  examCards   ExamCard[]
+  attendanceRecords AttendanceRecord[]
+  createdAt   DateTime @default(now())
+}
+
+model Term {
+  id                Int             @id @default(autoincrement())
+  academicSessionId Int
+  name              String          // e.g., "First Term", "Second Term"
+  startDate         DateTime
+  endDate           DateTime
+  isCurrent         Boolean         @default(false)
+  
+  // Relations
+  academicSession   AcademicSession @relation(fields: [academicSessionId], references: [id])
+  results           Result[]
+  feeRecords        FeeRecord[]
+  feeStructures     ClassFeeStructure[]
+  examCards         ExamCard[]
+  attendanceRecords AttendanceRecord[]
+  createdAt         DateTime        @default(now())
+  
+  @@unique([academicSessionId, name])
+}
+
+model Class {
+  id              Int      @id @default(autoincrement())
+  name            String   // e.g., "SS 1", "JSS 2"
+  arm             String?  // e.g., "A", "B", null
+  classTeacherId  Int?
+  isActive        Boolean  @default(true) // Soft delete: false means deleted
+  
+  // Relations
+  classTeacher    User?    @relation("ClassTeacher", fields: [classTeacherId], references: [id])
+  students        Student[]
+  teacherAssignments TeacherAssignment[]
+  feeStructures   ClassFeeStructure[]
+  results         Result[]
+  attendanceRecords AttendanceRecord[]
+  timetables      Timetable[]
+  homeworks       Homework[]
+  resources       LearningResource[]
+  createdAt       DateTime @default(now())
+  
+  @@unique([name, arm])
+}
+
+model Subject {
+  id          Int      @id @default(autoincrement())
+  name        String
+  code        String?  @unique
+  
+  // Relations
+  results     Result[]
+  teacherAssignments TeacherAssignment[]
+  timetables  Timetable[]
+  homeworks   Homework[]
+  resources   LearningResource[]
+  createdAt   DateTime @default(now())
+}
+
+// Teacher-Subject-Class Assignment
+// Tracks which teacher teaches which subject in which class
+model TeacherAssignment {
+  id        Int @id @default(autoincrement())
+  teacherId Int
+  subjectId Int
+  classId   Int
+  
+  // Relations
+  teacher   User    @relation(fields: [teacherId], references: [id])
+  subject   Subject @relation(fields: [subjectId], references: [id])
+  class     Class   @relation(fields: [classId], references: [id])
+  
+  createdAt DateTime @default(now())
+  
+  // Unique constraint: one teacher per subject per class
+  @@unique([teacherId, subjectId, classId])
+}
+
+// ============ RESULTS & ASSESSMENT ============
+
+model Result {
+  id                Int             @id @default(autoincrement())
+  studentId         Int
+  academicSessionId Int
+  termId            Int
+  classId           Int
+  subjectId         Int
+  
+  // Score components (5 components)
+  assignment1Score  Float?          // Max 5%
+  assignment2Score  Float?          // Max 5%
+  test1Score        Float?          // Max 10%
+  test2Score        Float?          // Max 10%
+  examScore         Float?          // Max 70%
+  
+  // Calculated fields
+  totalScore        Float           // Sum of all components (max 100)
+  grade             String?         // A, B, C, D, E, F
+  positionInClass   Int?            // Rank within class for this subject
+  classAverage      Float?          // Average score for this subject in class
+  
+  // Metadata
+  teacherId         Int?
+  isSubmitted       Boolean         @default(false)
+  submittedAt       DateTime?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  
+  // Relations
+  student           Student         @relation(fields: [studentId], references: [id])
+  academicSession   AcademicSession @relation(fields: [academicSessionId], references: [id])
+  term              Term            @relation(fields: [termId], references: [id])
+  class             Class           @relation(fields: [classId], references: [id])
+  subject           Subject         @relation(fields: [subjectId], references: [id])
+  
+  @@unique([studentId, subjectId, termId, academicSessionId])
+}
+
+// ============ ATTENDANCE ============
+
+model AttendanceRecord {
+  id              Int      @id @default(autoincrement())
+  studentId       Int
+  classId         Int
+  academicSessionId Int
+  termId          Int
+  
+  date            DateTime // The date of attendance
+  status          String   @default("present") // present, absent, late, excused
+  notes           String?
+  
+  // Relations
+  student         Student         @relation(fields: [studentId], references: [id])
+  class           Class           @relation(fields: [classId], references: [id])
+  academicSession AcademicSession @relation(fields: [academicSessionId], references: [id])
+  term            Term            @relation(fields: [termId], references: [id])
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Ensure one record per student per day
+  @@unique([studentId, date])
+}
+
+model Timetable {
+  id        Int      @id @default(autoincrement())
+  classId   Int
+  subjectId Int?     // Nullable for "Break" or "Free Period"
+  dayOfWeek String   // Monday, Tuesday, Wednesday, Thursday, Friday
+  startTime String   // "08:00"
+  endTime   String   // "08:40"
+  type      String   // "lesson", "break", "assembly"
+  isPublished Boolean @default(false) // Admin can publish/unpublish timetables
+  
+  class     Class    @relation(fields: [classId], references: [id])
+  subject   Subject? @relation(fields: [subjectId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([classId, dayOfWeek])
+}
+
+model Notice {
+  id        Int      @id @default(autoincrement())
+  title     String
+  content   String
+  audience  String   @default("all") // 'all', 'student', 'teacher'
+  isActive  Boolean  @default(true)
+  
+  authorId  Int
+  author    User     @relation(fields: [authorId], references: [id])
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ============ LMS (Homework & Resources) ============
+
+model Homework {
+  id          Int      @id @default(autoincrement())
+  classId     Int
+  subjectId   Int
+  teacherId   Int
+  
+  title       String
+  description String?  // Text content of the homework
+  dueDate     DateTime?
+  
+  class       Class    @relation(fields: [classId], references: [id])
+  subject     Subject  @relation(fields: [subjectId], references: [id])
+  teacher     User     @relation(fields: [teacherId], references: [id])
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model LearningResource {
+  id          Int      @id @default(autoincrement())
+  classId     Int
+  subjectId   Int
+  teacherId   Int
+  
+  title       String
+  description String?
+  fileUrl     String?  // URL to uploaded file (PDF, Doc, etc.)
+  type        String   @default("note") // 'note', 'past_question', 'syllabus'
+  
+  class       Class    @relation(fields: [classId], references: [id])
+  subject     Subject  @relation(fields: [subjectId], references: [id])
+  teacher     User     @relation(fields: [teacherId], references: [id])
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ============ FEE MANAGEMENT ============
+
+model FeeRecord {
+  id                Int             @id @default(autoincrement())
+  studentId         Int
+  academicSessionId Int
+  termId            Int
+  
+  expectedAmount    Float
+  paidAmount        Float           @default(0)
+  balance           Float
+  
+  isClearedForExam  Boolean         @default(false)
+  clearedBy         Int?
+  clearedAt         DateTime?
+  
+  // Relations
+  student           Student         @relation(fields: [studentId], references: [id])
+  academicSession   AcademicSession @relation(fields: [academicSessionId], references: [id])
+  term              Term            @relation(fields: [termId], references: [id])
+  clearedByUser     User?           @relation("FeeClearance", fields: [clearedBy], references: [id])
+  payments          FeePayment[]
+  onlinePayments    OnlinePayment[]
+  
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  
+  @@unique([studentId, termId, academicSessionId])
+}
+
+model FeePayment {
+  id            Int       @id @default(autoincrement())
+  feeRecordId   Int
+  amount        Float
+  paymentMethod String    @default("cash") // cash, bank_transfer, pos, cheque, online
+  reference     String?   // Transaction reference, cheque number, etc.
+  notes         String?   // Additional notes about the payment
+  paymentDate   DateTime  @default(now())
+  recordedBy    Int       // User who recorded the payment
+  
+  // Relations
+  feeRecord     FeeRecord @relation(fields: [feeRecordId], references: [id])
+  recordedByUser User     @relation("PaymentRecorder", fields: [recordedBy], references: [id])
+  
+  createdAt     DateTime  @default(now())
+}
+
+
+model ExamCard {
+  id                Int             @id @default(autoincrement())
+  studentId         Int
+  academicSessionId Int
+  termId            Int
+  
+  cardNumber        String          @unique
+  issuedAt          DateTime        @default(now())
+  
+  // Relations
+  student           Student         @relation(fields: [studentId], references: [id])
+  academicSession   AcademicSession @relation(fields: [academicSessionId], references: [id])
+  term              Term            @relation(fields: [termId], references: [id])
+  
+  @@unique([studentId, termId, academicSessionId])
+}
+
+model ClassFeeStructure {
+  id                Int             @id @default(autoincrement())
+  classId           Int
+  academicSessionId Int
+  termId            Int
+  amount            Float
+  description       String?
+
+  // Relations
+  class             Class           @relation(fields: [classId], references: [id])
+  academicSession   AcademicSession @relation(fields: [academicSessionId], references: [id])
+  term              Term            @relation(fields: [termId], references: [id])
+
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@unique([classId, termId, academicSessionId])
+}
+
+// ============ BUSINESS FEATURES ============
+
+// License Management System
+model License {
+  id                Int       @id @default(autoincrement())
+  licenseKey        String    @unique
+  schoolName        String
+  contactPerson     String
+  contactEmail      String
+  contactPhone      String
+  
+  // License details
+  packageType       String    // 'basic', 'standard', 'premium'
+  maxStudents       Int       // 500, 1500, or -1 for unlimited
+  isActive          Boolean   @default(true)
+  
+  // Dates
+  activatedAt       DateTime?
+  expiresAt         DateTime?
+  lastCheckedAt     DateTime?
+  
+  // Hardware binding (optional - prevents license sharing)
+  machineId         String?
+  
+  // Notes
+  notes             String?
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
+// School Settings & Branding
+model SchoolSettings {
+  id                Int       @id @default(autoincrement())
+  
+  // License info
+  licenseKey        String?   @unique
+  isActivated       Boolean   @default(false)
+  
+  // School information
+  schoolName        String    @default("School Management System")
+  schoolAddress     String?
+  schoolPhone       String?
+  schoolEmail       String?
+  schoolMotto       String?
+  logoUrl           String?
+  
+  // Theme customization
+  primaryColor      String    @default("#1e40af")
+  secondaryColor    String    @default("#3b82f6")
+  accentColor       String    @default("#60a5fa")
+  
+  // Payment gateway settings
+  paystackPublicKey String?
+  paystackSecretKey String?
+  flutterwavePublicKey String?
+  flutterwaveSecretKey String?
+  enableOnlinePayment Boolean @default(false)
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
+// Online Payment Tracking
+model OnlinePayment {
+  id              Int       @id @default(autoincrement())
+  feeRecordId     Int
+  studentId       Int
+  
+  // Payment details
+  amount          Float
+  provider        String    // 'paystack', 'flutterwave'
+  reference       String    @unique
+  
+  // Status tracking
+  status          String    @default("pending") // pending, success, failed
+  paidAt          DateTime?
+  
+  // Provider response (JSON)
+  providerResponse String?
+  
+  // Relations
+  feeRecord       FeeRecord @relation(fields: [feeRecordId], references: [id])
+  student         Student   @relation(fields: [studentId], references: [id])
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+

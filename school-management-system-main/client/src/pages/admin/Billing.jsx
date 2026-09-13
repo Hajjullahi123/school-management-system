@@ -1,0 +1,287 @@
+import React, { useState, useEffect } from 'react';
+import { FiCheck, FiShield, FiBriefcase, FiZap, FiCreditCard, FiAlertCircle, FiClock, FiCalendar, FiUsers } from 'react-icons/fi';
+import { apiCall } from '../../api';
+import { formatNumber } from '../../utils/formatters';
+import { toast } from '../../utils/toast';
+import { useAuth } from '../../context/AuthContext';
+
+const Billing = () => {
+  const { user } = useAuth();
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [processingId, setProcessingId] = useState(null);
+  const [editPricing, setEditPricing] = useState({ basic: 0, standard: 0, premium: 0 });
+  const [updating, setUpdating] = useState(false);
+
+  useEffect(() => {
+    fetchBillingStatus();
+  }, []);
+
+  // Sync editPricing when data is loaded
+  useEffect(() => {
+    if (data?.pricing) {
+      setEditPricing({ ...data.pricing });
+    }
+  }, [data]);
+
+  const fetchBillingStatus = async () => {
+    try {
+      setLoading(true);
+      const res = await apiCall('/api/platform-billing/status');
+      setData(res.data);
+    } catch (error) {
+      toast.error('Failed to fetch billing status');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleInitializeSubscription = async (packageType) => {
+    try {
+      setProcessingId(packageType);
+      const res = await apiCall('/api/platform-billing/initialize-subscription', {
+        method: 'POST',
+        body: JSON.stringify({ packageType })
+      });
+
+      if (res.data.authorization_url) {
+        window.location.href = res.data.authorization_url;
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Payment initialization failed');
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleUpdateGlobalPricing = async (e) => {
+    e.preventDefault();
+    try {
+      setUpdating(true);
+      await apiCall('/api/platform-billing/pricing', {
+        method: 'PUT',
+        body: JSON.stringify(editPricing)
+      });
+      toast.success('Platform prices updated globally');
+      fetchBillingStatus();
+    } catch (error) {
+      toast.error('Failed to update platform prices');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  if (loading) return (
+    <div className="flex items-center justify-center min-h-[400px]">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+    </div>
+  );
+
+  const { school, pricing } = data;
+
+  return (
+    <div className="p-4 sm:p-8 max-w-6xl mx-auto space-y-6 sm:space-y-10 animate-in fade-in duration-700">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-2">
+        <div className="space-y-1">
+          <h1 className="text-2xl sm:text-4xl font-black text-gray-900 tracking-tight leading-none">Billing & Ecosystem</h1>
+          <p className="text-[10px] sm:text-sm text-gray-500 font-bold uppercase tracking-widest italic flex items-center gap-2">
+            <span className="w-4 h-[2px] bg-primary"></span>
+            License & Institution Economics
+          </p>
+        </div>
+      </div>
+
+      {/* Global Pricing Editor (Platform Admin Section) - Only for Super Admins */}
+      {user?.role === 'superadmin' && (
+        <div className="bg-indigo-900 text-white rounded-[2rem] sm:rounded-[2.5rem] p-6 sm:p-10 shadow-2xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-12 opacity-[0.05] pointer-events-none hidden sm:block">
+            <FiZap size={300} />
+          </div>
+
+          <div className="relative z-10 flex flex-col lg:flex-row gap-8 sm:gap-12 items-start">
+            <div className="flex-1 space-y-4">
+              <div className="inline-flex items-center gap-2 bg-indigo-500/30 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border border-indigo-400/30">
+                <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse"></span>
+                Platform Economics
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-black tracking-tighter italic uppercase">Market Price Adjustment</h2>
+              <p className="text-indigo-200/80 text-xs sm:text-sm leading-relaxed max-w-md">As a platform owner, you can adjust the standard pricing displayed on the public landing page for new schools joining the ecosystem.</p>
+            </div>
+
+            <form onSubmit={handleUpdateGlobalPricing} className="bg-white/10 backdrop-blur-xl p-5 sm:p-8 rounded-[2rem] border border-white/10 flex flex-col items-stretch gap-6 w-full lg:w-auto">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 flex-1">
+                {['basic', 'standard', 'premium'].map(type => (
+                  <div key={type} className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-indigo-300 ml-1">{type} (₦)</label>
+                    <input
+                      type="number"
+                      value={editPricing[type]}
+                      onChange={(e) => setEditPricing({ ...editPricing, [type]: e.target.value })}
+                      className="w-full bg-white/10 border border-white/20 rounded-xl sm:rounded-2xl px-4 py-2.5 sm:px-5 sm:py-3 text-sm sm:text-lg font-black focus:ring-4 focus:ring-white/10 outline-none transition-all"
+                    />
+                  </div>
+                ))}
+              </div>
+              <button
+                type="submit"
+                disabled={updating}
+                className="bg-white text-indigo-900 px-8 py-4 rounded-xl sm:rounded-2xl font-black uppercase text-[10px] tracking-widest hover:scale-105 active:scale-95 transition-all shadow-xl shadow-black/20 flex items-center justify-center gap-2 whitespace-nowrap"
+              >
+                {updating ? 'Applying...' : 'Sync Market Prices'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Current Status Card */}
+      <div className="bg-white rounded-[2rem] sm:rounded-[2.5rem] shadow-sm border border-gray-100 p-6 sm:p-8 flex flex-col sm:flex-row items-center gap-6 sm:gap-8 relative overflow-hidden">
+        <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none hidden sm:block">
+          <FiShield size={200} />
+        </div>
+
+        <div className={`w-16 h-16 sm:w-24 sm:h-24 rounded-2xl sm:rounded-3xl flex items-center justify-center text-white shadow-xl ${school.packageType === 'premium' ? 'bg-gradient-to-br from-indigo-600 to-blue-700' :
+          school.packageType === 'standard' ? 'bg-gradient-to-br from-purple-600 to-indigo-700' :
+            'bg-gradient-to-br from-emerald-500 to-teal-600'
+          }`}>
+          <FiBriefcase className="w-8 h-8 sm:w-10 sm:h-10" />
+        </div>
+
+        <div className="flex-1 space-y-4 text-center sm:text-left w-full">
+          <div className="flex flex-col sm:flex-row items-center gap-3">
+            <h2 className="text-xl sm:text-2xl font-black text-gray-900 uppercase tracking-tighter">
+              {school.packageType} PLan
+            </h2>
+            <span className={`px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${school.subscriptionActive ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+              {school.subscriptionActive ? 'Status: ACTIVE' : 'Status: EXPIRED'}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-8">
+            <StatusDetail icon={<FiUsers className="text-primary" />} label="Pool" value={`${school.maxStudents} Students`} />
+            <StatusDetail icon={<FiCalendar className="text-primary" />} label="Expiry" value={school.expiresAt ? new Date(school.expiresAt).toLocaleDateString() : 'N/A'} />
+            <StatusDetail icon={<FiClock className="text-primary" />} label="Last Bill" value={school.lastBillingDate ? new Date(school.lastBillingDate).toLocaleDateString() : 'Never'} />
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-2 w-full sm:w-auto">
+          <div className="bg-gray-50/50 p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-gray-100 sm:px-8">
+            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Status Intelligence</p>
+            <p className="text-[10px] sm:text-xs font-bold text-gray-600 max-w-none sm:max-w-[200px]">
+              {school.subscriptionActive ? 'Your institution is in good regulatory standing with all cloud services accessible.' : 'Mandatory subscription required to restore full educational services.'}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Pricing Table */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <PricingCard
+          title="Basic"
+          price={pricing.basic}
+          current={school.packageType === 'basic'}
+          students="500"
+          features={['Attendance Tracking', 'Result Management', 'Homework System', 'Basic Analytics']}
+          onSelect={() => handleInitializeSubscription('basic')}
+          processing={processingId === 'basic'}
+          color="emerald"
+        />
+        <PricingCard
+          title="Standard"
+          price={pricing.standard}
+          current={school.packageType === 'standard'}
+          students="1,500"
+          features={['Everything in Basic', 'CBT Exams', 'ID Card Generator', 'Alumni Portal', 'Fee Management', 'Data Export/Backups']}
+          onSelect={() => handleInitializeSubscription('standard')}
+          processing={processingId === 'standard'}
+          color="purple"
+          recommended
+        />
+        <PricingCard
+          title="Premium"
+          price={pricing.premium}
+          current={school.packageType === 'premium'}
+          students="Unlimited"
+          features={['Everything in Standard', 'AI Predictive Analytics', 'Custom Branding', 'Advanced Quran Tracker', 'Automated S3 Backups', 'Priority 24/7 Support']}
+          onSelect={() => handleInitializeSubscription('premium')}
+          processing={processingId === 'premium'}
+          color="indigo"
+        />
+      </div>
+
+      {/* Security Message */}
+      <div className="bg-blue-50/50 p-6 rounded-3xl border border-blue-100 flex items-center gap-4">
+        <div className="bg-blue-600 p-3 rounded-2xl text-white shadow-lg shadow-blue-200">
+          <FiShield />
+        </div>
+        <div className="text-sm">
+          <p className="font-black text-blue-900">Secure Platform Billing</p>
+          <p className="text-blue-700 font-medium">All billing operations are secured by End-to-End Encryption. Payments are processed via PCI-DSS compliant gateways.</p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const StatusDetail = ({ icon, label, value }) => (
+  <div className="space-y-1">
+    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1">
+      {icon} {label}
+    </p>
+    <p className="font-bold text-gray-800">{value}</p>
+  </div>
+);
+
+const PricingCard = ({ title, price, current, students, features, onSelect, processing, color, recommended }) => (
+  <div className={`relative bg-white rounded-[32px] p-8 border-2 transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 flex flex-col h-full ${current ? `border-${color}-600 ring-4 ring-${color}-50` : 'border-gray-100'
+    }`}>
+    {recommended && (
+      <div className="absolute top-0 right-12 -translate-y-1/2 bg-gradient-to-r from-orange-500 to-amber-600 text-white px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-xl">
+        Most Popular
+      </div>
+    )}
+
+    <div className="mb-8">
+      <h3 className="text-sm font-black uppercase tracking-[0.2em] text-gray-400 mb-2">{title} Plan</h3>
+      <div className="flex items-baseline gap-1">
+        <span className="text-4xl font-black text-gray-900">₦{formatNumber(price)}</span>
+        <span className="text-gray-400 font-bold text-xs uppercase">/ Month</span>
+      </div>
+    </div>
+
+    <div className="space-y-4 mb-8 flex-1">
+      <div className="flex items-center gap-2 text-primary font-black text-sm">
+        <FiZap /> up to {students} students
+      </div>
+      <div className="space-y-3">
+        {features.map((f, i) => (
+          <div key={i} className="flex items-start gap-3 text-sm text-gray-600 font-medium">
+            <FiCheck className={`mt-0.5 flex-shrink-0 text-${color}-500`} />
+            <span>{f}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+
+    <button
+      onClick={onSelect}
+      disabled={processing || current}
+      className={`w-full py-4 rounded-2xl font-black text-sm transition-all flex items-center justify-center gap-2 shadow-xl ${current
+        ? 'bg-gray-100 text-gray-400 cursor-default'
+        : `bg-gray-900 text-white hover:bg-black shadow-gray-200 active:scale-95`
+        }`}
+    >
+      {processing ? (
+        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+      ) : (
+        <>
+          <FiCreditCard />
+          {current ? 'Active Plan' : `Upgrade to ${title}`}
+        </>
+      )}
+    </button>
+  </div>
+);
+
+export default Billing;

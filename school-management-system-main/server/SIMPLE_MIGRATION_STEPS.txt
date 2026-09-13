@@ -1,0 +1,36 @@
+# Simple Migration Guide
+
+Follow these steps IN ORDER:
+
+## Step 1: Backup Done ✓
+Your database has been backed up.
+
+## Step 2: Generate Prisma Client
+Run this command:
+```bash
+cd server
+npx prisma generate
+```
+
+## Step 3: Apply Migration
+Run this command:
+```bash
+npx prisma db push
+```
+
+This will update your database to match the new schema.
+
+## Step 4: Restart and Test
+1. Start server: `npm start`
+2. Start client: `npm run dev`
+3. Login and test the new features!
+
+## If Something Goes Wrong
+Your backup is in: `server/prisma/dev.db.backup_[timestamp]`
+
+To restore:
+```bash
+cd server/prisma
+del dev.db
+ren dev.db.backup_[timestamp] dev.db
+```

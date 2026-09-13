@@ -1,0 +1,2132 @@
+import { saveAs } from 'file-saver';
+import { safeDocumentDownload } from '../../utils/mobileDownload';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import PhotoUpload from '../../components/PhotoUpload';
+import { api, API_BASE_URL } from '../../api';
+import useSchoolSettings from '../../hooks/useSchoolSettings';
+import { useAuth } from '../../context/AuthContext';
+import toast from 'react-hot-toast';
+
+const loadImage = (url) => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'Anonymous';
+    img.onload = () => resolve(img);
+    img.onerror = (e) => reject(e);
+    img.src = url;
+  });
+};
+
+const StudentManagement = () => {
+  const { settings: schoolSettings } = useSchoolSettings();
+  const navigate = useNavigate();
+  const { isDemo } = useAuth();
+  const [students, setStudents] = useState([]);
+  const [classes, setClasses] = useState([]);
+  const [showForm, setShowForm] = useState(false);
+  const [editingStudent, setEditingStudent] = useState(null);
+  const [showCredentialsModal, setShowCredentialsModal] = useState(false);
+  const [newStudentCredentials, setNewStudentCredentials] = useState(null);
+  const [parents, setParents] = useState([]);
+  const [showParentCredentialsModal, setShowParentCredentialsModal] = useState(false);
+  const [newParentCredentials, setNewParentCredentials] = useState(null);
+  const [expandedClasses, setExpandedClasses] = useState(new Set());
+  const [searchQuery, setSearchQuery] = useState('');
+  const [bulkUploadResults, setBulkUploadResults] = useState(null);
+  const [showBulkUploadModal, setShowBulkUploadModal] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [nameFixResults, setNameFixResults] = useState(null);
+  const [showNameFixModal, setShowNameFixModal] = useState(false);
+  const [isFixingNames, setIsFixingNames] = useState(false);
+  const [isUploadingPhotos, setIsUploadingPhotos] = useState(false);
+  const [bulkPhotoResults, setBulkPhotoResults] = useState(null);
+  const [showBulkPhotoModal, setShowBulkPhotoModal] = useState(false);
+  const [isBulkCreatingParents, setIsBulkCreatingParents] = useState(false);
+
+  const [formData, setFormData] = useState({
+    firstName: '',
+    middleName: '',
+    lastName: '',
+    email: '',
+    password: '',
+    classId: '',
+    admissionYear: new Date().getFullYear(),
+    // Personal Information
+    dateOfBirth: '',
+    gender: '',
+    stateOfOrigin: '',
+    nationality: 'Nigerian',
+    address: '',
+    // Parent/Guardian Information
+    parentGuardianName: '',
+    parentGuardianPhone: '',
+    parentEmail: '',
+    // Medical Information
+    bloodGroup: '',
+    genotype: '',
+    disability: 'None',
+    feeDiscount: 0,
+    clubs: '',
+    parentId: ''
+  });
+
+  useEffect(() => {
+    fetchStudents();
+    fetchClasses();
+    fetchParents();
+  }, []);
+
+  const fetchStudents = async () => {
+    try {
+      const response = await api.get('/api/students');
+      if (response.ok) {
+        const data = await response.json();
+        setStudents(Array.isArray(data) ? data : []);
+      } else {
+        console.error('Failed to fetch students:', response.status);
+        setStudents([]);
+      }
+    } catch (error) {
+      console.error('Error fetching students:', error);
+      setStudents([]);
+    }
+  };
+
+  const fetchClasses = async () => {
+    try {
+      const response = await api.get('/api/classes');
+      if (response.ok) {
+        const data = await response.json();
+        setClasses(Array.isArray(data) ? data : []);
+      }
+    } catch (error) {
+      console.error('Error fetching classes:', error);
+    }
+  };
+
+  const fetchParents = async () => {
+    try {
+      const response = await api.get('/api/parents');
+      if (response.ok) {
+        const data = await response.json();
+        setParents(Array.isArray(data) ? data : []);
+      }
+    } catch (error) {
+      console.error('Error fetching parents:', error);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const url = editingStudent
+        ? `/api/students/${editingStudent.id}`
+        : '/api/students';
+
+      const response = await (editingStudent
+        ? api.put(url, formData)
+        : api.post(url, formData));
+
+      const result = await response.json();
+
+      if (response.ok) {
+        if (editingStudent) {
+          alert('Student updated successfully!');
+        } else {
+          // Show credentials modal for new student
+          setNewStudentCredentials({
+            name: `${formData.firstName} ${formData.lastName} ${formData.middleName || ''}`.trim(),
+            admissionNumber: result.credentials.admissionNumber,
+            username: result.credentials.username,
+            password: result.credentials.password,
+            mustChangePassword: result.credentials.mustChangePassword
+          });
+          setShowCredentialsModal(true);
+        }
+        resetForm();
+        fetchStudents();
+      } else {
+        alert(`Error: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Error saving student:', error);
+      const errorMessage = error.response?.data?.error || error.message || 'Failed to save student';
+      alert(`Failed to save student: ${errorMessage}`);
+    }
+  };
+
+  const handleEdit = (student) => {
+    setEditingStudent(student);
+    
+    const legacyNameParts = (student.name || '').trim().split(/\s+/);
+    const hasUserNames = !!(student.user?.firstName || student.user?.lastName);
+    
+    let recoveredFirstName = student.user?.firstName || '';
+    let recoveredMiddleName = student.middleName || '';
+    let recoveredLastName = student.user?.lastName || '';
+
+    if (!hasUserNames && legacyNameParts.length > 0 && legacyNameParts[0] !== '') {
+      if (legacyNameParts.length === 1) {
+        recoveredFirstName = legacyNameParts[0];
+      } else if (legacyNameParts.length === 2) {
+        recoveredFirstName = legacyNameParts[0];
+        recoveredLastName = legacyNameParts[1];
+      } else {
+        recoveredFirstName = legacyNameParts[0];
+        recoveredMiddleName = legacyNameParts.slice(1, -1).join(' ');
+        recoveredLastName = legacyNameParts[legacyNameParts.length - 1];
+      }
+    } else if (hasUserNames && !student.middleName) {
+      // If legacy import stuck the middle name into the user's first name, extract it so it can be cleanly overwritten
+      const firstParts = recoveredFirstName.trim().split(/\s+/);
+      if (firstParts.length > 1) {
+        recoveredFirstName = firstParts[0];
+        recoveredMiddleName = firstParts.slice(1).join(' ');
+      }
+    }
+
+    setFormData({
+      firstName: recoveredFirstName,
+      middleName: recoveredMiddleName,
+      lastName: recoveredLastName,
+      email: student.user?.email || '',
+      admissionNumber: student.admissionNumber || '',
+      password: '',
+      classId: student.classId || '',
+      admissionYear: new Date().getFullYear(),
+      dateOfBirth: student.dateOfBirth ? student.dateOfBirth.split('T')[0] : '',
+      gender: student.gender || '',
+      stateOfOrigin: student.stateOfOrigin || '',
+      nationality: student.nationality || 'Nigerian',
+      address: student.address || '',
+      parentGuardianName: student.parentGuardianName || '',
+      parentGuardianPhone: student.parentGuardianPhone || '',
+      parentEmail: student.parentEmail || '',
+      parentId: student.parentId || '',
+      bloodGroup: student.bloodGroup || '',
+      genotype: student.genotype || '',
+      disability: student.disability || 'None',
+      feeDiscount: student.feeDiscount || 0,
+      clubs: student.clubs || '',
+      isScholarship: student.isScholarship || false
+    });
+    setShowForm(true);
+    // Scroll to top to show the form
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleDelete = async (id) => {
+    if (!confirm('Are you sure you want to delete this student?')) return;
+
+    try {
+      const response = await api.delete(`/api/students/${id}`);
+
+      if (response.ok) {
+        alert('Student deleted successfully!');
+        fetchStudents();
+      } else {
+        const errorData = await response.json();
+        alert(errorData.error || 'Failed to delete student');
+      }
+    } catch (error) {
+      console.error('Error deleting student:', error);
+      alert('Failed to delete student');
+    }
+  };
+
+  const handleCreateAccount = async (student) => {
+    if (!confirm(`Create a user account and generate a formal ID for ${student.name || 'this student'}?`)) return;
+
+    try {
+      setLoading(true);
+      const response = await api.post(`/api/students/${student.id}/create-account`);
+      const result = await response.json();
+
+      if (response.ok) {
+        setNewStudentCredentials({
+          name: `${result.student.user.firstName} ${result.student.user.lastName}`,
+          admissionNumber: result.student.admissionNumber,
+          username: result.credentials.username,
+          password: result.credentials.password,
+          mustChangePassword: true
+        });
+        setShowCredentialsModal(true);
+        fetchStudents(); // Refresh list to show new ID and user status
+      } else {
+        alert(`Error: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Error creating account:', error);
+      alert('Failed to create account');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetCredentials = async (student) => {
+    if (!student.user) {
+      alert('This student does not have an active user account.');
+      return;
+    }
+    if (!confirm(`Are you sure you want to regenerate credentials for ${student.user.firstName} ${student.user.lastName}? This will reset their password to '123456'.`)) return;
+
+    try {
+      const response = await api.post('/api/auth/reset-password', {
+        userId: student.user.id,
+        newPassword: '123456'
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        setNewStudentCredentials({
+          name: `${student.user.firstName} ${student.user.lastName}`,
+          admissionNumber: student.admissionNumber,
+          username: result.username,
+          password: result.temporaryPassword,
+          mustChangePassword: true
+        });
+        setShowCredentialsModal(true);
+      } else {
+        alert(`Error: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Error resetting credentials:', error);
+      alert('Failed to reset credentials');
+    }
+  };
+
+  const handleAutoCreateParent = async (student) => {
+    try {
+      const response = await api.post(`/api/students/${student.id}/create-parent`);
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success(data.isNewAccount ? 'Parent account created successfully!' : 'Student linked to existing parent!');
+        setNewParentCredentials({
+          name: student.parentGuardianName || data.credentials.username,
+          phone: student.parentGuardianPhone || '',
+          username: data.credentials.username,
+          password: data.credentials.password || 'parent123',
+          isNewAccount: data.isNewAccount,
+          studentName: getStudentDisplayName(student)
+        });
+        setShowParentCredentialsModal(true);
+        fetchStudents(); // Refresh list to update parentId status
+        fetchParents();  // Refresh global parents list
+      } else {
+        toast.error(`Failed: ${data.error}`);
+      }
+    } catch (error) {
+      console.error('Error creating parent account:', error);
+      toast.error('An error occurred while creating the parent account.');
+    }
+  };
+
+  const handleBulkCreateParents = async () => {
+    if (!confirm('Are you sure you want to create parent accounts for ALL active students who currently do not have one? This will automatically link existing parent profiles with matching phone numbers, or create new parent credentials (using the schoolCode/P###XX format) for students without parent phone numbers.')) {
+      return;
+    }
+
+    setIsBulkCreatingParents(true);
+    const loadingToast = toast.loading('Bulk creating parent accounts...');
+
+    try {
+      const response = await api.post('/api/students/bulk-create-parents');
+      const data = await response.json();
+
+      toast.dismiss(loadingToast);
+
+      if (response.ok) {
+        toast.success(data.message || 'Bulk parent creation completed!');
+        alert(`Bulk Parent Creation Complete!\n\n${data.message}`);
+        fetchStudents(); // Refresh student list to show linked parents
+        fetchParents();  // Refresh parents list
+      } else {
+        toast.error(`Failed: ${data.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      toast.dismiss(loadingToast);
+      console.error('Error in bulk creating parents:', error);
+      toast.error('An error occurred during bulk parent creation.');
+    } finally {
+      setIsBulkCreatingParents(false);
+    }
+  };
+
+  const downloadParentCredentials = () => {
+    if (!newParentCredentials) return;
+
+    try {
+      const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+      });
+
+      // Background card
+      doc.setFillColor(249, 250, 251); // gray-50
+      doc.roundedRect(20, 20, 170, 80, 3, 3, 'F');
+      doc.setDrawColor(209, 213, 219); // gray-300
+      doc.roundedRect(20, 20, 170, 80, 3, 3, 'S');
+
+      // School Branding
+      if (schoolSettings?.schoolName) {
+        doc.setFontSize(16);
+        doc.setTextColor(17, 24, 39); // gray-900
+        doc.setFont('helvetica', 'bold');
+        doc.text(schoolSettings.schoolName, 105, 35, { align: 'center' });
+        doc.setFontSize(12);
+        doc.setTextColor(75, 85, 99); // gray-600
+        doc.setFont('helvetica', 'normal');
+        doc.text('Parent Login Credentials', 105, 42, { align: 'center' });
+      } else {
+        doc.setFontSize(16);
+        doc.setTextColor(17, 24, 39); // gray-900
+        doc.setFont('helvetica', 'bold');
+        doc.text('Parent Login Credentials', 105, 35, { align: 'center' });
+      }
+
+      // Credentials Content
+      doc.setFontSize(12);
+      doc.setTextColor(75, 85, 99); // gray-600
+
+      const startX = 40;
+      let startY = 55;
+      const lineSpacing = 10;
+
+      doc.text('Parent Name:', startX, startY);
+      doc.setTextColor(17, 24, 39);
+      doc.text(newParentCredentials.name, 90, startY);
+
+      startY += lineSpacing;
+      doc.setTextColor(75, 85, 99);
+      doc.text('Ward/Student:', startX, startY);
+      doc.setTextColor(17, 24, 39);
+      doc.text(newParentCredentials.studentName, 90, startY);
+
+      startY += lineSpacing;
+      doc.setTextColor(75, 85, 99);
+      doc.text('Username:', startX, startY);
+      doc.setTextColor(17, 24, 39);
+      doc.text(newParentCredentials.username, 90, startY);
+
+      startY += lineSpacing;
+      doc.setTextColor(75, 85, 99);
+      doc.text('Password:', startX, startY);
+      doc.setTextColor(17, 24, 39);
+      doc.text(newParentCredentials.isNewAccount ? newParentCredentials.password : '(Existing Password)', 90, startY);
+
+      // Footnote
+      startY += lineSpacing + 5;
+      doc.setFontSize(10);
+      if (newParentCredentials.isNewAccount) {
+        doc.setTextColor(180, 83, 9); // amber-600
+        doc.text('Note: Password must be changed upon first login for security.', 105, startY, { align: 'center' });
+      } else {
+        doc.setTextColor(37, 99, 235); // blue-600
+        doc.text('Note: Student linked to existing account. Use your current password.', 105, startY, { align: 'center' });
+      }
+
+      safeDocumentDownload(doc, `${newParentCredentials.name}_ParentCredentials.pdf`);
+    } catch (pdfError) {
+      console.error('PDF Generation Error:', pdfError);
+      alert('Failed to generate PDF. Please try the Print option.');
+    }
+  };
+
+  const downloadCredentials = () => {
+    if (!newStudentCredentials) return;
+
+    try {
+      const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      // Background card
+      doc.setFillColor(249, 250, 251); // gray-50
+      doc.roundedRect(20, 20, 170, 80, 3, 3, 'F');
+      doc.setDrawColor(209, 213, 219); // gray-300
+      doc.roundedRect(20, 20, 170, 80, 3, 3, 'S');
+
+      // School Branding
+      if (schoolSettings?.schoolName) {
+        doc.setFontSize(16);
+        doc.setTextColor(17, 24, 39); // gray-900
+        doc.setFont('helvetica', 'bold');
+        doc.text(schoolSettings.schoolName, 105, 35, { align: 'center' });
+        doc.setFontSize(12);
+        doc.setTextColor(75, 85, 99); // gray-600
+        doc.setFont('helvetica', 'normal');
+        doc.text('Student Login Credentials', 105, 42, { align: 'center' });
+      } else {
+        doc.setFontSize(16);
+        doc.setTextColor(17, 24, 39); // gray-900
+        doc.setFont('helvetica', 'bold');
+        doc.text('Student Login Credentials', 105, 35, { align: 'center' });
+      }
+
+      // Credentials Content
+      doc.setFontSize(12);
+      doc.setTextColor(75, 85, 99); // gray-600
+
+      const startX = 40;
+      let startY = 55;
+      const lineSpacing = 10;
+
+      doc.text('Name:', startX, startY);
+      doc.setTextColor(17, 24, 39);
+      doc.text(newStudentCredentials.name, 90, startY);
+
+      startY += lineSpacing;
+      doc.setTextColor(75, 85, 99);
+      doc.text('Admission No:', startX, startY);
+      doc.setTextColor(17, 24, 39);
+      doc.text(newStudentCredentials.admissionNumber, 90, startY);
+
+      startY += lineSpacing;
+      doc.setTextColor(75, 85, 99);
+      doc.text('Username:', startX, startY);
+      doc.setTextColor(17, 24, 39);
+      doc.text(newStudentCredentials.username, 90, startY);
+
+      startY += lineSpacing;
+      doc.setTextColor(75, 85, 99);
+      doc.text('Password:', startX, startY);
+      doc.setTextColor(17, 24, 39);
+      doc.text(newStudentCredentials.password, 90, startY);
+
+      if (newStudentCredentials.mustChangePassword) {
+        startY += 15;
+        doc.setFontSize(10);
+        doc.setTextColor(217, 119, 6); // amber-600
+        doc.text('Note: Student will be required to change this password on first login.', 105, startY, { align: 'center' });
+      }
+
+      // Footer
+      doc.setFontSize(8);
+      doc.setTextColor(156, 163, 175); // gray-400
+      doc.text('Please keep these credentials secure.', 105, 95, { align: 'center' });
+
+      safeDocumentDownload(doc, `credentials_${newStudentCredentials.username}.pdf`);
+    } catch (error) {
+      console.error('PDF Generation Error:', error);
+      alert('Failed to generate PDF. Downloading text file instead.');
+
+      // Fallback to text file
+      const text = `
+------------------------------------------
+   STUDENT LOGIN CREDENTIALS
+------------------------------------------
+Name: ${newStudentCredentials.name}
+Admission No: ${newStudentCredentials.admissionNumber}
+Username: ${newStudentCredentials.username}
+Password: ${newStudentCredentials.password}
+------------------------------------------
+Note: Password must be changed on first login.
+------------------------------------------
+    `;
+      const element = document.createElement("a");
+      const file = new Blob([text], { type: 'text/plain' });
+      element.href = URL.createObjectURL(file);
+      element.download = `credentials_${newStudentCredentials.username}.txt`;
+      document.body.appendChild(element);
+      element.click();
+      document.body.removeChild(element);
+    }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      firstName: '',
+      middleName: '',
+      lastName: '',
+      email: '',
+      password: '',
+      classId: '',
+      admissionYear: new Date().getFullYear(),
+      dateOfBirth: '',
+      gender: '',
+      stateOfOrigin: '',
+      nationality: 'Nigerian',
+      address: '',
+      parentGuardianName: '',
+      parentGuardianPhone: '',
+      parentEmail: '',
+      bloodGroup: '',
+      genotype: '',
+      disability: 'None',
+      feeDiscount: 0,
+      isScholarship: false
+    });
+    setEditingStudent(null);
+    setShowForm(false);
+  };
+
+  const toggleClassExpansion = (classId) => {
+    const newExpanded = new Set(expandedClasses);
+    if (newExpanded.has(classId)) {
+      newExpanded.delete(classId);
+    } else {
+      newExpanded.add(classId);
+    }
+    setExpandedClasses(newExpanded);
+  };
+
+  const handleFixNames = async (apply = false) => {
+    try {
+      setIsFixingNames(true);
+      const url = apply ? '/api/students/fix-names?apply=true' : '/api/students/fix-names';
+      const response = await api.post(url);
+      const data = await response.json();
+
+      if (response.ok) {
+        setNameFixResults(data);
+        setShowNameFixModal(true);
+        if (apply && data.fixesNeeded > 0) {
+          toast.success(`${data.fixesNeeded} student accounts recovered!`);
+          fetchStudents(); // Refresh the list
+        }
+      } else {
+        toast.error(data.error || 'Failed to scan accounts');
+      }
+    } catch (error) {
+      console.error('Account recovery error:', error);
+      toast.error('Failed to scan student accounts');
+    } finally {
+      setIsFixingNames(false);
+    }
+  };
+
+  const handleFixAdmissionNumbers = async (apply = false) => {
+    if (apply && !confirm('This will permanently change admission numbers for selected students. Proceed?')) return;
+    
+    try {
+      setIsFixingNames(true);
+      const url = apply ? '/api/students/fix-admission-numbers?apply=true' : '/api/students/fix-admission-numbers';
+      const response = await api.post(url);
+      const data = await response.json();
+
+      if (response.ok) {
+        if (apply) {
+          toast.success(`${data.count} admission numbers fixed!`);
+          fetchStudents();
+        } else {
+          alert(`Found ${data.count} legacy admission numbers that need fixing.`);
+        }
+      } else {
+        toast.error(data.error || 'Failed to fix numbers');
+      }
+    } catch (error) {
+      console.error('Admission fix error:', error);
+      toast.error('Failed to fix admission numbers');
+    } finally {
+      setIsFixingNames(false);
+    }
+  };
+
+  // Helper: build the best available display name for a student
+  const getStudentDisplayName = (student) => {
+    // 1. Prioritize User account names (these are usually the most accurate/recovered)
+    if (student.user?.firstName || student.user?.lastName) {
+      const parts = [
+        student.user.firstName,
+        student.user.lastName,
+        student.middleName
+      ].filter(p => p && p.trim() !== '');
+      if (parts.length > 0) return parts.join(' ');
+    }
+    // 2. Fallback to Student table name (legacy name)
+    if (student.name && student.name.trim() && !student.name.includes('LEGACY-ADM')) {
+       return student.name.trim();
+    }
+    // 3. Last resort: Admission Number
+    return student.admissionNumber || '(No Name)';
+  };
+
+  // Helper: get initials from student
+  const getStudentInitials = (student) => {
+    const name = getStudentDisplayName(student);
+    const words = name.split(' ').filter(w => w.length > 0);
+    if (words.length >= 2) return `${words[0][0]}${words[words.length - 1][0]}`.toUpperCase();
+    if (words.length === 1) return words[0][0].toUpperCase();
+    return '?';
+  };
+
+  // Group students by class
+  const groupedStudents = () => {
+    const grouped = {};
+
+    students.forEach(student => {
+      const classKey = student.classId || 'unassigned';
+      if (!grouped[classKey]) {
+        grouped[classKey] = [];
+      }
+      grouped[classKey].push(student);
+    });
+
+    // Sort students alphabetically within each class
+    Object.keys(grouped).forEach(classKey => {
+      grouped[classKey].sort((a, b) => {
+        const nameA = getStudentDisplayName(a).toLowerCase();
+        const nameB = getStudentDisplayName(b).toLowerCase();
+        return nameA.localeCompare(nameB);
+      });
+    });
+
+    return grouped;
+  };
+
+  // Filter students by search query
+  const filteredStudents = students.filter(student => {
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase();
+    const fullName = getStudentDisplayName(student).toLowerCase();
+    const admissionNumber = student.admissionNumber?.toLowerCase() || '';
+    return fullName.includes(query) || admissionNumber.includes(query);
+  });
+
+  const getClassInfo = (classId) => {
+    if (classId === 'unassigned') {
+      return { name: 'Unassigned Students', arm: '', id: 'unassigned' };
+    }
+    // Convert classId to number if it's a string (from Object.keys())
+    const numericClassId = typeof classId === 'string' && classId !== 'unassigned' ? parseInt(classId) : classId;
+    return classes.find(c => c.id === numericClassId) || { name: 'Unknown Class', arm: '', id: classId };
+  };
+
+  const grouped = groupedStudents();
+  const sortedClassIds = Object.keys(grouped).sort((a, b) => {
+    if (a === 'unassigned') return 1;
+    if (b === 'unassigned') return -1;
+    const classA = getClassInfo(a);
+    const classB = getClassInfo(b);
+    return `${classA.name} ${classA.arm}`.localeCompare(`${classB.name} ${classB.arm}`);
+  });
+
+  const handleDownloadTemplate = async () => {
+    const url = `${API_BASE_URL}/api/bulk-upload/template/students`;
+    const token = localStorage.getItem('token');
+
+    try {
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to download template');
+      }
+
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = `Student_Bulk_Upload_Template.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(downloadUrl);
+      a.remove();
+      toast.success('Template downloaded successfully');
+    } catch (error) {
+      console.error('Download error:', error);
+      toast.error(error.message || 'Failed to download template');
+    }
+  };
+
+  const handleDownloadGuidancePDF = () => {
+    const doc = new jsPDF();
+
+    // Header
+    doc.setFontSize(22);
+    doc.setTextColor(44, 62, 80);
+    doc.text('Bulk Student Upload Guidance', 105, 20, { align: 'center' });
+
+    // Instructions
+    doc.setFontSize(14);
+    doc.setTextColor(52, 73, 94);
+    doc.text('Step-by-Step Instructions:', 20, 35);
+
+    doc.setFontSize(11);
+    doc.setTextColor(0, 0, 0);
+    const instructions = [
+      '1. Download the Excel (.xlsx) template from the Student Management header.',
+      '2. Open the template in Excel or Google Sheets.',
+      '3. Fill in the student data. First Name, Surname, and Class ID are REQUIRED.',
+      '4. The "Class ID" column MUST use the Numeric ID from the table below.',
+      '5. For the "Scholarship" column, use "Yes" for scholarship students and "No" for others.',
+      '6. Use the "Discount Amount" column to apply a permanent partial fee discount (e.g., 50000).',
+      '7. Save your file as Excel (.xlsx) or Comma Separated Values (.csv).',
+      '8. Click "Bulk Import" on the dashboard to upload your file.'
+    ];
+    doc.text(instructions, 20, 45);
+
+    // Class IDs Table
+    doc.setFontSize(14);
+    doc.setTextColor(52, 73, 94);
+    doc.text('Official Class IDs Reference:', 20, 90);
+
+    autoTable(doc, {
+      startY: 95,
+      head: [['ID (Value for Template)', 'Class Name', 'Class Arm']],
+      body: classes.map((c, index) => [index + 1, c.name, c.arm || 'N/A']),
+      headStyles: { fillColor: [43, 108, 176] },
+      margin: { top: 10 }
+    });
+
+    // Formatting Note
+    const finalY = (doc).lastAutoTable.finalY + 15;
+    doc.setFontSize(10);
+    doc.setTextColor(150, 0, 0);
+    doc.text('IMPORTANT: Date of Birth must be in YYYY-MM-DD format (e.g., 2015-05-15).', 20, finalY);
+
+    safeDocumentDownload(doc, 'Student_Bulk_Upload_Guide.pdf');
+  };
+
+  const handleDownloadPrintableForm = async () => {
+    const doc = new jsPDF();
+    const primaryColor = schoolSettings?.primaryColor || '#1e40af';
+
+    // Add Logo if available
+    if (schoolSettings?.logoUrl) {
+      try {
+        const logoImg = await loadImage(schoolSettings.logoUrl);
+        doc.addImage(logoImg, 'PNG', 20, 10, 25, 25);
+      } catch (error) {
+        console.error('Error adding logo to PDF:', error);
+      }
+    }
+
+    // Header Section
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(20);
+    doc.setTextColor(primaryColor);
+    doc.text(schoolSettings?.schoolName || 'SCHOOL NAME', 105, 20, { align: 'center' });
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'italic');
+    doc.setTextColor(100);
+    doc.text(schoolSettings?.schoolMotto || 'Motto goes here', 105, 26, { align: 'center' });
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.text(schoolSettings?.schoolAddress || 'Address, City, State', 105, 32, { align: 'center' });
+    doc.text(`Phone: ${schoolSettings?.schoolPhone || ''} | Email: ${schoolSettings?.schoolEmail || ''}`, 105, 36, { align: 'center' });
+
+    doc.setLineWidth(0.5);
+    doc.setDrawColor(primaryColor);
+    doc.line(20, 42, 190, 42);
+
+    // Passport Photo Box
+    doc.setDrawColor(180);
+    doc.setLineWidth(0.2);
+    doc.rect(160, 7, 30, 32);
+    doc.setFontSize(6);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(150);
+    doc.text('AFFIX', 175, 20, { align: 'center' });
+    doc.text('PASSPORT', 175, 23, { align: 'center' });
+    doc.text('HERE', 175, 26, { align: 'center' });
+
+    // Form Title
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.setTextColor(0);
+    doc.text('STUDENT ADMISSION / ENROLLMENT FORM', 105, 52, { align: 'center' });
+
+    // Instruction
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'italic');
+    doc.text('Instructions: Please fill this form in BLOCK LETTERS. Return to the School Admin upon completion.', 105, 58, { align: 'center' });
+
+    let y = 70;
+    const drawSectionHeader = (title, currentY) => {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setFillColor(240, 240, 240);
+      doc.rect(20, currentY - 5, 170, 7, 'F');
+      doc.setTextColor(primaryColor);
+      doc.text(title, 25, currentY);
+      return currentY + 12;
+    };
+
+    const drawField = (label, currentY, width = 170) => {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(50);
+      doc.text(label, 20, currentY);
+      doc.setDrawColor(200);
+      doc.setLineWidth(0.1);
+      doc.line(20, currentY + 2, 20 + width, currentY + 2);
+      return currentY + 10;
+    };
+
+    // Personal Information
+    y = drawSectionHeader('PERSONAL INFORMATION', y);
+    y = drawField('First Name:', y, 170);
+    y = drawField('Last Name:', y, 170);
+    y = drawField('Other Name:', y, 170);
+
+    // Row 1: Gender & DOB
+    doc.setFont('helvetica', 'bold');
+    doc.text('Gender (Male/Female):', 20, y);
+    doc.line(20, y + 2, 90, y + 2);
+    doc.text('Date of Birth (YYYY-MM-DD):', 100, y);
+    doc.line(100, y + 2, 190, y + 2);
+    y += 12;
+
+    // Row 2: Genotype & Disability
+    doc.text('Genotype (AA, AS, SS, etc):', 20, y);
+    doc.line(20, y + 2, 90, y + 2);
+    doc.text('Disability (if any):', 100, y);
+    doc.line(100, y + 2, 190, y + 2);
+    y += 12;
+
+    y = drawField('Student Email (Optional):', y, 170);
+    y = drawField('Home Address:', y, 170);
+    y = drawField('Home Address (Contd):', y, 170);
+
+    // Parent Information
+    y += 5;
+    y = drawSectionHeader('PARENT / GUARDIAN INFORMATION', y);
+    y = drawField("Full Name:", y, 170);
+    y = drawField("Phone Number:", y, 170);
+    y = drawField("Email Address:", y, 170);
+
+    // Academic Information
+    y += 5;
+    y = drawSectionHeader('ACADEMIC INFORMATION', y);
+    y = drawField("Intended Class:", y, 170);
+
+    doc.text('Scholarship Eligibility (Yes/No):', 20, y);
+    doc.line(20, y + 2, 90, y + 2);
+    y += 20;
+
+    // Consent section
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'italic');
+    doc.text('Declaration: I hereby certify that the information provided above is true and correct to the best of my knowledge.', 20, y);
+    y += 15;
+
+    doc.setFont('helvetica', 'bold');
+    doc.text('Parent/Guardian Signature: ___________________________', 20, y);
+    doc.text('Date: _______________', 140, y);
+
+    y += 25;
+    doc.setDrawColor(0);
+    doc.setLineWidth(0.5);
+    doc.rect(20, y, 170, 30);
+    doc.setFontSize(9);
+    doc.text('OFFICIAL USE ONLY', 105, y + 6, { align: 'center' });
+    doc.setFont('helvetica', 'normal');
+    doc.text('Admission No: ____________________', 25, y + 14);
+    doc.text('Class Assigned: ___________________', 25, y + 22);
+    doc.text('Admin Signature: __________________', 110, y + 22);
+
+    safeDocumentDownload(doc, `Admission_Form_${schoolSettings?.schoolName?.replace(/\s+/g, '_') || 'Student'}.pdf`);
+  };
+
+  const handleBulkUpload = async (e) => {
+    try {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      console.log('[StudentManagement] Bulk upload file selected:', file.name, file.size, 'bytes');
+
+      if (!confirm(`Registering students from "${file.name}". This will create user accounts and admission numbers automatically. Continue?`)) {
+        e.target.value = '';
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      setIsUploading(true);
+      toast.loading('Uploading students...', { id: 'bulk-upload' });
+
+      const response = await api.postForm('/api/bulk-upload/upload', formData);
+      console.log('[StudentManagement] Upload response status:', response.status);
+
+      let data;
+      try {
+        data = await response.json();
+      } catch (parseErr) {
+        const text = await response.text();
+        console.error('[StudentManagement] Non-JSON response:', text.substring(0, 200));
+        toast.error('Server returned an invalid response. Check server logs.', { id: 'bulk-upload' });
+        return;
+      }
+
+      console.log('[StudentManagement] Upload result:', data);
+      setBulkUploadResults(data);
+      setShowBulkUploadModal(true);
+
+      if (response.ok) {
+        const successCount = data.successful?.length || 0;
+        const failCount = data.failed?.length || 0;
+        toast.success(`Import done: ${successCount} added, ${failCount} failed.`, { id: 'bulk-upload' });
+        fetchStudents();
+      } else {
+        toast.error(data.error || data.message || 'Import failed', { id: 'bulk-upload' });
+      }
+    } catch (error) {
+      console.error('[StudentManagement] Upload exception:', error);
+      toast.error(error.message || 'Failed to upload file', { id: 'bulk-upload' });
+    } finally {
+      setIsUploading(false);
+      if (e.target) e.target.value = '';
+    }
+  };
+
+  const handleBulkPhotoUpload = async (e) => {
+    try {
+      const files = e.target.files;
+      if (!files || files.length === 0) return;
+
+      if (!confirm(`Upload ${files.length} photo(s)? Each file should be named by the student's admission number (e.g., SCH-AHM-001.jpg). Continue?`)) {
+        e.target.value = '';
+        return;
+      }
+
+      const formData = new FormData();
+      for (let i = 0; i < files.length; i++) {
+        formData.append('photos', files[i]);
+      }
+
+      setIsUploadingPhotos(true);
+      toast.loading(`Uploading ${files.length} photos...`, { id: 'bulk-photo' });
+
+      const response = await api.postForm('/api/upload/bulk-photos', formData);
+      const data = await response.json();
+
+      setBulkPhotoResults(data);
+      setShowBulkPhotoModal(true);
+
+      if (response.ok) {
+        toast.success(`${data.matched?.length || 0} photos matched, ${data.unmatched?.length || 0} unmatched.`, { id: 'bulk-photo' });
+        fetchStudents();
+      } else {
+        toast.error(data.error || 'Bulk photo upload failed', { id: 'bulk-photo' });
+      }
+    } catch (error) {
+      console.error('[BulkPhoto] Upload error:', error);
+      toast.error(error.message || 'Failed to upload photos', { id: 'bulk-photo' });
+    } finally {
+      setIsUploadingPhotos(false);
+      if (e.target) e.target.value = '';
+    }
+  };
+
+  const [showToolsMenu, setShowToolsMenu] = useState(false);
+  const [showDownloadsMenu, setShowDownloadsMenu] = useState(false);
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Student Management</h1>
+            <p className="text-xs text-gray-500 mt-1">
+              {students.length} student{students.length !== 1 ? 's' : ''} across {Object.keys(grouped).length} class{Object.keys(grouped).length !== 1 ? 'es' : ''}
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            {/* + Add Student */}
+            <button
+              onClick={() => { setEditingStudent(null); setShowForm(true); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+              className="flex-1 sm:flex-none bg-primary text-white px-4 py-2.5 rounded-xl hover:brightness-110 transition-all flex items-center justify-center gap-2 text-xs font-semibold shadow-md shadow-primary/20 active:scale-95 whitespace-nowrap"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              Add Student
+            </button>
+
+            {/* Download Template */}
+            <button
+              onClick={handleDownloadTemplate}
+              className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl border border-gray-200 hover:bg-gray-50 transition-all flex items-center justify-center gap-2 text-xs font-medium text-gray-700 whitespace-nowrap"
+              title="Download the Excel Template for bulk import"
+            >
+              <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              Get Template
+            </button>
+
+            {/* Import Students */}
+            <div className="relative flex-1 sm:flex-none">
+              <button
+                className={`w-full px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 text-xs font-semibold transition-all active:scale-95 whitespace-nowrap ${
+                  isUploading
+                    ? 'bg-emerald-600 text-white cursor-wait'
+                    : 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'
+                }`}
+                disabled={isUploading}
+                title="Upload filled Excel template"
+              >
+                <svg className={`w-4 h-4 ${isUploading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+                {isUploading ? 'Uploading...' : 'Import Students'}
+              </button>
+              {!isUploading && (
+                <input
+                  type="file"
+                  className="absolute top-0 left-0 w-full h-full opacity-0 cursor-pointer"
+                  accept=".csv,.xlsx"
+                  onChange={handleBulkUpload}
+                />
+              )}
+            </div>
+
+            {/* Downloads Dropdown */}
+            <div className="relative flex-1 sm:flex-none">
+              <button
+                onClick={() => { setShowDownloadsMenu(!showDownloadsMenu); setShowToolsMenu(false); }}
+                className="w-full px-3 py-2.5 rounded-xl border border-gray-200 hover:bg-gray-50 transition-all text-gray-600 hover:text-gray-800 flex items-center justify-center gap-1.5 text-xs font-medium whitespace-nowrap"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Downloads
+              </button>
+              {showDownloadsMenu && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowDownloadsMenu(false)} />
+                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+
+                    <button onClick={() => { handleDownloadGuidancePDF(); setShowDownloadsMenu(false); }} className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3">
+                      <svg className="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+                      Upload Guide (Class IDs)
+                    </button>
+                    <button onClick={() => { handleDownloadPrintableForm(); setShowDownloadsMenu(false); }} className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3">
+                      <svg className="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+                      Printable Admission Form
+                    </button>
+                    <div className="border-t border-gray-100 my-1" />
+                    <button onClick={() => { navigate('/dashboard/credential-repository'); setShowDownloadsMenu(false); }} className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3">
+                      <svg className="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" /></svg>
+                      Credential Repository
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Tools Dropdown */}
+            <div className="relative flex-1 sm:flex-none">
+              <button
+                onClick={() => { setShowToolsMenu(!showToolsMenu); setShowDownloadsMenu(false); }}
+                className="w-full px-3 py-2.5 rounded-xl border border-gray-200 hover:bg-gray-50 transition-all text-gray-600 hover:text-gray-800 flex items-center justify-center gap-1.5 text-xs font-medium whitespace-nowrap"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                Tools
+              </button>
+              {showToolsMenu && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowToolsMenu(false)} />
+                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <button
+                      onClick={() => { handleFixNames(false); setShowToolsMenu(false); }}
+                      disabled={isFixingNames}
+                      className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 disabled:opacity-50"
+                    >
+                      <svg className={`w-4 h-4 text-purple-500 ${isFixingNames ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                      {isFixingNames ? 'Scanning...' : 'Recover Accounts'}
+                    </button>
+                    <button
+                      onClick={() => { handleFixAdmissionNumbers(true); setShowToolsMenu(false); }}
+                      disabled={isFixingNames}
+                      className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 disabled:opacity-50"
+                    >
+                      <svg className="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
+                      Fix Admission Numbers
+                    </button>
+                    <button
+                      onClick={() => { handleBulkCreateParents(); setShowToolsMenu(false); }}
+                      disabled={isBulkCreatingParents}
+                      className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 disabled:opacity-50"
+                    >
+                      <svg className={`w-4 h-4 text-green-600 ${isBulkCreatingParents ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                      </svg>
+                      {isBulkCreatingParents ? 'Creating...' : 'Bulk Create Parents'}
+                    </button>
+                    <div className="border-t border-gray-100 my-1" />
+                    <div className="relative">
+                      <button
+                        disabled={isUploadingPhotos}
+                        className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 disabled:opacity-50"
+                      >
+                        <svg className={`w-4 h-4 text-pink-500 ${isUploadingPhotos ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                        {isUploadingPhotos ? 'Uploading...' : 'Bulk Photo Upload'}
+                      </button>
+                      {!isUploadingPhotos && (
+                        <input
+                          type="file"
+                          className="absolute top-0 left-0 w-full h-full opacity-0 cursor-pointer"
+                          accept="image/*"
+                          multiple
+                          onChange={(e) => { handleBulkPhotoUpload(e); setShowToolsMenu(false); }}
+                        />
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Quick Instructions */}
+        <div className="mt-4 pt-3 border-t border-gray-100 flex items-center gap-2">
+          <svg className="w-4 h-4 text-emerald-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <p className="text-[11px] text-gray-500 leading-tight">
+            <span className="font-bold text-gray-700 uppercase tracking-wide">Quick Guide:</span> 
+            <span className="mx-1.5 font-medium">1.</span> Ensure your Classes are created first. 
+            <span className="mx-1.5 font-medium">2.</span> Click <strong className="text-primary">+ Add Student</strong> for single entry <span className="text-gray-400 italic">OR</span> 
+            <span className="mx-1.5 font-medium">3.</span> <strong className="text-gray-700">Get Template</strong>, fill it <span className="italic text-amber-700 bg-amber-50 px-1 rounded">(Use Class IDs from the Upload Guide in the Downloads ▾ menu)</span>, and <strong className="text-emerald-700">Import Students</strong> for bulk.
+          </p>
+        </div>
+      </div>
+
+      {/* Student Registration Form - Moved to TOP for visibility */}
+      {
+        showForm && (
+          <div className="bg-white p-6 rounded-2xl shadow-xl border-2 border-primary/10 mb-8 animate-in slide-in-from-top duration-500 overflow-hidden relative">
+             {/* Decorative Background Element */}
+            <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-primary/5 rounded-full blur-3xl"></div>
+            
+            <div className="flex justify-between items-center mb-8 pb-4 border-b relative z-10">
+              <div>
+                <h3 className="text-xl font-black text-gray-900 uppercase tracking-tight">
+                  {editingStudent ? 'Update Student Record' : 'Register New Student'}
+                </h3>
+                <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">Please fill in all required fields marked with *</p>
+              </div>
+              <button 
+                onClick={resetForm}
+                className="p-2 hover:bg-red-50 text-gray-400 hover:text-red-500 rounded-xl transition-all"
+                title="Discard Changes"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-10 relative z-10">
+              {/* Basic Information */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 text-primary font-black uppercase text-[10px] tracking-widest mb-6">
+                   <div className="w-8 h-px bg-primary/20"></div>
+                   Basic Identification
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                      First Name <span className="text-red-500 font-black">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.firstName}
+                      onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:bg-white focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all font-bold text-gray-700"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                      Last Name <span className="text-red-500 font-black">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.lastName}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setFormData(prev => {
+                          const updated = { ...prev, lastName: val };
+                          const oldDeduction = prev.lastName ? `Mr. ${prev.lastName}` : '';
+                          if (!prev.parentGuardianName || prev.parentGuardianName === oldDeduction) {
+                            updated.parentGuardianName = val ? `Mr. ${val}` : '';
+                          }
+                          return updated;
+                        });
+                      }}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:bg-white focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all font-bold text-gray-700"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                      Other Name
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.middleName || ''}
+                      onChange={(e) => setFormData({ ...formData, middleName: e.target.value })}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:bg-white focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all font-bold text-gray-700"
+                      placeholder="Optional"
+                    />
+                  </div>
+                  {editingStudent && (
+                    <div className="space-y-1">
+                      <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                        Admission Number (Editable)
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.admissionNumber || ''}
+                        onChange={(e) => setFormData({ ...formData, admissionNumber: e.target.value })}
+                        className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all font-bold text-gray-700"
+                        placeholder="Enter Admission Number"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2 text-indigo-600 font-black uppercase text-[10px] tracking-widest mb-6">
+                   <div className="w-8 h-px bg-indigo-600/20"></div>
+                   Personal Background
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
+                  {editingStudent && (
+                    <div className="space-y-1">
+                      <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Date of Birth</label>
+                      <input
+                        type="date"
+                        value={formData.dateOfBirth}
+                        onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:bg-white focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all font-bold text-gray-700"
+                      />
+                    </div>
+                  )}
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Gender</label>
+                    <select
+                      value={formData.gender}
+                      onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:bg-white focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all font-bold text-gray-700 appearance-none"
+                    >
+                      <option value="">Select Gender</option>
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                    </select>
+                  </div>
+                  {editingStudent && (
+                    <>
+                      <div className="space-y-1">
+                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">State of Origin</label>
+                        <input
+                          type="text"
+                          value={formData.stateOfOrigin}
+                          onChange={(e) => setFormData({ ...formData, stateOfOrigin: e.target.value })}
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:bg-white focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all font-bold text-gray-700"
+                        />
+                      </div>
+                      <div className="space-y-1 lg:col-span-2">
+                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Home Address</label>
+                        <input
+                          type="text"
+                          value={formData.address}
+                          onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:bg-white focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all font-bold text-gray-700"
+                        />
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Academic & Parent Info */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                {/* Academic */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 text-emerald-600 font-black uppercase text-[10px] tracking-widest mb-6">
+                     <div className="w-8 h-px bg-emerald-600/20"></div>
+                     Academic Placement
+                  </div>
+                  
+                  <div className="grid grid-cols-1 gap-6">
+                    <div className="space-y-1">
+                      <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                        Class Placement <span className="text-red-500 font-black">*</span>
+                      </label>
+                      <select
+                        value={formData.classId}
+                        onChange={(e) => setFormData({ ...formData, classId: e.target.value })}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:bg-white focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all font-bold text-gray-700 appearance-none"
+                        required
+                      >
+                        <option value="">Select Class</option>
+                        {classes.map((cls) => (
+                          <option key={cls.id} value={cls.id}>
+                            {cls.name} {cls.arm || ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    {editingStudent && (
+                      <div className="space-y-1">
+                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Admission Year</label>
+                        <input
+                          type="number"
+                          value={formData.admissionYear}
+                          onChange={(e) => setFormData({ ...formData, admissionYear: e.target.value })}
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:bg-white focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all font-bold text-gray-700"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+
+                {/* Parent */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 text-amber-600 font-black uppercase text-[10px] tracking-widest mb-6">
+                     <div className="w-8 h-px bg-amber-600/20"></div>
+                     Parent/Guardian Details
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-1">
+                      <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Full Name</label>
+                      <input
+                        type="text"
+                        value={formData.parentGuardianName}
+                        onChange={(e) => setFormData({ ...formData, parentGuardianName: e.target.value })}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:bg-white focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all font-bold text-gray-700"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Phone Number</label>
+                      <input
+                        type="text"
+                        value={formData.parentGuardianPhone}
+                        onChange={(e) => setFormData({ ...formData, parentGuardianPhone: e.target.value })}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:bg-white focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all font-bold text-gray-700"
+                      />
+                    </div>
+                    {editingStudent && (
+                      <div className="space-y-1">
+                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Link to Parent Account</label>
+                        <select
+                          value={formData.parentId}
+                          onChange={(e) => setFormData({ ...formData, parentId: e.target.value })}
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:bg-white focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all font-bold text-gray-700 appearance-none"
+                        >
+                          <option value="">No Linked Account</option>
+                          {parents.map((parent) => (
+                            <option key={parent.id} value={parent.id}>
+                              {parent.user?.firstName} {parent.user?.lastName} ({parent.phone})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Administrative & Media Section */}
+
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 text-rose-600 font-black uppercase text-[10px] tracking-widest mb-6">
+                     <div className="w-8 h-px bg-rose-600/20"></div>
+                     Administrative & Media
+                  </div>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                    <div className="space-y-4">
+                      <label className="flex items-center space-x-3 cursor-pointer group p-4 bg-rose-50/30 border border-rose-100 rounded-2xl hover:bg-rose-50 transition-all">
+                        <div className="relative">
+                          <input
+                            type="checkbox"
+                            checked={formData.isScholarship}
+                            onChange={(e) => setFormData({ ...formData, isScholarship: e.target.checked })}
+                            className="peer sr-only"
+                          />
+                          <div className="w-10 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-rose-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-500"></div>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-xs font-black text-rose-900 uppercase tracking-tight">Scholarship Status</span>
+                          <span className="text-[10px] text-rose-600 font-bold uppercase tracking-widest">Exempt student from all tuition fees</span>
+                        </div>
+                      </label>
+                    </div>
+                    
+                    {!formData.isScholarship && (
+                      <div className="space-y-4">
+                        <div className="flex flex-col space-y-1">
+                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Partial Fee Discount (₦)</label>
+                          <input
+                            type="number"
+                            min="0"
+                            value={formData.feeDiscount}
+                            onChange={(e) => setFormData({ ...formData, feeDiscount: e.target.value })}
+                            placeholder="e.g. 50000"
+                            className="w-full bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-xl focus:ring-2 focus:ring-rose-500 focus:border-rose-500 p-3 transition-all outline-none font-bold"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {editingStudent && (
+                      <div className="bg-gray-50/50 p-4 rounded-2xl border border-dashed border-gray-200">
+                        <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Update Student Photo</h4>
+                        <PhotoUpload
+                          studentId={editingStudent.id}
+                          currentPhotoUrl={editingStudent.photoUrl}
+                          onPhotoUpload={(photoUrl) => {
+                            setEditingStudent({ ...editingStudent, photoUrl });
+                            fetchStudents();
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+
+              <div className="flex justify-end gap-4 pt-8 border-t">
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  className="px-8 py-3 rounded-xl border border-gray-200 text-gray-500 font-black uppercase text-[10px] tracking-widest hover:bg-gray-50 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-10 py-4 rounded-xl bg-primary text-white font-black uppercase text-[10px] tracking-widest hover:brightness-110 shadow-xl shadow-primary/20 active:scale-95 transition-all"
+                >
+                  {editingStudent ? 'Update Student Record' : 'Complete Registration'}
+                </button>
+              </div>
+            </form>
+          </div>
+        )
+      }
+
+
+
+      {/* Search Bar */}
+      {
+        !showForm && (
+          <div className="bg-white p-3 sm:p-5 rounded-2xl shadow-sm border border-gray-100">
+            <div className="relative group">
+              <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                type="text"
+                placeholder="Search by name or admission number..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-10 py-2.5 border border-gray-200 rounded-xl focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all text-sm font-medium"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+            </div>
+          </div>
+        )
+      }
+
+
+
+      {/* Class-Based Student Cards */}
+      {
+        !showForm && (
+          <div className="space-y-4">
+            {sortedClassIds.map((classId) => {
+              const classInfo = getClassInfo(classId);
+              const classStudents = grouped[classId];
+              const isExpanded = expandedClasses.has(classId);
+
+              return (
+                <div key={classId} className="bg-white rounded-lg shadow overflow-hidden">
+                  <button
+                    onClick={() => toggleClassExpansion(classId)}
+                    className="w-full flex justify-between items-center p-4 bg-gray-50 hover:bg-gray-100 transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-lg text-gray-800">
+                        {classInfo.name} {classInfo.arm}
+                      </span>
+                      <span className="bg-primary/10 text-primary text-xs px-2 py-1 rounded-full font-medium">
+                        {classStudents.length} Students
+                      </span>
+                    </div>
+                    <svg
+                      className={`w-5 h-5 text-gray-500 transform transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+
+                  {isExpanded && (
+                    <div className="border-t border-gray-200">
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Admission No</th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gender</th>
+                              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {classStudents.map((student) => (
+                              <tr key={student.id} className="hover:bg-gray-50">
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <div className="flex items-center">
+                                    {(() => {
+                                      const photo = student.user?.photoUrl || student.photoUrl;
+                                      return photo ? (
+                                        <img className="h-8 w-8 rounded-full object-cover mr-3" src={photo.startsWith('data:') || photo.startsWith('http') ? photo : `${API_BASE_URL}${photo}`} alt="" />
+                                      ) : (
+                                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold mr-3">
+                                          {getStudentInitials(student)}
+                                        </div>
+                                      );
+                                    })()}
+                                    <div className="text-sm font-medium text-gray-900">
+                                      <div className="flex flex-col">
+                                        <span>{getStudentDisplayName(student)}</span>
+                                        {/* Show a subtle hint if first name or surname is missing */}
+                                        {(student.user?.firstName || student.user?.lastName) && !(student.user?.firstName?.trim()) && (
+                                          <span className="text-[10px] text-orange-500 font-bold uppercase tracking-tight">
+                                            Incomplete Profile (Missing Firstname)
+                                          </span>
+                                        )}
+                                        {(student.user?.firstName || student.user?.lastName) && !(student.user?.lastName?.trim()) && (
+                                          <span className="text-[10px] text-orange-500 font-bold uppercase tracking-tight">
+                                            Incomplete Profile (Missing Surname)
+                                          </span>
+                                        )}
+                                        {student.parentGuardianName && (
+                                          <span className="text-[10px] text-gray-500 italic">
+                                            Parent: {student.parentGuardianName}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                  <div className="flex flex-col gap-1">
+                                    {student.status === 'active' ? (
+                                      <span className="px-2 w-fit inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                        Active
+                                      </span>
+                                    ) : (
+                                      <span className="px-2 w-fit inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                                        {student.status}
+                                      </span>
+                                    )}
+                                    {student.isScholarship && (
+                                      <span className="px-2 w-fit inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                                        Scholarship
+                                      </span>
+                                    )}
+
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                  {student.admissionNumber}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                  {student.gender}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                  {student.user ? (
+                                    <button
+                                      onClick={() => handleResetCredentials(student)}
+                                      className="text-amber-600 hover:text-amber-900 mr-4"
+                                      title="Reset/View Credentials"
+                                    >
+                                      Credentials
+                                    </button>
+                                  ) : (
+                                    <button
+                                      onClick={() => handleCreateAccount(student)}
+                                      className="text-primary hover:text-primary-dark font-bold mr-4"
+                                      title="Create User Account"
+                                    >
+                                      Create Account
+                                    </button>
+                                  )}
+                                  {!student.parentId && (
+                                    <button
+                                      onClick={() => handleAutoCreateParent(student)}
+                                      className="text-green-600 hover:text-green-800 mr-4"
+                                      title="Create Parent Account"
+                                    >
+                                      Create Parent
+                                    </button>
+                                  )}
+                                  <button
+                                    onClick={() => {
+                                      if (isDemo) {
+                                        toast.error('Modifications restricted in demo mode');
+                                        return;
+                                      }
+                                      handleEdit(student);
+                                    }}
+                                    className={`${isDemo ? 'text-gray-400 cursor-not-allowed' : 'text-indigo-600 hover:text-indigo-900'} mr-4`}
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      if (isDemo) {
+                                        toast.error('Deletions restricted in demo mode');
+                                        return;
+                                      }
+                                      handleDelete(student.id);
+                                    }}
+                                    className={`${isDemo ? 'text-gray-400 cursor-not-allowed' : 'text-red-600 hover:text-red-900'}`}
+                                  >
+                                    Delete
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )
+      }
+
+      {/* Credentials Modal */}
+      {
+        showCredentialsModal && newStudentCredentials && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100] animate-in fade-in duration-300">
+            <div className="bg-white rounded-2xl max-w-sm w-full p-8 shadow-2xl animate-in zoom-in-95 duration-300" id="credentials-print-area">
+              <h3 className="text-xl font-bold mb-4 text-center print:hidden">Registration Successful!</h3>
+              <div className="bg-gray-50 p-4 rounded-md mb-6 space-y-2 border border-gray-200">
+                <p className="flex justify-between"><span className="font-semibold text-gray-600">Name:</span> <span className="font-medium">{newStudentCredentials.name}</span></p>
+                <p className="flex justify-between"><span className="font-semibold text-gray-600">Admission No:</span> <span className="font-mono bg-white px-2 rounded border">{newStudentCredentials.admissionNumber}</span></p>
+                <p className="flex justify-between"><span className="font-semibold text-gray-600">Username:</span> <span className="font-mono bg-white px-2 rounded border">{newStudentCredentials.username}</span></p>
+                <p className="flex justify-between"><span className="font-semibold text-gray-600">Password:</span> <span className="font-mono bg-white px-2 rounded border">{newStudentCredentials.password}</span></p>
+                {newStudentCredentials.mustChangePassword && (
+                  <div className="mt-2 text-xs text-amber-600 bg-amber-50 p-2 rounded">
+                    ALERT: Student will be required to change this password on first login.
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 print:hidden">
+                <button
+                  onClick={() => {
+                    const text = `Student Login Credentials\n\nName: ${newStudentCredentials.name}\nAdmission Number: ${newStudentCredentials.admissionNumber}\nUsername: ${newStudentCredentials.username}\nPassword: ${newStudentCredentials.password}\n\n${newStudentCredentials.mustChangePassword ? 'Note: Password must be changed on first login' : ''}`;
+                    navigator.clipboard.writeText(text);
+                    alert('Credentials copied to clipboard!');
+                  }}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 text-sm font-semibold"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                  </svg>
+                  Copy
+                </button>
+                <button
+                  onClick={downloadCredentials}
+                  className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors flex items-center justify-center gap-2 text-sm font-semibold"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  Download
+                </button>
+                <button
+                  onClick={() => window.print()}
+                  className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition-colors flex items-center justify-center gap-2 text-sm font-semibold print:hidden"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                  </svg>
+                  Print
+                </button>
+                <button
+                  onClick={() => setShowCredentialsModal(false)}
+                  className="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 transition-colors text-sm font-semibold"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      }
+
+      {/* Parent Credentials Modal */}
+      {
+        showParentCredentialsModal && newParentCredentials && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100] animate-in fade-in duration-300">
+            <div className="bg-white rounded-2xl max-w-sm w-full p-8 shadow-2xl animate-in zoom-in-95 duration-300" id="credentials-print-area">
+              <h3 className="text-xl font-bold mb-4 text-center print:hidden">
+                {newParentCredentials.isNewAccount ? 'Parent Account Created!' : 'Parent Account Linked!'}
+              </h3>
+              <div className="bg-gray-50 p-4 rounded-md mb-6 space-y-2 border border-gray-200">
+                <p className="flex justify-between"><span className="font-semibold text-gray-600">Parent Name:</span> <span className="font-medium">{newParentCredentials.name}</span></p>
+                <p className="flex justify-between"><span className="font-semibold text-gray-600">Ward:</span> <span className="font-medium">{newParentCredentials.studentName}</span></p>
+                <p className="flex justify-between"><span className="font-semibold text-gray-600">Username:</span> <span className="font-mono bg-white px-2 rounded border">{newParentCredentials.username}</span></p>
+                <p className="flex justify-between"><span className="font-semibold text-gray-600">Password:</span> <span className="font-mono bg-white px-2 rounded border">{newParentCredentials.isNewAccount ? newParentCredentials.password : '(Existing Password)'}</span></p>
+
+                {newParentCredentials.isNewAccount ? (
+                  <div className="mt-2 text-xs text-amber-600 bg-amber-50 p-2 rounded">
+                    ⚠️ Parent will be required to change this password on first login.
+                  </div>
+                ) : (
+                  <div className="mt-2 text-xs text-blue-600 bg-blue-50 p-2 rounded">
+                    ℹ️ This phone number is already registered. The parent can login with their existing password to manage both wards.
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 print:hidden">
+                <button
+                  onClick={() => {
+                    const passwordText = newParentCredentials.isNewAccount ? newParentCredentials.password : '(Existing Password)';
+                    const noteText = newParentCredentials.isNewAccount
+                      ? 'Note: Password must be changed on first login'
+                      : 'Note: This student has been linked to your existing parent account. Use your current password to login.';
+
+                    const text = `Parent Login Credentials\n\nName: ${newParentCredentials.name}\nWard: ${newParentCredentials.studentName}\nUsername: ${newParentCredentials.username}\nPassword: ${passwordText}\n\n${noteText}`;
+                    navigator.clipboard.writeText(text);
+                    alert('Credentials copied to clipboard!');
+                  }}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 text-sm font-semibold"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                  </svg>
+                  Copy
+                </button>
+                <button
+                  onClick={downloadParentCredentials}
+                  className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors flex items-center justify-center gap-2 text-sm font-semibold"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  Download
+                </button>
+                <button
+                  onClick={() => window.print()}
+                  className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition-colors flex items-center justify-center gap-2 text-sm font-semibold print:hidden"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                  </svg>
+                  Print
+                </button>
+                <button
+                  onClick={() => setShowParentCredentialsModal(false)}
+                  className="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 transition-colors text-sm font-semibold"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      }
+
+
+
+      {/* Bulk Upload Results Modal */}
+      {showBulkUploadModal && bulkUploadResults && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100] animate-in fade-in duration-300">
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+            <div className="p-6 border-b flex justify-between items-center bg-gray-50/50">
+              <h3 className="text-xl font-bold text-gray-900">Import Results</h3>
+              <button onClick={() => setShowBulkUploadModal(false)} className="text-gray-400 hover:text-gray-600">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <p className="text-sm text-green-600 font-medium">Successful</p>
+                  <p className="text-3xl font-bold text-green-700">{bulkUploadResults.successful?.length || 0}</p>
+                </div>
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <p className="text-sm text-red-600 font-medium">Failed</p>
+                  <p className="text-3xl font-bold text-red-700">{bulkUploadResults.failed?.length || 0}</p>
+                </div>
+              </div>
+
+              {bulkUploadResults.failed && bulkUploadResults.failed.length > 0 && (
+                <div className="space-y-3">
+                  <h4 className="font-semibold text-gray-700 flex items-center gap-2">
+                    <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Failed Records Details
+                  </h4>
+                  <div className="bg-gray-50 rounded-lg border divide-y overflow-hidden">
+                    {bulkUploadResults.failed.map((failure, idx) => (
+                      <div key={idx} className="p-4 bg-white hover:bg-red-50/30 transition-colors">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <p className="font-bold text-gray-900">
+                              {failure.data?.firstName} {failure.data?.lastName}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-0.5">
+                              Class Ref: {failure.data?.classId || 'N/A'} | Parent: {failure.data?.parentGuardianPhone || 'N/A'}
+                            </p>
+                          </div>
+                          <span className="bg-red-100 text-red-700 text-[10px] px-2 py-1 rounded uppercase font-bold tracking-wider">
+                            Error
+                          </span>
+                        </div>
+                        <p className="text-sm text-red-600 mt-2 font-medium bg-red-50 p-2 rounded-md border border-red-100 italic">
+                          " {failure.error} "
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {bulkUploadResults.successful && bulkUploadResults.successful.length > 0 && (
+                <div className="pt-4 mt-4 border-t">
+                  <p className="text-sm text-gray-500 italic">
+                    All {bulkUploadResults.successful.length} successfully imported students have been assigned the default password: <span className="font-bold">student123</span>
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="p-6 border-t bg-gray-50 flex justify-end">
+              <button
+                onClick={() => setShowBulkUploadModal(false)}
+                className="bg-primary text-white px-8 py-2 rounded-lg font-bold shadow-lg hover:brightness-90 transition-all active:scale-95"
+              >
+                Got it
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Photo Upload Results Modal */}
+      {showBulkPhotoModal && bulkPhotoResults && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden">
+            <div className="p-6 border-b flex justify-between items-center">
+              <h3 className="text-lg font-black text-gray-900">📸 Bulk Photo Upload Results</h3>
+              <button onClick={() => setShowBulkPhotoModal(false)} className="text-gray-400 hover:text-gray-600">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
+              <div className="grid grid-cols-3 gap-4 text-center">
+                <div className="bg-emerald-50 rounded-xl p-4">
+                  <p className="text-sm text-emerald-600 font-medium">Matched</p>
+                  <p className="text-3xl font-bold text-emerald-700">{bulkPhotoResults.matched?.length || 0}</p>
+                </div>
+                <div className="bg-amber-50 rounded-xl p-4">
+                  <p className="text-sm text-amber-600 font-medium">Unmatched</p>
+                  <p className="text-3xl font-bold text-amber-700">{bulkPhotoResults.unmatched?.length || 0}</p>
+                </div>
+                <div className="bg-red-50 rounded-xl p-4">
+                  <p className="text-sm text-red-600 font-medium">Errors</p>
+                  <p className="text-3xl font-bold text-red-700">{bulkPhotoResults.errors?.length || 0}</p>
+                </div>
+              </div>
+
+              {bulkPhotoResults.unmatched?.length > 0 && (
+                <div>
+                  <h4 className="font-bold text-gray-700 text-sm mb-2">⚠️ Unmatched Files (no student found with this admission number):</h4>
+                  <div className="bg-amber-50 rounded-lg p-3 space-y-1 max-h-40 overflow-y-auto">
+                    {bulkPhotoResults.unmatched.map((name, i) => (
+                      <p key={i} className="text-xs text-amber-800 font-mono">{name}</p>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {bulkPhotoResults.matched?.length > 0 && (
+                <div>
+                  <h4 className="font-bold text-gray-700 text-sm mb-2">✅ Successfully Assigned:</h4>
+                  <div className="bg-emerald-50 rounded-lg p-3 space-y-1 max-h-40 overflow-y-auto">
+                    {bulkPhotoResults.matched.map((m, i) => (
+                      <p key={i} className="text-xs text-emerald-800">{m.filename} → <span className="font-bold">{m.admissionNumber}</span></p>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <p className="text-xs text-gray-500 italic">
+                Tip: Name each photo file exactly as the student's admission number (e.g., <strong>SCH-AHM-001.jpg</strong>). The file extension doesn't matter.
+              </p>
+            </div>
+            <div className="p-6 border-t bg-gray-50 flex justify-end">
+              <button
+                onClick={() => setShowBulkPhotoModal(false)}
+                className="bg-primary text-white px-8 py-2 rounded-lg font-bold shadow-lg hover:brightness-90 transition-all active:scale-95"
+              >
+                Got it
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Unified Print Styles */}
+      <style>{`
+        @media print {
+          body * {
+            visibility: hidden;
+          }
+          #credentials-print-area, #credentials-print-area * {
+            visibility: visible;
+          }
+          #credentials-print-area {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            margin: 0 !important;
+            padding: 10mm !important;
+            background: white !important;
+            border: none !important;
+            box-shadow: none !important;
+          }
+          .print\\:hidden {
+            display: none !important;
+            visibility: hidden !important;
+          }
+        }
+      `}</style>
+
+      {/* Name Fix Results Modal */}
+      {showNameFixModal && nameFixResults && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm overflow-y-auto h-full w-full z-[100] flex items-center justify-center p-4">
+          <div className="relative bg-white shadow-2xl rounded-2xl w-full max-w-2xl p-6 max-h-[85vh] overflow-hidden flex flex-col">
+            <div className="flex justify-between items-center mb-4 pb-3 border-b">
+              <div>
+                <h3 className="text-lg font-black text-gray-900 uppercase tracking-tight">Student Name Recovery</h3>
+                <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">
+                  Mode: <span className={nameFixResults.mode === 'APPLIED' ? 'text-green-600' : 'text-amber-600'}>{nameFixResults.mode === 'APPLIED' ? '✅ Applied' : '👁 Preview'}</span>
+                  {' • '}{nameFixResults.totalStudents} students scanned • {nameFixResults.fixesNeeded} need fixes
+                </p>
+              </div>
+              <button onClick={() => setShowNameFixModal(false)} className="p-2 hover:bg-gray-100 rounded-xl transition-all">
+                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {nameFixResults.fixesNeeded === 0 ? (
+              <div className="flex-1 flex flex-col items-center justify-center py-12 text-center">
+                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                  <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <h4 className="text-lg font-black text-gray-900 uppercase tracking-tight">All Names Are Complete</h4>
+                <p className="text-sm text-gray-500 mt-1">Every student has both a first name and surname.</p>
+              </div>
+            ) : (
+              <>
+                <div className="flex-1 overflow-y-auto mb-4">
+                  <table className="min-w-full divide-y divide-gray-200 text-sm">
+                    <thead className="bg-gray-50 sticky top-0">
+                      <tr>
+                        <th className="px-3 py-2 text-left text-[10px] font-black text-gray-400 uppercase">Admission</th>
+                        <th className="px-3 py-2 text-left text-[10px] font-black text-gray-400 uppercase">Before</th>
+                        <th className="px-3 py-2 text-left text-[10px] font-black text-gray-400 uppercase">After</th>
+                        <th className="px-3 py-2 text-left text-[10px] font-black text-gray-400 uppercase">Source</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {nameFixResults.fixes.map((fix, i) => (
+                        <tr key={i} className="hover:bg-gray-50">
+                          <td className="px-3 py-2 font-mono text-xs text-gray-600">{fix.admissionNumber}</td>
+                          <td className="px-3 py-2">
+                            <div className="text-xs text-red-500">
+                              <div>{fix.before.firstName} <span className="text-gray-300">|</span> {fix.before.lastName}</div>
+                            </div>
+                          </td>
+                          <td className="px-3 py-2">
+                            <div className="text-xs text-green-700 font-bold">
+                              <div>{fix.after.firstName} <span className="text-gray-300">|</span> {fix.after.lastName}</div>
+                            </div>
+                          </td>
+                          <td className="px-3 py-2 text-[10px] text-gray-400 max-w-[200px] truncate" title={fix.source}>{fix.source}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="flex gap-3 pt-3 border-t">
+                  <button
+                    onClick={() => setShowNameFixModal(false)}
+                    className="flex-1 py-3 rounded-xl border border-gray-200 text-gray-500 font-black uppercase text-[10px] tracking-widest hover:bg-gray-50"
+                  >
+                    Close
+                  </button>
+                  {nameFixResults.mode !== 'APPLIED' && (
+                    <button
+                      onClick={() => { setShowNameFixModal(false); handleFixNames(true); }}
+                      disabled={isFixingNames}
+                      className="flex-1 py-3 rounded-xl bg-purple-600 text-white font-black uppercase text-[10px] tracking-widest hover:bg-purple-700 shadow-lg shadow-purple-200 disabled:opacity-50"
+                    >
+                      {isFixingNames ? 'Applying...' : `Apply ${nameFixResults.fixesNeeded} Fixes`}
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </div >
+  );
+};
+
+export default StudentManagement;
+

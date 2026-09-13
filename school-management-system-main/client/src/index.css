@@ -1,0 +1,347 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply font-sans bg-slate-900 text-slate-100 antialiased;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-heading tracking-tight;
+  }
+
+  /* FIX: Ensure all form inputs inherently use dark text */
+  select, input, textarea {
+    @apply text-slate-900;
+  }
+
+  /* FIX: Ensure any text inside a light background automatically switches to dark text */
+  .bg-white, .bg-slate-50, .bg-gray-50, .bg-indigo-50, .bg-blue-50 {
+    @apply text-slate-900;
+  }
+}
+
+/* Removed old redundant color classes */
+
+/* --- MODERN UI UTILITIES --- */
+
+/* Glassmorphism */
+.glass {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.glass-dark {
+  background: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Animations */
+@keyframes reveal-up {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
+
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+@keyframes pulse-glow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(var(--color-primary), 0.4);
+  }
+
+  70% {
+    box-shadow: 0 0 0 15px rgba(var(--color-primary), 0);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(var(--color-primary), 0);
+  }
+}
+
+.reveal-up {
+  animation: reveal-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+.pulse-primary {
+  animation: pulse-glow 2s infinite;
+}
+
+@keyframes bounce-x {
+  0%, 100% {
+    transform: translateX(-25%);
+    animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
+  }
+  50% {
+    transform: translateX(0);
+    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+  }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slide-in {
+  from { transform: translateY(-20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.animate-bounce-x {
+  animation: bounce-x 1s infinite;
+}
+
+.animate-fadeIn {
+  animation: fade-in 0.4s ease-out forwards;
+}
+
+.animate-slideIn {
+  animation: slide-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Hide scrollbar but keep functionality */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Custom Scrollbar Utility - Professional & Grabbable */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 5px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+  border: 2px solid #f1f5f9;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Performance optimizations */
+html {
+  scroll-behavior: smooth;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Typography Enhancements */
+h1,
+h2,
+h3 {
+  letter-spacing: -0.025em;
+}
+
+/* Global SVG Constraint - Prevent giant icons */
+svg {
+  max-width: 100%;
+  height: auto;
+  flex-shrink: 0;
+}
+
+/* Sidebar Specific Icon Constraints */
+nav a svg,
+.sidebar-link svg {
+  width: 1.25rem !important; /* w-5 */
+  height: 1.25rem !important; /* h-5 */
+  min-width: 1.25rem;
+  min-height: 1.25rem;
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 0 !important;
+  }
+
+  html, body {
+    background: white !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 210mm !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Hide app navigation, sidebar, and non-printable UI */
+  nav, header, aside, footer, .no-print, .print-hidden, [role="navigation"], .sidebar {
+    display: none !important;
+  }
+
+  /* Remove outer margins from layout containers during print */
+  main, .space-y-6, .space-y-8, .space-y-4, .space-y-12, .space-y-20, .mb-20, .my-8, .print-container, #root {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Reset scalers and mobile wrappers for crisp 1:1 print */
+  .report-card-scaler {
+    transform: none !important;
+    width: 210mm !important;
+    max-width: 210mm !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+  }
+
+  .report-card-mobile-wrapper {
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Strict A4 Container - Exactly 280mm to guarantee 100% 1-page fit with zero spillover or overlap */
+  .emerald-print-A4 {
+    width: 210mm !important;
+    max-width: 210mm !important;
+    height: 280mm !important;
+    min-height: 280mm !important;
+    max-height: 280mm !important;
+    padding: 4mm 6mm !important;
+    margin: 0 auto !important;
+    box-sizing: border-box !important;
+    position: relative !important;
+    background: white !important;
+    overflow: hidden !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    page-break-after: always !important;
+    break-after: page !important;
+  }
+
+  /* Prevent trailing blank page after last card */
+  .emerald-print-A4:last-child {
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+  }
+
+  .emerald-print-A4-landscape {
+    width: 297mm !important;
+    height: 205mm !important;
+    min-height: 205mm !important;
+    max-height: 205mm !important;
+    padding: 6mm !important;
+    margin: 0 auto !important;
+    box-sizing: border-box !important;
+    position: relative !important;
+    background: white !important;
+    overflow: hidden !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    page-break-after: always !important;
+    break-after: page !important;
+  }
+
+  .emerald-print-A4-landscape:last-child {
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+  }
+
+  /* Force shrink tables if they exceed space */
+  .emerald-print-A4 table {
+    table-layout: auto !important;
+  }
+
+  .print-content {
+    display: block !important;
+    position: static !important;
+    visibility: visible !important;
+  }
+
+  .bg-white { background-color: white !important; }
+}
+
+/* --- MARKETING SITE UTILITIES --- */
+
+@layer components {
+  .btn-primary {
+    @apply bg-primary text-white border-none rounded-lg px-6 py-3 font-medium transition-all duration-200 hover:bg-[#0F2A6B] hover:-translate-y-[1px] shadow-sm;
+  }
+  .btn-secondary {
+    @apply bg-transparent text-primary border-2 border-primary rounded-lg px-6 py-3 font-medium transition-all duration-200 hover:bg-blue-50;
+  }
+  .btn-accent {
+    @apply bg-accent text-white border-none rounded-lg px-6 py-3 font-medium transition-all duration-200 hover:bg-[#0D9488] shadow-sm;
+  }
+  .card {
+    @apply bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-lg hover:shadow-xl hover:border-slate-600 transition-all duration-200;
+  }
+  .section-container {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20;
+  }
+}
+
+/* Stagger Fade Up */
+.animate-fade-up {
+    animation: fadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    opacity: 0;
+}
+
+@keyframes fadeUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.delay-100 { animation-delay: 0.1s; }
+.delay-200 { animation-delay: 0.2s; }
+.delay-300 { animation-delay: 0.3s; }
+.delay-400 { animation-delay: 0.4s; }
+
+/* Hide scrollbar but keep functionality */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

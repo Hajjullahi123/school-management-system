@@ -1,0 +1,84 @@
+#!/usr/bin/env bash
+# exit on error
+set -o errexit
+
+# Set Node Memory Options for the entire build process
+export NODE_OPTIONS=--max-old-space-size=2048
+
+echo ">>> Build started..."
+
+# 1. Install Client Dependencies & Build
+echo ">>> Installing client dependencies (memory-optimized)..."
+cd client
+# Using --no-audit and --no-fund to save memory on free tier
+npm install --no-audit --no-fund
+echo ">>> Building client..."
+npm run build
+cd ..
+
+# 2. Install Server Dependencies
+echo ">>> Installing server dependencies..."
+cd server
+npm install --no-audit --no-fund
+
+# 3. Update Prisma Schema for PostgreSQL
+echo ">>> Updating Prisma schema for PostgreSQL..."
+sed -i 's/provider = "sqlite"/provider = "postgresql"/g' prisma/schema.prisma
+sed -i 's|url      = "file:./dev.db"|url      = env("DATABASE_URL")|g' prisma/schema.prisma
+
+# 4. Generate Prisma Client
+echo ">>> Generating Prisma Client..."
+npx prisma generate --schema=prisma/schema.prisma
+
+# 5. Pre-migration: Drop stale unique indexes and clear corrupted data
+echo ">>> Pre-migration cleanup..."
+npx prisma db execute --schema=prisma/schema.prisma --stdin <<'SQL'
+-- Drop stale indexes
+DROP INDEX IF EXISTS "StaffAttendance_schoolId_userId_date_key";
+DROP INDEX IF EXISTS "Student_schoolId_admissionNumber_key";
+DROP INDEX IF EXISTS "Student_schoolId_rollNo_key";
+DROP INDEX IF EXISTS "Alumni_studentId_key";
+DROP INDEX IF EXISTS "QuranTarget_schoolId_classId_key";
+
+-- Clear orphaned/corrupted StaffAttendance rows from previous schema version
+-- These 16 rows lost their staffId during the schema rewrite and were populated 
+-- with userId=1, causing the P2002 unique constraint violation.
+DELETE FROM "StaffAttendance";
+
+-- Deduplicate TeacherAssignment table
+-- The old schema allowed duplicate assignments. We must remove duplicates
+-- before applying the new unique constraint, keeping only the lowest ID.
+DELETE FROM "TeacherAssignment"
+WHERE id NOT IN (
+    SELECT MIN(id)
+    FROM "TeacherAssignment"
+    GROUP BY "schoolId", "teacherId", "classSubjectId"
+);
+
+-- Backfill admissionNumber for Student table to avoid unique constraint violations
+ALTER TABLE "Student" ADD COLUMN IF NOT EXISTS "admissionNumber" TEXT;
+UPDATE "Student" SET "admissionNumber" = 'LEGACY-ADM-' || id WHERE "admissionNumber" IS NULL OR "admissionNumber" = '';
+ALTER TABLE "Student" ALTER COLUMN "admissionNumber" SET NOT NULL;
+
+-- Fix NewsEvent authorId foreign key (if @default(1) is invalid)
+ALTER TABLE "NewsEvent" ADD COLUMN IF NOT EXISTS "authorId" INTEGER;
+UPDATE "NewsEvent" SET "authorId" = (SELECT id FROM "User" LIMIT 1) WHERE "authorId" IS NULL OR "authorId" NOT IN (SELECT id FROM "User");
+
+-- Fix Alumni studentId foreign key (if @default(1) is invalid)
+ALTER TABLE "Alumni" ADD COLUMN IF NOT EXISTS "studentId" INTEGER;
+UPDATE "Alumni" SET "studentId" = (SELECT id FROM "Student" LIMIT 1) WHERE "studentId" IS NULL OR "studentId" NOT IN (SELECT id FROM "Student");
+
+-- Clear QuranTarget test data as it has multiple new required foreign keys that cannot easily be backfilled
+DELETE FROM "QuranTarget";
+
+-- Fix orphaned parentId and userId in Student table to prevent foreign key constraint violations
+UPDATE "Student" SET "parentId" = NULL WHERE "parentId" IS NOT NULL AND "parentId" NOT IN (SELECT id FROM "Parent");
+UPDATE "Student" SET "userId" = NULL WHERE "userId" IS NOT NULL AND "userId" NOT IN (SELECT id FROM "User");
+SQL
+
+# 6. Synchronize Database (Force push for Dev/Stage)
+echo ">>> Synchronizing database schema..."
+npx prisma db push --accept-data-loss --schema=prisma/schema.prisma
+
+# 6. Database sync complete
+echo ">>> Build complete!"

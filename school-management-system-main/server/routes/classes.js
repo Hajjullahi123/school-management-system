@@ -1,0 +1,655 @@
+const express = require('express');
+const router = express.Router();
+const prisma = require('../db');
+const { authenticate, authorize } = require('../middleware/auth');
+const { logAction } = require('../utils/audit');
+
+// Get all classes
+router.get('/', authenticate, async (req, res) => {
+  try {
+    const where = {
+      schoolId: req.schoolId,
+      isActive: true
+    };
+
+    // If teacher, return classes they are form master for OR classes they teach subjects in CURRENT TERM
+    if (req.user.role === 'teacher') {
+      const activeTerm = await prisma.term.findFirst({
+        where: { schoolId: req.schoolId, isCurrent: true }
+      });
+      const termFilter = activeTerm ? { OR: [{ termId: activeTerm.id }, { termId: null }] } : {};
+
+      where.OR = [
+        { classTeacherId: req.user.id },
+        {
+          subjects: {
+            some: {
+              assignments: {
+                some: { teacherId: req.user.id, ...termFilter }
+              }
+            }
+          }
+        }
+      ];
+    }
+
+    const classes = await prisma.class.findMany({
+      where,
+      include: {
+        classTeacher: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            username: true
+          }
+        },
+        _count: {
+          select: {
+            students: { where: { status: 'active' } },
+            subjects: true
+          }
+        }
+      },
+      orderBy: [
+        { name: 'asc' },
+        { arm: 'asc' }
+      ]
+    });
+
+    res.json(classes);
+  } catch (error) {
+    console.error('Get classes error:', error);
+    res.status(500).json({ error: 'Failed to fetch classes' });
+  }
+});
+
+// Get class assigned to the logged-in teacher (or unassigned class for exam officer)
+router.get('/my-class', authenticate, async (req, res) => {
+  try {
+    const userId = parseInt(req.user.id);
+    const schoolId = parseInt(req.schoolId);
+    const userRole = req.user.role;
+
+    // Examination Officer: access classes without a form master
+    if (userRole === 'examination_officer') {
+      const requestedClassId = req.query.classId ? parseInt(req.query.classId) : null;
+
+      let whereClause = {
+        schoolId: schoolId,
+        isActive: true,
+        classTeacherId: null
+      };
+
+      // If a specific classId is requested, add it to the filter
+      if (requestedClassId) {
+        whereClause.id = requestedClassId;
+      }
+
+      const classData = await prisma.class.findFirst({
+        where: whereClause,
+        include: {
+          students: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  email: true,
+                  isActive: true
+                }
+              },
+              parent: {
+                select: {
+                  id: true,
+                  userId: true,
+                  phone: true,
+                  user: {
+                    select: {
+                      id: true,
+                      firstName: true,
+                      lastName: true,
+                      email: true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          _count: {
+            select: { students: { where: { status: 'active' } } }
+          }
+        },
+        orderBy: [{ name: 'asc' }, { arm: 'asc' }]
+      });
+
+      if (!classData) {
+        return res.status(404).json({
+          message: requestedClassId
+            ? 'The requested class either has a form master assigned or does not exist'
+            : 'No unassigned classes found in this school',
+          debug: { userId, schoolId }
+        });
+      }
+
+      // Sort students alphabetically before returning
+      if (classData.students) {
+        classData.students.sort((a, b) => {
+          const nameA = `${a.user?.firstName || ''} ${a.user?.lastName || ''}`.trim().toLowerCase();
+          const nameB = `${b.user?.firstName || ''} ${b.user?.lastName || ''}`.trim().toLowerCase();
+          return nameA.localeCompare(nameB);
+        });
+      }
+
+      console.log(`[MY-CLASS] Exam officer userId=${userId} accessing unassigned class: ${classData.name} ${classData.arm || ''}`);
+      return res.json(classData);
+    }
+
+    // Standard teacher/principal form master flow
+    console.log(`[MY-CLASS] Looking for class with classTeacherId=${userId}, schoolId=${schoolId}, user=${req.user.firstName} ${req.user.lastName}`);
+
+    const classData = await prisma.class.findFirst({
+      where: {
+        classTeacherId: userId,
+        schoolId: schoolId,
+        isActive: true
+      },
+      include: {
+        students: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                isActive: true
+              }
+            },
+            parent: {
+              select: {
+                id: true,
+                userId: true,
+                phone: true,
+                user: {
+                  select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    email: true
+                  }
+                }
+              }
+            }
+          }
+        },
+        _count: {
+          select: { students: { where: { status: 'active' } } }
+        }
+      }
+    });
+
+    if (!classData) {
+      // Debug: log all classes and their classTeacherIds to find the mismatch
+      const allClasses = await prisma.class.findMany({
+        where: { schoolId, isActive: true },
+        select: { id: true, name: true, arm: true, classTeacherId: true }
+      });
+      console.log(`[MY-CLASS] No class found for userId=${userId}. All classes:`, JSON.stringify(allClasses));
+      return res.status(404).json({
+        message: 'No class assigned to this teacher',
+        debug: { userId, schoolId, classCount: allClasses.length }
+      });
+    }
+
+    console.log(`[MY-CLASS] Found class: ${classData.name} ${classData.arm || ''} for userId=${userId}`);
+    res.json(classData);
+  } catch (error) {
+    console.error('Get my class error:', error);
+    res.status(500).json({ error: 'Failed to fetch your class' });
+  }
+});
+
+// Get class by ID with students
+router.get('/:id', authenticate, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const classData = await prisma.class.findFirst({
+      where: {
+        id: parseInt(id),
+        schoolId: req.schoolId
+      },
+      include: {
+        classTeacher: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            username: true
+          }
+        },
+        students: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                username: true
+              }
+            }
+          }
+        },
+        subjects: {
+          include: {
+            subject: true,
+            assignments: {
+              where: { schoolId: req.schoolId },
+              include: {
+                teacher: {
+                  select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (!classData) {
+      return res.status(404).json({ error: 'Class not found' });
+    }
+
+    res.json(classData);
+  } catch (error) {
+    console.error('Get class error:', error);
+    res.status(500).json({ error: 'Failed to fetch class' });
+  }
+});
+
+// Create class (Admin/Principal only)
+router.post('/', authenticate, authorize(['admin', 'sub_admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin']), async (req, res) => {
+  try {
+    const { name, arm, classTeacherId } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ error: 'Class name is required' });
+    }
+
+    // Check if Teacher is already assigned to another class in THIS school
+    if (classTeacherId) {
+      const existing = await prisma.class.findFirst({
+        where: {
+          classTeacherId: parseInt(classTeacherId),
+          schoolId: req.schoolId
+        }
+      });
+      if (existing) {
+        return res.status(400).json({ error: `Teacher is already Form Master for ${existing.name} ${existing.arm || ''}` });
+      }
+    }
+
+    const classData = await prisma.class.create({
+      data: {
+        schoolId: req.schoolId,
+        name,
+        arm: arm || null,
+        classTeacherId: classTeacherId ? parseInt(classTeacherId) : null,
+        expectedSubjects: req.body.expectedSubjects ? parseInt(req.body.expectedSubjects) : 0,
+        showPositionOnReport: req.body.showPositionOnReport !== undefined ? req.body.showPositionOnReport : true,
+        showFeesOnReport: req.body.showFeesOnReport !== undefined ? req.body.showFeesOnReport : true,
+        showAttendanceOnReport: req.body.showAttendanceOnReport !== undefined ? req.body.showAttendanceOnReport : true,
+        reportLayout: req.body.reportLayout || null
+      },
+      include: {
+        classTeacher: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true
+          }
+        },
+        _count: {
+          select: {
+            students: true,
+            subjects: true
+          }
+        }
+      }
+    });
+
+    res.status(201).json(classData);
+
+    // Log the creation
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'CREATE',
+      resource: 'CLASS',
+      details: {
+        classId: classData.id,
+        name: classData.name,
+        arm: classData.arm
+      },
+      ipAddress: req.ip
+    });
+  } catch (error) {
+    if (error.code === 'P2002') return res.status(400).json({ error: 'Class name/arm already exists' });
+    console.error('Create class error:', error);
+    res.status(500).json({ error: 'Failed to create class' });
+  }
+});
+
+// Update class (Admin/Principal only)
+router.put('/:id', authenticate, authorize(['admin', 'sub_admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin']), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, arm, classTeacherId } = req.body;
+
+    // Check if Teacher is already assigned to another class
+    if (classTeacherId) {
+      const existing = await prisma.class.findFirst({
+        where: {
+          classTeacherId: parseInt(classTeacherId),
+          id: { not: parseInt(id) }, // Exclude current class
+          schoolId: req.schoolId
+        }
+      });
+
+      if (existing) {
+        return res.status(400).json({
+          error: `Teacher is already Form Master for ${existing.name} ${existing.arm || ''}`
+        });
+      }
+    }
+
+    const classData = await prisma.class.update({
+      where: {
+        id: parseInt(id),
+        schoolId: req.schoolId
+      },
+      data: {
+        name,
+        arm,
+        classTeacherId: classTeacherId ? parseInt(classTeacherId) : null,
+        expectedSubjects: req.body.expectedSubjects ? parseInt(req.body.expectedSubjects) : 0,
+        showPositionOnReport: req.body.showPositionOnReport !== undefined ? req.body.showPositionOnReport : undefined,
+        showFeesOnReport: req.body.showFeesOnReport !== undefined ? req.body.showFeesOnReport : undefined,
+        showAttendanceOnReport: req.body.showAttendanceOnReport !== undefined ? req.body.showAttendanceOnReport : undefined,
+        reportLayout: req.body.reportLayout !== undefined ? req.body.reportLayout : undefined
+      },
+      include: {
+        classTeacher: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true
+          }
+        },
+        _count: {
+          select: {
+            students: true,
+            subjects: true
+          }
+        }
+      }
+    });
+
+    res.json(classData);
+
+    // Log the update
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'UPDATE',
+      resource: 'CLASS',
+      details: {
+        classId: parseInt(id),
+        updates: Object.keys(req.body)
+      },
+      ipAddress: req.ip
+    });
+  } catch (error) {
+    if (error.code === 'P2002') return res.status(400).json({ error: 'Class name/arm already exists' });
+    console.error('Update class error:', error);
+    res.status(500).json({ error: 'Failed to update class' });
+  }
+});
+
+// Delete class (Admin/Principal only)
+router.delete('/:id', authenticate, authorize(['admin', 'sub_admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin']), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const classId = parseInt(id);
+
+    // Implement soft delete: set isActive to false instead of deleting records
+    const classData = await prisma.class.update({
+      where: {
+        id: classId,
+        schoolId: req.schoolId
+      },
+      data: { isActive: false }
+    });
+
+    res.json({ message: 'Class deactivated successfully', class: classData });
+
+    // Log the deletion
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'DELETE',
+      resource: 'CLASS',
+      details: {
+        classId: classId
+      },
+      ipAddress: req.ip
+    });
+  } catch (error) {
+    console.error('Delete class error:', error);
+    if (error.code === 'P2003') {
+      return res.status(400).json({ error: 'Cannot delete class because it has associated records (e.g. Fees, Attendance) that prevent deletion.' });
+    }
+    res.status(500).json({ error: 'Failed to delete class' });
+  }
+});
+
+// Toggle result publishing status
+router.put('/:id/publish-results', authenticate, authorize(['admin', 'sub_admin', 'teacher', 'principal', 'examination_officer']), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { isPublished, isProgressivePublished, termId } = req.body;
+    const classId = parseInt(id);
+
+    // If teacher, verify it's their class
+    if (req.user.role === 'teacher') {
+      const classInfo = await prisma.class.findFirst({
+        where: { id: classId, schoolId: req.schoolId },
+        select: { classTeacherId: true }
+      });
+      if (!classInfo || classInfo.classTeacherId !== req.user.id) {
+        return res.status(403).json({ error: 'You can only publish results for your own class' });
+      }
+    }
+
+    // If examination officer, verify the class has no form master
+    if (req.user.role === 'examination_officer') {
+      const classInfo = await prisma.class.findFirst({
+        where: { id: classId, schoolId: req.schoolId },
+        select: { classTeacherId: true }
+      });
+      if (!classInfo || classInfo.classTeacherId !== null) {
+        return res.status(403).json({ error: 'You can only publish results for classes without a Form Master' });
+      }
+    }
+
+    // Get current term if termId not provided
+    let activeTermId = termId;
+    if (!activeTermId) {
+      const currentTerm = await prisma.term.findFirst({
+        where: { isCurrent: true, schoolId: req.schoolId }
+      });
+      activeTermId = currentTerm?.id;
+    }
+
+    if (!activeTermId) {
+      return res.status(400).json({ error: 'Term ID is required for publishing' });
+    }
+
+    // Update ResultPublication (Upsert)
+    const updateData = { updatedAt: new Date() };
+    if (isPublished !== undefined) updateData.isPublished = isPublished;
+    if (isProgressivePublished !== undefined) updateData.isProgressivePublished = isProgressivePublished;
+
+    const createData = {
+      schoolId: req.schoolId,
+      classId: classId,
+      termId: activeTermId,
+      isPublished: isPublished || false,
+      isProgressivePublished: isProgressivePublished || false,
+      updatedAt: new Date()
+    };
+
+    const publication = await prisma.resultPublication.upsert({
+      where: {
+        schoolId_classId_termId: {
+          schoolId: req.schoolId,
+          classId: classId,
+          termId: activeTermId
+        }
+      },
+      update: updateData,
+      create: createData
+    });
+
+    // Also update the legacy flag for compatibility (only if term results are being published)
+    let updatedClass = null;
+    if (isPublished !== undefined) {
+      updatedClass = await prisma.class.update({
+        where: { id: classId, schoolId: req.schoolId },
+        data: { isResultPublished: isPublished }
+      });
+    } else {
+      // Fetch class info if not updating legacy flag
+      updatedClass = await prisma.class.findUnique({
+        where: { id: classId }
+      });
+    }
+
+    // Send notifications if published (non-blocking)
+    if (isPublished) {
+      const { sendResultReleaseNotification } = require('../services/emailService');
+
+      try {
+        const currentTerm = await prisma.term.findUnique({ where: { id: activeTermId } });
+        const currentSession = await prisma.academicSession.findFirst({ where: { isCurrent: true, schoolId: req.schoolId } });
+        const settings = await prisma.school.findUnique({ where: { id: req.schoolId } });
+        const schoolName = settings?.name || process.env.SCHOOL_NAME || 'School Management System';
+
+        const students = await prisma.student.findMany({
+          where: {
+            classId: classId,
+            schoolId: req.schoolId
+          },
+          include: {
+            user: { select: { firstName: true, lastName: true } },
+            parent: { include: { user: { select: { email: true } } } }
+          }
+        });
+
+        students.forEach(async (student) => {
+          if (student.parent?.user?.email) {
+            try {
+              const resultCount = await prisma.result.count({
+                where: {
+                  studentId: student.id,
+                  termId: activeTermId,
+                  academicSessionId: currentSession?.id,
+                  schoolId: req.schoolId
+                }
+              });
+
+              const resultData = {
+                parentEmail: student.parent.user.email,
+                studentName: student.user ? `${student.user.firstName} ${student.user.lastName}` : (student.name || student.admissionNumber || 'Student'),
+                termName: currentTerm?.name || 'Current Term',
+                sessionName: currentSession?.name || 'Current Session',
+                className: `${updatedClass.name} ${updatedClass.arm || ''}`.trim(),
+                totalSubjects: resultCount,
+                schoolName
+              };
+              sendResultReleaseNotification(resultData).catch(e => console.error('Result email error:', e));
+            } catch (err) {
+              console.error('Error in result notification processing for student:', student.id, err);
+            }
+          }
+        });
+      } catch (err) {
+        console.error('Error initiating result notifications:', err);
+      }
+    }
+
+    const statusText = isPublished !== undefined
+      ? (isPublished ? 'published' : 'unpublished')
+      : (isProgressivePublished ? 'published (progressive)' : 'unpublished (progressive)');
+
+    res.json({
+      message: `Results ${statusText} successfully for ${activeTermId}`,
+      publication
+    });
+
+    // Log the publishing action
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: isPublished ? 'PUBLISH_RESULTS' : 'UNPUBLISH_RESULTS',
+      resource: 'CLASS',
+      details: {
+        classId: classId,
+        termId: activeTermId
+      },
+      ipAddress: req.ip
+    });
+  } catch (error) {
+    console.error('Publish results error:', error);
+    res.status(500).json({ error: `Failed to update result publishing status: ${error.message}` });
+  }
+});
+
+// Get publication status for a class and term
+router.get('/:id/publication-status', authenticate, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { termId } = req.query;
+    const classId = parseInt(id);
+
+    if (!termId) {
+      return res.status(400).json({ error: 'Term ID is required' });
+    }
+
+    const publication = await prisma.resultPublication.findUnique({
+      where: {
+        schoolId_classId_termId: {
+          schoolId: req.schoolId,
+          classId: classId,
+          termId: parseInt(termId)
+        }
+      }
+    });
+
+    if (!publication) {
+      return res.json({ isPublished: false, isProgressivePublished: false });
+    }
+
+    res.json(publication);
+  } catch (error) {
+    console.error('Get publication status error:', error);
+    res.status(500).json({ error: 'Failed to fetch publication status' });
+  }
+});
+
+module.exports = router;

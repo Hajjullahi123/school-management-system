@@ -1,0 +1,526 @@
+import { saveAs } from 'file-saver';
+import { safeDocumentDownload } from '../utils/mobileDownload';
+import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { api } from '../api';
+import useSchoolSettings from '../hooks/useSchoolSettings';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement
+} from 'chart.js';
+import { Bar, Doughnut } from 'react-chartjs-2';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement
+);
+
+const Analytics = () => {
+  const { user } = useAuth();
+  const [studentId, setStudentId] = useState('');
+  const [analyticsData, setAnalyticsData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const { settings: schoolSettings } = useSchoolSettings();
+
+  const [wards, setWards] = useState([]);
+  const [loadingWards, setLoadingWards] = useState(false);
+  const isParentView = user?.role === 'parent';
+
+  const location = useLocation();
+
+  useEffect(() => {
+    if (user?.role === 'student' && user?.student?.id) {
+      setStudentId(user.student.id);
+      fetchAnalytics(user.student.id);
+    } else if (isParentView) {
+      const params = new URLSearchParams(location.search);
+      const studentIdParam = params.get('studentId');
+      fetchMyWards(studentIdParam);
+    }
+  }, [user, location]);
+
+  const fetchMyWards = async (studentIdParam) => {
+    setLoadingWards(true);
+    try {
+      const response = await api.get('/api/parents/my-wards');
+      if (response.ok) {
+        const data = await response.json();
+        const wardsList = Array.isArray(data) ? data : [];
+        setWards(wardsList);
+        
+        if (studentIdParam && wardsList.some(w => w.id === parseInt(studentIdParam))) {
+          setStudentId(studentIdParam);
+          fetchAnalytics(studentIdParam);
+        } else if (wardsList.length > 0) {
+          setStudentId(wardsList[0].id.toString());
+          fetchAnalytics(wardsList[0].id);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching wards:', error);
+    } finally {
+      setLoadingWards(false);
+    }
+  };
+
+  const fetchAnalytics = async (id) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await api.get(`/api/results?studentId=${id}`);
+
+      if (response.ok) {
+        const results = await response.json();
+        processAnalytics(results);
+      } else {
+        const data = await response.json();
+        if (response.status === 403 && data.error === 'Result Not Published') {
+          setError('Results for your class have not been published yet.');
+        } else {
+          setError('Failed to load analytics.');
+        }
+        setAnalyticsData(null);
+      }
+    } catch (error) {
+      console.error('Error fetching analytics:', error);
+      setError('An error occurred while fetching data.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const processAnalytics = (results) => {
+    if (!results || results.length === 0) {
+      setAnalyticsData(null);
+      return;
+    }
+
+    // Group by subject
+    const subjectPerformance = {};
+    results.forEach(result => {
+      const subjectName = result.subject?.name || 'Unknown';
+      if (!subjectPerformance[subjectName]) {
+        subjectPerformance[subjectName] = {
+          scores: [],
+          grades: [],
+          average: 0
+        };
+      }
+      subjectPerformance[subjectName].scores.push(result.totalScore);
+      subjectPerformance[subjectName].grades.push(result.grade);
+    });
+
+    // Calculate averages
+    Object.keys(subjectPerformance).forEach(subject => {
+      const scores = subjectPerformance[subject].scores;
+      const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+      subjectPerformance[subject].average = avg;
+    });
+
+    // Overall stats
+    const allScores = results.map(r => r.totalScore || 0);
+    const overallAverage = allScores.reduce((a, b) => a + b, 0) / allScores.length;
+    const highest = Math.max(...allScores);
+    const lowest = Math.min(...allScores);
+
+    // Grade distribution
+    const gradeCount = {};
+    results.forEach(r => {
+      gradeCount[r.grade] = (gradeCount[r.grade] || 0) + 1;
+    });
+
+    setAnalyticsData({
+      subjectPerformance,
+      overallAverage: overallAverage.toFixed(2),
+      highest: highest.toFixed(2),
+      lowest: lowest.toFixed(2),
+      totalSubjects: Object.keys(subjectPerformance).length,
+      gradeDistribution: gradeCount,
+      results
+    });
+  };
+
+  const getGradeColor = (grade) => {
+    const colors = {
+      'A': 'bg-green-500',
+      'B': 'bg-blue-500',
+      'C': 'bg-yellow-500',
+      'D': 'bg-orange-500',
+      'E': 'bg-red-400',
+      'F': 'bg-red-600'
+    };
+    return colors[grade] || 'bg-gray-500';
+  };
+
+  const getPerformanceColor = (score) => {
+    if (score >= 70) return 'text-green-600';
+    if (score >= 60) return 'text-blue-600';
+    if (score >= 50) return 'text-yellow-600';
+    if (score >= 40) return 'text-orange-600';
+    return 'text-red-600';
+  };
+
+  const downloadPDF = () => {
+    if (!analyticsData) return;
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.width;
+    doc.setFontSize(20);
+    doc.text(schoolSettings?.schoolName || 'School Name', pageWidth / 2, 15, { align: 'center' });
+    doc.setFontSize(14);
+    doc.text('Performance Analytics Report', pageWidth / 2, 25, { align: 'center' });
+
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    const date = new Date().toLocaleDateString();
+    let studentName = `Student ID: ${studentId}`;
+    if (user?.role === 'student') studentName = `${user.firstName} ${user.lastName}`;
+
+    doc.text(`Student: ${studentName}`, 14, 35);
+    doc.text(`Date: ${date}`, pageWidth - 14, 35, { align: 'right' });
+
+    doc.autoTable({
+      startY: 40,
+      head: [['Overall Average', 'Highest Score', 'Lowest Score', 'Total Subjects']],
+      body: [[
+        `${analyticsData.overallAverage}%`,
+        `${analyticsData.highest}%`,
+        `${analyticsData.lowest}%`,
+        analyticsData.totalSubjects
+      ]],
+      theme: 'grid',
+      headStyles: { fillColor: [41, 128, 185] }
+    });
+
+    const tableData = analyticsData.results.map(r => [
+      r.subject?.name || 'Unknown',
+      `${r.totalScore}%`,
+      r.grade,
+      r.totalScore >= 40 ? 'Pass' : 'Fail',
+      r.term?.name || '-'
+    ]);
+
+    doc.text('Subject Performance Details', 14, doc.lastAutoTable.finalY + 10);
+
+    doc.autoTable({
+      startY: doc.lastAutoTable.finalY + 15,
+      head: [['Subject', 'Score', 'Grade', 'Status', 'Term']],
+      body: tableData,
+      theme: 'striped',
+      headStyles: { fillColor: [52, 152, 219] }
+    });
+
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(10);
+      doc.text(`Page ${i} of ${pageCount}`, pageWidth / 2, doc.internal.pageSize.height - 10, { align: 'center' });
+    }
+
+    safeDocumentDownload(doc, `analytics_report_${studentId}.pdf`);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold text-gray-900">{schoolSettings?.schoolName || 'School'} Analytics</h1>
+
+        {user?.role !== 'student' && !isParentView && (
+          <div className="flex gap-2">
+            <input
+              type="number"
+              value={studentId}
+              onChange={(e) => setStudentId(e.target.value)}
+              placeholder="Student ID"
+              className="border rounded-md px-3 py-2 w-32"
+            />
+            <button
+              onClick={() => fetchAnalytics(studentId)}
+              className="bg-primary text-white px-6 py-2 rounded-md hover:brightness-90"
+            >
+              Load Analytics
+            </button>
+            {analyticsData && (
+              <button
+                onClick={downloadPDF}
+                className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 flex items-center gap-2"
+                title="Download Report PDF"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </button>
+            )}
+          </div>
+        )}
+
+        {isParentView && (
+          <div className="flex gap-2 items-center">
+            {wards.length > 1 && (
+              <select
+                value={studentId}
+                onChange={(e) => {
+                  setStudentId(e.target.value);
+                  fetchAnalytics(e.target.value);
+                }}
+                className="border rounded-md px-3 py-2"
+              >
+                <option value="">Select Child</option>
+                {wards.map((ward) => (
+                  <option key={ward.id} value={ward.id}>
+                    {ward.user.firstName} {ward.user.lastName} ({ward.admissionNumber})
+                  </option>
+                ))}
+              </select>
+            )}
+            {analyticsData && (
+              <button
+                onClick={downloadPDF}
+                className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 flex items-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                {wards.length > 1 ? 'Download Report' : 'Download PDF'}
+              </button>
+            )}
+          </div>
+        )}
+        {user?.role === 'student' && analyticsData && (
+          <button
+            onClick={downloadPDF}
+            className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 flex items-center gap-2"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Download Report
+          </button>
+        )}
+      </div>
+
+      {analyticsData ? (
+        <>
+          {/* Overall Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="bg-gradient-to-br from-primary to-primary/90 text-white p-6 rounded-lg shadow-lg">
+              <p className="text-sm opacity-90">Overall Average</p>
+              <p className="text-4xl font-bold mt-2">{analyticsData.overallAverage}%</p>
+            </div>
+            <div className="bg-gradient-to-br from-green-500 to-green-600 text-white p-6 rounded-lg shadow-lg">
+              <p className="text-sm opacity-90">Highest Score</p>
+              <p className="text-4xl font-bold mt-2">{analyticsData.highest}%</p>
+            </div>
+            <div className="bg-gradient-to-br from-red-500 to-red-600 text-white p-6 rounded-lg shadow-lg">
+              <p className="text-sm opacity-90">Lowest Score</p>
+              <p className="text-4xl font-bold mt-2">{analyticsData.lowest}%</p>
+            </div>
+            <div className="bg-gradient-to-br from-secondary to-secondary/90 text-white p-6 rounded-lg shadow-lg">
+              <p className="text-sm opacity-90">Total Subjects</p>
+              <p className="text-4xl font-bold mt-2">{analyticsData.totalSubjects}</p>
+            </div>
+          </div>
+
+          {/* Subject Performance Chart */}
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <h3 className="text-xl font-semibold mb-6">Subject Performance Comparison</h3>
+            <div className="h-80">
+              <Bar
+                data={{
+                  labels: Object.keys(analyticsData.subjectPerformance),
+                  datasets: [
+                    {
+                      label: 'Average Score',
+                      data: Object.values(analyticsData.subjectPerformance).map(d => d.average),
+                      backgroundColor: 'rgba(59, 130, 246, 0.6)',
+                      borderColor: 'rgba(59, 130, 246, 1)',
+                      borderWidth: 1,
+                    },
+                  ],
+                }}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  scales: {
+                    y: {
+                      beginAtZero: true,
+                      max: 100,
+                    },
+                  },
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Grade Distribution */}
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <h3 className="text-xl font-semibold mb-6">Grade Distribution</h3>
+            <div className="flex justify-center h-64">
+              <Doughnut
+                data={{
+                  labels: ['A', 'B', 'C', 'D', 'E', 'F'],
+                  datasets: [
+                    {
+                      data: ['A', 'B', 'C', 'D', 'E', 'F'].map(grade => analyticsData.gradeDistribution[grade] || 0),
+                      backgroundColor: [
+                        'rgba(34, 197, 94, 0.6)',  // Green - A
+                        'rgba(59, 130, 246, 0.6)',  // Blue - B
+                        'rgba(234, 179, 8, 0.6)',   // Yellow - C
+                        'rgba(249, 115, 22, 0.6)',  // Orange - D
+                        'rgba(248, 113, 113, 0.6)', // Red-400 - E
+                        'rgba(220, 38, 38, 0.6)',   // Red-600 - F
+                      ],
+                      borderColor: [
+                        'rgba(34, 197, 94, 1)',
+                        'rgba(59, 130, 246, 1)',
+                        'rgba(234, 179, 8, 1)',
+                        'rgba(249, 115, 22, 1)',
+                        'rgba(248, 113, 113, 1)',
+                        'rgba(220, 38, 38, 1)',
+                      ],
+                      borderWidth: 1,
+                    },
+                  ],
+                }}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Performance Trend */}
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <h3 className="text-xl font-semibold mb-6">Recent Performance Trend</h3>
+            <div className="overflow-x-auto">
+              <table className="min-w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Subject</th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Score</th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Grade</th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Status</th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Trend</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {analyticsData.results.slice(0, 10).map((result, idx) => (
+                    <tr key={idx} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                        {result.subject?.name}
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className={`text-lg font-bold ${getPerformanceColor(result.totalScore)}`}>
+                          {result.totalScore?.toFixed(1)}%
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${getGradeColor(result.grade)} text-white`}>
+                          {result.grade}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        {result.totalScore >= 40 ? (
+                          <span className="text-green-600 font-semibold">✓ Pass</span>
+                        ) : (
+                          <span className="text-red-600 font-semibold">✗ Fail</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        {result.totalScore >= 70 ? (
+                          <span className="text-green-600">↑ Excellent</span>
+                        ) : result.totalScore >= 60 ? (
+                          <span className="text-blue-600">→ Good</span>
+                        ) : result.totalScore >= 40 ? (
+                          <span className="text-yellow-600">→ Fair</span>
+                        ) : (
+                          <span className="text-red-600">↓ Needs Improvement</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Performance Insights */}
+          <div className="bg-gradient-to-br from-primary/10 to-secondary/10 border border-primary/20 rounded-xl p-6 shadow-inner">
+            <h3 className="text-lg font-bold text-primary mb-3 flex items-center gap-2">
+              <span className="p-1.5 bg-primary/20 rounded-lg">📊</span> Performance Insights
+            </h3>
+            <div className="space-y-2 text-sm">
+              <p className="text-gray-700">
+                • <strong>Strongest Subject:</strong> {Object.entries(analyticsData.subjectPerformance)
+                  .sort((a, b) => b[1].average - a[1].average)[0]?.[0]}
+                ({Object.entries(analyticsData.subjectPerformance)
+                  .sort((a, b) => b[1].average - a[1].average)[0]?.[1].average.toFixed(1)}%)
+              </p>
+              <p className="text-gray-700">
+                • <strong>Needs Attention:</strong> {Object.entries(analyticsData.subjectPerformance)
+                  .sort((a, b) => a[1].average - b[1].average)[0]?.[0]}
+                ({Object.entries(analyticsData.subjectPerformance)
+                  .sort((a, b) => a[1].average - b[1].average)[0]?.[1].average.toFixed(1)}%)
+              </p>
+              <p className="text-gray-700">
+                • <strong>Passing Rate:</strong> {
+                  ((analyticsData.results.filter(r => r.totalScore >= 40).length /
+                    analyticsData.results.length) * 100).toFixed(1)
+                }%
+              </p>
+            </div>
+          </div>
+        </>
+      ) : (
+        <div className="bg-white rounded-lg shadow p-12 text-center">
+          {error ? (
+            <>
+              <svg className="w-16 h-16 text-yellow-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <h3 className="text-xl font-bold text-gray-800 mb-2">Access Restricted</h3>
+              <p className="text-gray-600 text-lg">{error}</p>
+            </>
+          ) : (
+            <>
+              <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+              <p className="text-gray-500 text-lg">
+                {user?.role === 'student'
+                  ? 'No results available yet for analytics'
+                  : 'Enter a student ID and click "Load Analytics" to view performance data'}
+              </p>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default Analytics;
+

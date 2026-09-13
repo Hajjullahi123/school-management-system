@@ -1,0 +1,313 @@
+/**
+ * Grading Utilities for DARUL QUR'AN Result Management System
+ * 
+ * Default Score Components (Can be overridden by school settings):
+ * - Assignment 1: 5%
+ * - Assignment 2: 5%
+ * - Test 1: 10%
+ * - Test 2: 10%
+ * - Examination: 70%
+ * Total: 100%
+ */
+
+const DEFAULT_WEIGHTS = {
+  assignment1Weight: 5,
+  assignment2Weight: 5,
+  test1Weight: 10,
+  test2Weight: 10,
+  examWeight: 70
+};
+
+/**
+ * Calculate total score from components
+ */
+function calculateTotalScore(assignment1, assignment2, test1, test2, exam) {
+  const a1 = assignment1 || 0;
+  const a2 = assignment2 || 0;
+  const t1 = test1 || 0;
+  const t2 = test2 || 0;
+  const ex = exam || 0;
+
+  return a1 + a2 + t1 + t2 + ex;
+}
+
+const DEFAULT_GRADING_SYSTEM = [
+  { grade: 'A', min: 70, max: 100, remark: 'Excellent' },
+  { grade: 'B', min: 60, max: 69.9, remark: 'Very Good' },
+  { grade: 'C', min: 50, max: 59.9, remark: 'Good' },
+  { grade: 'D', min: 40, max: 49.9, remark: 'Pass' },
+  { grade: 'E', min: 30, max: 39.9, remark: 'Weak Pass' },
+  { grade: 'F', min: 0, max: 29.9, remark: 'Fail' }
+];
+
+/**
+ * Determine grade based on total score
+ */
+function getGrade(totalScore, gradingSystem = null) {
+  let scale = DEFAULT_GRADING_SYSTEM;
+  if (gradingSystem) {
+    try {
+      scale = typeof gradingSystem === 'string' ? JSON.parse(gradingSystem) : gradingSystem;
+    } catch (e) {
+      console.error('Error parsing grading system, using default');
+    }
+  }
+
+  const found = scale.find(s => totalScore >= s.min && totalScore <= (s.max || 100));
+  return found ? found.grade : 'F';
+}
+
+/**
+ * Get remark based on grade
+ */
+function getRemark(grade, gradingSystem = null) {
+  let scale = DEFAULT_GRADING_SYSTEM;
+  if (gradingSystem) {
+    try {
+      scale = typeof gradingSystem === 'string' ? JSON.parse(gradingSystem) : gradingSystem;
+    } catch (e) {
+      console.error('Error parsing grading system, using default');
+    }
+  }
+
+  const found = scale.find(s => s.grade === grade);
+  return found ? found.remark : (grade === 'F' ? 'Fail' : 'N/A');
+}
+
+/**
+ * Validate score component (ensure within max limits)
+ */
+function validateScoreComponent(score, maxScore, componentName) {
+  if (score === null || score === undefined || score === '') return null;
+
+  const numScore = parseFloat(score);
+
+  if (isNaN(numScore)) {
+    throw new Error(`${componentName} must be a valid number`);
+  }
+
+  if (numScore < 0) {
+    throw new Error(`${componentName} cannot be negative`);
+  }
+
+  const limit = (maxScore !== null && maxScore !== undefined && !isNaN(parseFloat(maxScore)))
+    ? parseFloat(maxScore)
+    : 100;
+
+  if (numScore > limit) {
+    throw new Error(`${componentName} cannot exceed ${limit}`);
+  }
+
+  return numScore;
+}
+
+/**
+ * Validate all score components
+ */
+function validateScores(assignment1, assignment2, test1, test2, exam, weights = DEFAULT_WEIGHTS) {
+  const w = (weights && typeof weights === 'object') ? weights : DEFAULT_WEIGHTS;
+
+  const a1Max = (w.assignment1Weight !== null && w.assignment1Weight !== undefined && !isNaN(parseFloat(w.assignment1Weight)))
+    ? parseFloat(w.assignment1Weight) : DEFAULT_WEIGHTS.assignment1Weight;
+  const a2Max = (w.assignment2Weight !== null && w.assignment2Weight !== undefined && !isNaN(parseFloat(w.assignment2Weight)))
+    ? parseFloat(w.assignment2Weight) : DEFAULT_WEIGHTS.assignment2Weight;
+  const t1Max = (w.test1Weight !== null && w.test1Weight !== undefined && !isNaN(parseFloat(w.test1Weight)))
+    ? parseFloat(w.test1Weight) : DEFAULT_WEIGHTS.test1Weight;
+  const t2Max = (w.test2Weight !== null && w.test2Weight !== undefined && !isNaN(parseFloat(w.test2Weight)))
+    ? parseFloat(w.test2Weight) : DEFAULT_WEIGHTS.test2Weight;
+  const examMax = (w.examWeight !== null && w.examWeight !== undefined && !isNaN(parseFloat(w.examWeight)))
+    ? parseFloat(w.examWeight) : DEFAULT_WEIGHTS.examWeight;
+
+  return {
+    assignment1Score: validateScoreComponent(assignment1, a1Max, 'Assignment 1'),
+    assignment2Score: validateScoreComponent(assignment2, a2Max, 'Assignment 2'),
+    test1Score: validateScoreComponent(test1, t1Max, 'Test 1'),
+    test2Score: validateScoreComponent(test2, t2Max, 'Test 2'),
+    examScore: validateScoreComponent(exam, examMax, 'Examination')
+  };
+}
+
+/**
+ * Calculate class average for a subject
+ */
+async function calculateClassAverage(prisma, classId, subjectId, termId, schoolId) {
+  const results = await prisma.result.findMany({
+    where: {
+      schoolId,
+      classId,
+      subjectId,
+      termId
+    },
+    select: {
+      totalScore: true
+    }
+  });
+
+  if (results.length === 0) return 0;
+
+  const sum = results.reduce((acc, r) => acc + r.totalScore, 0);
+  return sum / results.length;
+}
+
+/**
+ * Calculate and update positions for a subject in a class
+ */
+async function calculatePositions(prisma, classId, subjectId, termId, schoolId) {
+  // Get all results for this subject, sorted by total score descending
+  const results = await prisma.result.findMany({
+    where: {
+      schoolId,
+      classId,
+      subjectId,
+      termId
+    },
+    orderBy: {
+      totalScore: 'desc'
+    },
+    select: {
+      id: true,
+      totalScore: true
+    }
+  });
+
+  // Assign positions
+  let currentPosition = 1;
+  let previousScore = null;
+  let studentsWithSameScore = 0;
+
+  for (let i = 0; i < results.length; i++) {
+    const result = results[i];
+
+    if (previousScore !== null && result.totalScore < previousScore) {
+      currentPosition += studentsWithSameScore;
+      studentsWithSameScore = 1;
+    } else {
+      studentsWithSameScore++;
+    }
+
+    await prisma.result.update({
+      where: { id: result.id },
+      data: { positionInClass: currentPosition }
+    });
+
+    previousScore = result.totalScore;
+  }
+}
+
+/**
+ * Calculate student's average for a term (all subjects)
+ */
+async function calculateStudentTermAverage(prisma, studentId, termId, schoolId, totalSubjectsCount = null, validSubjectIds = null) {
+  const where = {
+    schoolId,
+    studentId,
+    termId
+  };
+  if (validSubjectIds && validSubjectIds.length > 0) {
+    where.subjectId = { in: validSubjectIds };
+  }
+  const results = await prisma.result.findMany({
+    where,
+    select: {
+      totalScore: true
+    }
+  });
+
+  const count = totalSubjectsCount !== null ? totalSubjectsCount : results.length;
+  if (count === 0) return 0;
+
+  const sum = results.reduce((acc, r) => acc + (r.totalScore || 0), 0);
+  return sum / count;
+}
+
+/**
+ * Calculate student's cumulative average across all three terms
+ */
+async function calculateStudentSessionAverage(prisma, studentId, academicSessionId, schoolId, totalSubjectsCount = null, validSubjectIds = null) {
+  const where = {
+    schoolId,
+    studentId,
+    academicSessionId
+  };
+  if (validSubjectIds && validSubjectIds.length > 0) {
+    where.subjectId = { in: validSubjectIds };
+  }
+  const results = await prisma.result.findMany({
+    where,
+    select: {
+      totalScore: true
+    }
+  });
+
+  const count = totalSubjectsCount !== null ? totalSubjectsCount : results.length;
+  if (count === 0) return 0;
+
+  const sum = results.reduce((acc, r) => acc + (r.totalScore || 0), 0);
+  return sum / count;
+}
+
+/**
+ * Get suggested remarks based on grade
+ */
+function getSuggestedRemarks(grade) {
+  const suggestions = {
+    'A': [
+      "Distinguished performance. Maintain this standard.",
+      "An exceptional result. You are a star student!",
+      "Outstanding academic prowess demonstrated.",
+      "Excellent work. Your dedication is evident."
+    ],
+    'B': [
+      "A very good result. Keep striving for the peak.",
+      "Impressive performance. Aim for an A next time.",
+      "Solid understanding of the subject matter.",
+      "Well done! You are capable of even more."
+    ],
+    'C': [
+      "A good effort. Consistency is key to improvement.",
+      "Satisfactory performance. Focus more on weak areas.",
+      "You have potential. Push harder for better grades.",
+      "Fair result. More practice will lead to mastery."
+    ],
+    'D': [
+      "Passed, but there is significant room for improvement.",
+      "You need to take your studies more seriously.",
+      "Average performance. Dedicate more time to revision.",
+      "Work harder to avoid falling into the lower grades."
+    ],
+    'E': [
+      "Weak pass. You are on the edge of failure.",
+      "Extremely poor performance. Urgent improvement needed.",
+      "Seek help in areas you find difficult.",
+      "This is barely acceptable. Focus more!"
+    ],
+    'F': [
+      "Failed. You must re-examine your study habits.",
+      "Unsatisfactory. Complete overhaul of approach required.",
+      "Seek extra coaching immediately.",
+      "Very poor. Don't let this discourage you, try harder!"
+    ]
+  };
+  return suggestions[grade] || ["Keep working hard."];
+}
+
+/**
+ * Determine if student should be promoted
+ */
+function shouldPromote(sessionAverage, threshold = 40) {
+  return sessionAverage >= threshold;
+}
+
+module.exports = {
+  calculateTotalScore,
+  getGrade,
+  getRemark,
+  getSuggestedRemarks,
+  validateScoreComponent,
+  validateScores,
+  calculateClassAverage,
+  calculatePositions,
+  calculateStudentTermAverage,
+  calculateStudentSessionAverage,
+  shouldPromote
+};

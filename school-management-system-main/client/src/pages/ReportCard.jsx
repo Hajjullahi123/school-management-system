@@ -1,0 +1,1140 @@
+import { saveAs } from 'file-saver';
+import { safeDocumentDownload } from '../utils/mobileDownload';
+import React, { useState, useEffect } from 'react';
+import EmailConfig from '../components/EmailConfig';
+import { api, API_BASE_URL } from '../api';
+import useSchoolSettings from '../hooks/useSchoolSettings';
+import { toast } from '../utils/toast';
+import { formatDateVerbose } from '../utils/formatters';
+import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
+
+const ReportCard = () => {
+  const { settings: schoolSettings } = useSchoolSettings();
+  const [sessions, setSessions] = useState([]);
+  const [terms, setTerms] = useState([]);
+  const [classes, setClasses] = useState([]);
+  const [classStudents, setClassStudents] = useState([]);
+
+  const [reportData, setReportData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  // Selection states
+  const [selectedSession, setSelectedSession] = useState('');
+  const [selectedTerm, setSelectedTerm] = useState('');
+  const [selectedClassId, setSelectedClassId] = useState('');
+  const [selectedStudentId, setSelectedStudentId] = useState('');
+  const [searchMode, setSearchMode] = useState('class'); // 'admission', 'class'
+  const [admissionNumber, setAdmissionNumber] = useState('');
+
+  // Email states
+  const [showEmailConfig, setShowEmailConfig] = useState(false);
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [emailAddress, setEmailAddress] = useState('');
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [generatingNarrative, setGeneratingNarrative] = useState(false);
+  const [bulkNarrativeLoading, setBulkNarrativeLoading] = useState(false);
+  const [bulkNarrativeResults, setBulkNarrativeResults] = useState(null);
+
+  // WhatsApp states
+  const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
+  const [whatsAppPhone, setWhatsAppPhone] = useState('');
+  const [sendingWhatsApp, setSendingWhatsApp] = useState(false);
+
+  useEffect(() => {
+    fetchSessions();
+    fetchClasses();
+  }, []);
+
+  const fetchSessions = async () => {
+    try {
+      const res = await api.get('/api/academic-sessions');
+      const data = await res.json();
+      const sessionsArray = Array.isArray(data) ? data : [];
+      setSessions(sessionsArray);
+      if (sessionsArray.length > 0) {
+        const current = sessionsArray.find(s => s.isCurrent) || sessionsArray[0];
+        setSelectedSession(current.id);
+        fetchTerms(current.id);
+      }
+    } catch (error) {
+      console.error('Error fetching sessions:', error);
+    }
+  };
+
+  const fetchTerms = async (sessionId) => {
+    try {
+      const res = await api.get(`/api/terms?sessionId=${sessionId}`);
+      const data = await res.json();
+      const termsArray = Array.isArray(data) ? data : [];
+      setTerms(termsArray);
+      if (termsArray.length > 0) {
+        const current = termsArray.find(t => t.isCurrent) || termsArray[0];
+        setSelectedTerm(current.id);
+      }
+    } catch (error) {
+      console.error('Error fetching terms:', error);
+    }
+  };
+
+  const fetchClasses = async () => {
+    try {
+      const response = await api.get('/api/classes');
+      const data = await response.json();
+      setClasses(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Error fetching classes:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedClassId) {
+      fetchClassStudents(selectedClassId);
+    } else {
+      setClassStudents([]);
+    }
+  }, [selectedClassId]);
+
+  const fetchClassStudents = async (classId) => {
+    try {
+      const response = await api.get(`/api/students?classId=${classId}`);
+      const data = await response.json();
+      setClassStudents(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Error fetching students:', error);
+    }
+  };
+
+  const fetchReportCard = async () => {
+    if (!selectedTerm) {
+      toast.error('Please select a term');
+      return;
+    }
+
+    let targetStudentId = selectedStudentId;
+
+    if (searchMode === 'admission') {
+      if (!admissionNumber) {
+        toast.error('Please enter an admission number');
+        return;
+      }
+      try {
+        const res = await api.get(`/api/students/lookup?admissionNumber=${admissionNumber}`);
+        if (!res.ok) {
+          toast.error('Student not found');
+          return;
+        }
+        const student = await res.json();
+        targetStudentId = student.id;
+      } catch (error) {
+        toast.error('Error looking up student');
+        return;
+      }
+    }
+
+    if (!targetStudentId) {
+      toast.error('Please select a student');
+      return;
+    }
+
+    setLoading(true);
+    setReportData(null);
+    setError('');
+
+    try {
+      const response = await api.get(`/api/reports/term/${targetStudentId}/${selectedTerm}`);
+
+      let data;
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        data = await response.json();
+      }
+
+      if (!response.ok) {
+        throw new Error(data?.error || data?.message || 'Failed to fetch report card');
+      }
+
+      setReportData(data);
+    } catch (error) {
+      console.error('Error fetching report:', error);
+      setError(error.message);
+      toast.error(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const renderRatingTicks = (score) => {
+    const valNum = (score !== null && score !== undefined && !isNaN(parseFloat(score)) && parseFloat(score) > 0) ? parseFloat(score) : 3;
+    const rounded = Math.round(valNum);
+    return (
+      <>
+        {[5, 4, 3, 2, 1].map(val => (
+          <td key={val} className="border border-black text-center w-6 h-6 font-black text-black">
+            {rounded === val ? '✔' : ''}
+          </td>
+        ))}
+      </>
+    );
+  };
+
+  const [downloading, setDownloading] = useState(false);
+
+  const handleDownloadPDF = async () => {
+    setDownloading(true);
+    try {
+      const element = document.getElementById('result-sheet');
+      if (!element) { toast.error('Report not found'); return; }
+      
+      // Add temporary class to body to disable scaling and transitions during PDF rendering
+      document.body.classList.add('is-generating-pdf');
+      // Wait for layout updates
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
+      // Temporarily reset zoom/scale for accurate capture
+      const originalZoom = element.style.zoom;
+      const originalTransform = element.style.transform;
+      element.style.zoom = '1';
+      element.style.transform = 'none';
+      
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        width: 794,
+        height: 1123,
+        windowWidth: 794,
+        windowHeight: 1123,
+      });
+      
+      // Restore original zoom/scale
+      element.style.zoom = originalZoom;
+      element.style.transform = originalTransform;
+      
+      const imgData = canvas.toDataURL('image/jpeg', 0.92);
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = 210;
+      const pdfHeight = 297;
+      pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+      
+      const cleanName = (reportData?.student?.name || 'Student').replace(/[^a-zA-Z0-9]/g, '_');
+      const cleanTerm = (reportData?.term?.name || 'Term').replace(/[^a-zA-Z0-9]/g, '_');
+      const fileName = `${cleanName}_${cleanTerm}_ReportCard.pdf`;
+      
+      safeDocumentDownload(pdf, fileName);
+      toast.success('PDF downloaded successfully!');
+    } catch (err) {
+      console.error('PDF generation error:', err);
+      toast.error('PDF generation failed. Using print fallback...');
+      handlePrint();
+    } finally {
+      document.body.classList.remove('is-generating-pdf');
+      setDownloading(false);
+    }
+  };
+
+  const handlePrint = () => {
+    if (reportData?.student && reportData?.term) {
+      const oldTitle = document.title;
+      const cleanName = (reportData.student.name || 'Student').replace(/[^a-zA-Z0-9]/g, '_');
+      const cleanTerm = (reportData.term.name || 'Term').replace(/[^a-zA-Z0-9]/g, '_');
+      document.title = `${cleanName}_${cleanTerm}_ReportCard`;
+      window.print();
+      document.title = oldTitle;
+    } else {
+      window.print();
+    }
+  };
+
+  const sendEmail = async (e) => {
+    e.preventDefault();
+    if (!emailAddress) {
+      toast.error('Email address is required');
+      return;
+    }
+
+    setSendingEmail(true);
+    try {
+      const response = await api.post('/api/reports/email-report', {
+        studentId: reportData.student.id,
+        termId: selectedTerm,
+        email: emailAddress
+      });
+
+      if (response.ok) {
+        toast.success('Report card emailed successfully');
+        setShowEmailModal(false);
+      } else {
+        const data = await response.json();
+        toast.error(data.error || 'Failed to send email');
+      }
+    } catch (error) {
+      toast.error('Failed to send email');
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+
+  const sendWhatsApp = async (e) => {
+    e.preventDefault();
+    if (!whatsAppPhone) {
+      toast.error('Phone number is required');
+      return;
+    }
+
+    setSendingWhatsApp(true);
+    try {
+      const response = await api.post('/api/whatsapp/send-report', {
+        studentId: reportData.student.id,
+        termId: selectedTerm,
+        customPhone: whatsAppPhone,
+        origin: window.location.origin
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        if (data.success) {
+          toast.success(data.message || 'Report card sent successfully via WhatsApp Bot!');
+          setShowWhatsAppModal(false);
+        } else if (data.code === 'BOT_NOT_CONFIGURED') {
+          toast.success('WhatsApp bot not configured. Opening manual send URL...');
+          setShowWhatsAppModal(false);
+          // Launch wa.me manual link
+          const waUrl = `https://api.whatsapp.com/send?phone=${data.parentPhone}&text=${encodeURIComponent(data.textMessage)}`;
+          window.open(waUrl, '_blank');
+        }
+      } else {
+        toast.error(data.error || 'Failed to send WhatsApp message');
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to send WhatsApp message');
+    } finally {
+      setSendingWhatsApp(false);
+    }
+  };
+
+  const handleGenerateNarrative = async () => {
+    if (!reportData?.student?.id || !selectedTerm) return;
+
+    setGeneratingNarrative(true);
+    try {
+      const response = await api.post(`/api/reports/generate-narrative/${reportData.student.id}/${selectedTerm}`);
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success('AI Narrative generated successfully');
+        setReportData(prev => ({ ...prev, aiNarrative: data.narrative }));
+      } else {
+        toast.error(data.error || 'Failed to generate narrative');
+      }
+    } catch (error) {
+      toast.error('Connection error while generating narrative');
+    } finally {
+      setGeneratingNarrative(false);
+    }
+  };
+  const handleBulkNarrative = async () => {
+    if (!selectedClassId || !selectedTerm) {
+      toast.error('Please select a class and term first');
+      return;
+    }
+
+    if (!window.confirm('This will generate AI narratives for ALL students in this class. This may take a minute depending on class size. Continue?')) return;
+
+    setBulkNarrativeLoading(true);
+    setBulkNarrativeResults(null);
+    try {
+      const response = await api.post(`/api/reports/bulk-generate-narratives/${selectedClassId}/${selectedTerm}`);
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success(`Bulk generation complete: ${data.successful} successful, ${data.failed} failed.`);
+        setBulkNarrativeResults(data);
+      } else {
+        toast.error(data.error || 'Failed to generate narratives');
+      }
+    } catch (error) {
+      toast.error('Connection error during bulk generation');
+    } finally {
+      setBulkNarrativeLoading(false);
+    }
+  };
+
+  return (
+    <div className="p-4 md:p-8 space-y-8 bg-gray-50/50 min-h-screen">
+      <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 print:hidden space-y-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-100 pb-4">
+          <div>
+            <h1 className="text-2xl font-black text-gray-900 tracking-tight">Generate Terminal Report</h1>
+            <p className="text-gray-500 text-sm font-medium">Configure session and term to fetch student results</p>
+          </div>
+          <div className="flex bg-gray-100 p-1.5 rounded-2xl">
+            <button
+              onClick={() => setSearchMode('class')}
+              className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${searchMode === 'class' ? 'bg-white shadow-sm text-primary' : 'text-gray-500'}`}
+            >
+              Class Search
+            </button>
+            <button
+              onClick={() => setSearchMode('admission')}
+              className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${searchMode === 'admission' ? 'bg-white shadow-sm text-primary' : 'text-gray-500'}`}
+            >
+              Direct Lookup
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold text-gray-700">Academic Session</label>
+            <select
+              value={selectedSession}
+              onChange={(e) => {
+                setSelectedSession(e.target.value);
+                fetchTerms(e.target.value);
+              }}
+              className="w-full rounded-xl border-gray-200 bg-gray-50/50 p-2.5 focus:ring-primary transition-all border outline-none"
+            >
+              {sessions.map(s => <option key={s.id} value={s.id}>{s.name} {s.isCurrent ? '(Current)' : ''}</option>)}
+            </select>
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold text-gray-700">Select Term</label>
+            <select
+              value={selectedTerm}
+              onChange={(e) => setSelectedTerm(e.target.value)}
+              className="w-full rounded-xl border-gray-200 bg-gray-50/50 p-2.5 focus:ring-primary transition-all border outline-none"
+            >
+              <option value="">-- Select Term --</option>
+              {terms.map(t => <option key={t.id} value={t.id}>{t.name} {t.isCurrent ? '(Active)' : ''}</option>)}
+            </select>
+          </div>
+
+          {searchMode === 'class' ? (
+            <>
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-gray-700">Choose Class</label>
+                <select
+                  value={selectedClassId}
+                  onChange={(e) => setSelectedClassId(e.target.value)}
+                  className="w-full rounded-xl border-gray-200 bg-gray-50/50 p-2.5 focus:ring-primary transition-all border outline-none"
+                >
+                  <option value="">-- All Classes --</option>
+                  {classes.map(c => <option key={c.id} value={c.id}>{c.name} {c.arm}</option>)}
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-gray-700">Select Student</label>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <select
+                    value={selectedStudentId}
+                    onChange={(e) => setSelectedStudentId(e.target.value)}
+                    disabled={!selectedClassId}
+                    className="w-full rounded-xl border-gray-200 bg-gray-50/50 p-2.5 focus:ring-primary transition-all border disabled:opacity-50 outline-none"
+                  >
+                    <option value="">-- Choose Student --</option>
+                    {classStudents.map(s => <option key={s.id} value={s.id}>{s.user.firstName} {s.user.lastName} {s.middleName || ''} ({s.admissionNumber})</option>)}
+                  </select>
+                  <button
+                    onClick={fetchReportCard}
+                    disabled={loading || !selectedStudentId}
+                    className="bg-primary text-white px-6 py-2.5 rounded-xl font-bold shadow-lg shadow-primary/20 hover:brightness-110 disabled:opacity-50 flex items-center justify-center gap-2 whitespace-nowrap h-[46px]"
+                  >
+                    {loading ? <div className="w-5 h-5 border-2 border-white border-t-transparent animate-spin rounded-full"></div> : null}
+                    Generate
+                  </button>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="md:col-span-2 flex flex-col sm:flex-row gap-3 sm:gap-4 items-stretch sm:items-end">
+              <div className="flex-1 space-y-2">
+                <label className="block text-sm font-semibold text-gray-700">Admission Number</label>
+                <input
+                  type="text"
+                  value={admissionNumber}
+                  onChange={(e) => setAdmissionNumber(e.target.value)}
+                  placeholder="Enter admission number (e.g. 2024/001)"
+                  className="w-full rounded-xl border-gray-200 bg-gray-50/50 p-2.5 focus:ring-primary transition-all border outline-none"
+                />
+              </div>
+              <button
+                onClick={fetchReportCard}
+                disabled={loading || !admissionNumber}
+                className="bg-primary text-white px-8 py-2.5 rounded-xl font-bold shadow-lg shadow-primary/20 hover:brightness-110 disabled:opacity-50 h-[46px]"
+              >
+                Lookup Result
+              </button>
+            </div>
+          )}
+        </div>
+
+        {selectedClassId && searchMode === 'class' && (
+          <div className="pt-4 border-t border-gray-100 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600">
+                <span className="text-lg">✨</span>
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-gray-900">AI Narrative Suite</h4>
+                <p className="text-[10px] text-gray-500 font-medium whitespace-nowrap">Automate comments for the entire class of {classStudents.length} students</p>
+              </div>
+            </div>
+            
+            <button
+              onClick={handleBulkNarrative}
+              disabled={bulkNarrativeLoading || classStudents.length === 0}
+              className="w-full md:w-auto bg-emerald-600 text-white px-6 py-2.5 rounded-xl font-bold text-sm shadow-lg shadow-emerald-100 hover:bg-emerald-700 disabled:opacity-50 flex items-center justify-center gap-2 transition-all"
+            >
+              {bulkNarrativeLoading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent animate-spin rounded-full"></div>
+                  Generating Archives...
+                </>
+              ) : (
+                <>
+                  <span>🪄</span>
+                  Bulk Generate Narratives
+                </>
+              )}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {reportData && (
+        <div className="space-y-4 md:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-[210mm] mx-auto pb-4 md:pb-10">
+          <div className="flex justify-end gap-3 print:hidden">
+            <button
+              onClick={() => {
+                setEmailAddress(reportData?.student?.parentEmail || '');
+                setShowEmailModal(true);
+              }}
+              className="bg-white border text-gray-700 px-6 py-2.5 rounded-xl font-semibold shadow-sm hover:bg-gray-50 flex items-center gap-2 transition-all"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+              Email to Parent
+            </button>
+            <button
+              onClick={() => {
+                setWhatsAppPhone(reportData?.student?.parentPhone || '');
+                setShowWhatsAppModal(true);
+              }}
+              className="bg-[#25D366] text-white px-6 py-2.5 rounded-xl font-bold shadow-lg shadow-green-600/20 hover:bg-[#20ba5a] flex items-center gap-2 transition-all transform hover:-translate-y-0.5"
+            >
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.733-1.455L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.413 9.863-9.847.002-2.632-1.02-5.107-2.875-6.963C16.595 1.989 14.128 1.01 11.5 1.01c-5.448 0-9.882 4.414-9.885 9.851-.001 1.761.47 3.487 1.365 5.011l-.99 3.618 3.733-.979zm11.585-6.38c-.328-.164-1.942-.959-2.242-1.069-.3-.11-.518-.164-.736.164-.218.327-.847 1.069-1.038 1.287-.19.219-.382.245-.71.082-.328-.164-1.386-.511-2.64-1.63-1.053-.94-1.763-2.1-1.97-2.455-.207-.354-.022-.547.142-.71.147-.146.328-.382.492-.573.164-.19.218-.328.328-.546.11-.219.055-.41-.028-.573-.082-.164-.736-1.775-1.01-2.429-.267-.642-.56-.554-.736-.563-.17-.008-.367-.01-.563-.01-.196 0-.518.073-.79.364-.272.291-1.037 1.01-1.037 2.463 0 1.452 1.055 2.858 1.202 3.056.147.199 2.074 3.167 5.025 4.444.702.304 1.25.485 1.678.62.705.224 1.347.193 1.854.117.565-.084 1.942-.793 2.214-1.527.272-.735.272-1.363.19-1.5-.082-.137-.3-.219-.628-.383z"/>
+              </svg>
+              WhatsApp to Parent
+            </button>
+            <button
+              onClick={handlePrint}
+              className="bg-emerald-600 text-white px-8 py-2.5 rounded-xl font-bold shadow-lg shadow-emerald-600/20 hover:bg-emerald-700 flex items-center gap-2 transition-all transform hover:-translate-y-0.5"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+              </svg>
+              Print / Save as PDF
+            </button>
+          </div>
+
+          {(() => {
+            const reportColor = schoolSettings?.reportColorScheme || schoolSettings?.primaryColor;
+            const reportFont = schoolSettings?.reportFontFamily || 'serif';
+            const showPosition = schoolSettings?.showPositionOnReport !== false;
+            const showFees = schoolSettings?.showFeesOnReport !== false;
+            const showAttendance = schoolSettings?.showAttendanceOnReport !== false;
+            const layout = schoolSettings?.reportLayout || 'classic';
+            const borderStyle = layout === 'minimal' ? 'border-[2px] border-gray-400' : layout === 'modern' ? 'border-[6px] rounded-2xl' : 'border-[12px]';
+            return (
+          <div className="report-card-wrapper overflow-hidden md:overflow-visible pb-0 md:pb-4">
+            <div id="result-sheet" className={`relative bg-white p-8 print:p-0 shadow-2xl print:shadow-none text-black ${borderStyle} emerald-print-A4 mx-auto w-[210mm] min-w-[210mm] md:min-w-0`} style={{ fontFamily: reportFont, borderColor: layout !== 'minimal' ? reportColor : undefined }}>
+            {/* PROTECTION WATERMARK */}
+            <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-[0.06] select-none rotate-12 overflow-hidden">
+              <div className="text-[100px] font-black uppercase text-gray-900 leading-[0.8] text-center">
+                {schoolSettings?.schoolName || 'OFFICIAL RESULT'}<br />
+                {schoolSettings?.schoolName || 'OFFICIAL RESULT'}<br />
+                {schoolSettings?.schoolName || 'OFFICIAL RESULT'}<br />
+                {schoolSettings?.schoolName || 'OFFICIAL RESULT'}
+              </div>
+            </div>
+
+            <div className="relative z-10 space-y-3 print:space-y-2">
+              {/* HEAD SECTION */}
+              <div className="flex justify-between items-start gap-4">
+                <div className="w-24 h-24 flex-shrink-0">
+                  {schoolSettings?.logoUrl ? (
+                    <img
+                      src={schoolSettings.logoUrl.startsWith('data:') || schoolSettings.logoUrl.startsWith('http') ? schoolSettings.logoUrl : `${API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL}${schoolSettings.logoUrl.startsWith('/') ? schoolSettings.logoUrl : '/' + schoolSettings.logoUrl}`}
+                      alt="Logo"
+                      className="w-full h-full object-contain object-left"
+                    />
+                  ) : (
+                    <div className="w-24 h-24 rounded-full border-4 flex items-center justify-center font-black text-3xl shadow-sm tracking-tighter" style={{ borderColor: reportColor || '#0f766e', color: reportColor || '#0f766e', backgroundColor: `${reportColor || '#0f766e'}10` }}>
+                       {(schoolSettings?.schoolName || 'SCH').split(' ').slice(0,3).map(n => n[0]).join('').toUpperCase()}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex-1 text-center">
+                  <h1 className="text-2xl font-extrabold uppercase tracking-wider leading-tight" style={{ color: '#000000' }}>
+                    {schoolSettings?.schoolName || 'SCHOOL NAME'}
+                  </h1>
+                  <p className="text-sm font-bold italic text-gray-700">{schoolSettings?.schoolMotto || 'Excellence and Dedication'}</p>
+                  <p className="text-xs font-bold">{schoolSettings?.address || 'School Address Location'}, TEL: {schoolSettings?.phone || '000000'}, Email: {schoolSettings?.email || 'email@school.com'}</p>
+
+                  <div className="mt-4 border-b-2 inline-block px-4 pb-1" style={{ borderColor: reportColor }}>
+                    <h2 className="text-lg font-bold uppercase tracking-wide">
+                      {reportData.term?.name?.toUpperCase()} PERFORMANCE REPORT
+                    </h2>
+                  </div>
+                </div>
+
+                <div className="w-24 h-28 border-2 border-black bg-gray-50 flex-shrink-0 relative overflow-hidden">
+                  {(() => {
+                    const photo = reportData.student?.user?.photoUrl || reportData.student?.photoUrl;
+                    return photo ? (
+                      <img src={photo.startsWith('data:') || photo.startsWith('http') ? photo : `${API_BASE_URL}${photo}`} alt="Student" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-[10px] text-center p-1 font-bold text-gray-300">PHOTO</div>
+                    );
+                  })()}
+                </div>
+              </div>
+
+              {/* STUDENT INFO TABLE */}
+              <table className="w-full border-2 border-black border-collapse text-xs font-bold uppercase">
+                <tbody>
+                  <tr className="border-b border-black">
+                    <td className="border-r border-black p-0.5 w-1/6">NAME:</td>
+                    <td className="border-r border-black p-0.5 w-2/3 text-emerald-800 font-black" style={{ color: reportColor }}>{reportData.student?.name}</td>
+                    <td className="border-r border-black p-0.5 w-1/6">GENDER:</td>
+                    <td className="p-0.5">{reportData.student?.gender}</td>
+                  </tr>
+                  <tr className="border-b border-black">
+                    <td className="border-r border-black p-0.5">CLASS:</td>
+                    <td className="border-r border-black p-0.5">{reportData.student?.class}</td>
+                    <td className="border-r border-black p-0.5">SESSION:</td>
+                    <td className="p-0.5">{reportData.term?.session}</td>
+                  </tr>
+                  <tr className="border-b border-black">
+                    <td className="border-r border-black p-0.5">ADM NO:</td>
+                    <td className="border-r border-black p-0.5">{reportData.student?.admissionNumber}</td>
+                    <td className="border-r border-black p-0.5">D.O.B:</td>
+                    <td className="p-0.5">{reportData.student?.dateOfBirth ? formatDateVerbose(reportData.student.dateOfBirth) : 'N/A'}</td>
+                  </tr>
+                  <tr className="border-b border-black">
+                    <td className="border-r border-black p-0.5">AGE:</td>
+                    <td className="border-r border-black p-0.5">{reportData.student?.age || '-'}</td>
+                    <td className="border-r border-black p-0.5">CLUB:</td>
+                    <td className="p-0.5">{reportData.student?.clubs !== 'None Assigned' ? reportData.student?.clubs : 'N/A'}</td>
+                  </tr>
+                  {showAttendance && (
+                  <tr>
+                    <td className="border-r border-black p-0.5">ATTENDANCE:</td>
+                    <td className="border-r border-black p-0.5 text-emerald-700 font-bold" style={{ color: reportColor }}>{reportData.attendance?.present} / {reportData.attendance?.total} DAYS ({reportData.attendance?.percentage}%)</td>
+                    <td className="border-r border-black p-0.5">TERM:</td>
+                    <td className="p-0.5">{reportData.term?.name}</td>
+                  </tr>
+                  )}
+                  {!showAttendance && (
+                  <tr>
+                    <td className="border-r border-black p-0.5">TERM:</td>
+                    <td className="p-0.5" colSpan="3">{reportData.term?.name}</td>
+                  </tr>
+                  )}
+                </tbody>
+              </table>
+
+              {/* ACADEMIC SECTION */}
+              <div className="grid grid-cols-[68%_31%] gap-2 items-stretch">
+                {/* LEFT: COGNITIVE */}
+                <div className="space-y-0 text-[10px] md:text-sm h-full flex flex-col">
+                  <div className="bg-black text-white text-center font-bold py-1 text-sm border-2 border-b-0 border-black" style={{ backgroundColor: '#000000' }}>
+                    COGNITIVE DOMAIN PERFORMANCE
+                  </div>
+                  {(() => {
+                    const wA1 = reportData.term?.weights?.assignment1 !== undefined && reportData.term?.weights?.assignment1 !== null ? Number(reportData.term.weights.assignment1) : 5;
+                    const wA2 = reportData.term?.weights?.assignment2 !== undefined && reportData.term?.weights?.assignment2 !== null ? Number(reportData.term.weights.assignment2) : 5;
+                    const wT1 = reportData.term?.weights?.test1 !== undefined && reportData.term?.weights?.test1 !== null ? Number(reportData.term.weights.test1) : 10;
+                    const wT2 = reportData.term?.weights?.test2 !== undefined && reportData.term?.weights?.test2 !== null ? Number(reportData.term.weights.test2) : 10;
+                    const wEx = reportData.term?.weights?.exam !== undefined && reportData.term?.weights?.exam !== null ? Number(reportData.term.weights.exam) : 70;
+                    const subs = reportData.subjects || [];
+
+                    return (
+                      <table className="w-full border-2 border-black border-collapse">
+                        <thead>
+                          <tr className="bg-gray-100 uppercase text-[8px] font-bold">
+                            <th className="border border-black px-2 py-1 text-left">Subject</th>
+                            {wA1 > 0 && <th className="border border-black px-1 py-1 text-center w-6">1CA<br />{wA1}</th>}
+                            {wA2 > 0 && <th className="border border-black px-1 py-1 text-center w-6">2CA<br />{wA2}</th>}
+                            {wT1 > 0 && <th className="border border-black px-1 py-1 text-center w-6">1TS<br />{wT1}</th>}
+                            {wT2 > 0 && <th className="border border-black px-1 py-1 text-center w-6">2TS<br />{wT2}</th>}
+                            {wEx > 0 && <th className="border border-black px-1 py-1 text-center w-8">EXM<br />{wEx}</th>}
+                            <th className="border border-black px-1 py-1 text-center w-8 font-black">TOT<br />100</th>
+                            <th className="border border-black px-1 py-1 text-center w-6">GRD</th>
+                            {showPosition && <th className="border border-black px-1 py-1 text-center w-6">POS</th>}
+                            <th className="border border-black px-2 py-1 text-left italic text-[8px]">Remark</th>
+                          </tr>
+                        </thead>
+                        <tbody className="text-[10px] uppercase font-bold">
+                          {subs.map((sub, i) => (
+                            <tr key={i} className="h-6">
+                              <td className="border border-black px-2 font-black leading-tight">{sub.isEmpty ? '' : (sub.name || '')}</td>
+                              {wA1 > 0 && <td className="border border-black text-center">{sub.isEmpty ? '' : (sub.assignment1 !== null && sub.assignment1 !== undefined ? sub.assignment1 : '')}</td>}
+                              {wA2 > 0 && <td className="border border-black text-center">{sub.isEmpty ? '' : (sub.assignment2 !== null && sub.assignment2 !== undefined ? sub.assignment2 : '')}</td>}
+                              {wT1 > 0 && <td className="border border-black text-center">{sub.isEmpty ? '' : (sub.test1 !== null && sub.test1 !== undefined ? sub.test1 : '')}</td>}
+                              {wT2 > 0 && <td className="border border-black text-center">{sub.isEmpty ? '' : (sub.test2 !== null && sub.test2 !== undefined ? sub.test2 : '')}</td>}
+                              {wEx > 0 && <td className="border border-black text-center">{sub.isEmpty ? '' : (sub.exam !== null && sub.exam !== undefined ? sub.exam : '')}</td>}
+                              <td className="border border-black text-center bg-gray-50 font-black">{sub.isEmpty ? '' : (sub.total !== null && sub.total !== undefined ? sub.total.toFixed(0) : '')}</td>
+                              <td className="border border-black text-center font-black">{sub.isEmpty ? '' : (sub.grade || '')}</td>
+                              {showPosition && <td className="border border-black text-center">{sub.isEmpty ? '' : (sub.position || '')}</td>}
+                              <td className="border border-black px-2 italic text-[8px] leading-tight font-medium">{sub.isEmpty ? '' : (sub.remark || '')}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    );
+                  })()}
+                </div>
+
+                {/* RIGHT: DOMAINS */}
+                <div className="flex flex-col h-full gap-2">
+                  <div className="flex-1 flex flex-col min-h-0">
+                    <table className="w-full border-2 border-black border-collapse text-[10px] flex-1">
+                      <thead className="bg-gray-200 uppercase font-bold sticky top-0">
+                        <tr>
+                          <th className="border-b border-r border-black text-left px-1 py-0.5">BEHAVIORAL DOMAINS</th>
+                          <th className="border-b border-black w-5">5</th>
+                          <th className="border-b border-black w-5">4</th>
+                          <th className="border-b border-black w-5">3</th>
+                          <th className="border-b border-black w-5">2</th>
+                          <th className="border-b border-black w-5">1</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(reportData.psychomotorRatings || []).map((item, i) => (
+                          <tr key={i} className="h-5">
+                            <td className="border border-black px-1 truncate font-bold uppercase">{item.name}</td>
+                            {renderRatingTicks(item.score)}
+                          </tr>
+                        ))}
+                        {Array.from({ length: Math.max(0, 9 - (reportData.psychomotorRatings?.length || 0)) }).map((_, i) => (
+                          <tr key={`empty-${i}`} className="h-5">
+                            <td className="border border-black px-1 font-bold text-gray-200 italic">-</td>
+                            <td className="border border-black"></td><td className="border border-black"></td><td className="border border-black"></td><td className="border border-black"></td><td className="border border-black"></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              {/* SUMMARY & GRADING KEY */}
+              <div className="grid grid-cols-[68%_31%] gap-2 mt-1">
+                <div className="grid grid-cols-2 gap-0 border-2 border-black rounded-lg overflow-hidden divide-x-2 divide-black">
+                  {/* DYNAMIC GRADE INFO */}
+                  <div className="p-2 text-[9px] bg-gray-50/50 leading-tight flex flex-col justify-center">
+                    <p className="font-black border-b border-black mb-1 uppercase text-gray-500 text-[8px]">Grading Legend</p>
+                    <div className="grid grid-cols-2 gap-x-2 font-bold">
+                      {(() => {
+                        try {
+                          const scales = JSON.parse(schoolSettings?.gradingSystem || '[]');
+                          return scales.sort((a, b) => b.min - a.min).map(s => (
+                            <span key={s.grade} className={s.grade === 'F' ? 'text-red-600' : ''}>{s.grade}: {s.min}-{s.max || 100}</span>
+                          ));
+                        } catch (e) {
+                          return <span>Legend could not be loaded</span>;
+                        }
+                      })()}
+                    </div>
+                    <p className="mt-1 border-t border-black/10 pt-1 text-[8px] italic">5: Exceptional, 4: Commendable, 3: Satisfactory, 2: Fair, 1: Poor</p>
+                  </div>
+
+                  <div className="flex flex-col">
+                    <div className="bg-emerald-800 text-white text-center py-0.5 text-[9px] font-bold uppercase tracking-widest" style={{ backgroundColor: reportColor }}>Performance Summary</div>
+                    <div className="bg-gray-50 flex-1 grid grid-cols-2 divide-x divide-black/10 items-center">
+                      <div className="text-center p-1">
+                        <p className="text-[7px] text-gray-400 uppercase font-black">Average</p>
+                        <p className="text-sm font-black italic">{reportData.termAverage ? `${reportData.termAverage.toFixed(1)}%` : '-'}</p>
+                      </div>
+                      {showPosition && (
+                      <div className="text-center p-1">
+                        <p className="text-[7px] text-gray-400 uppercase font-black">Position</p>
+                        <p className="text-sm font-black italic">{reportData.termPosition} / {reportData.totalStudents}</p>
+                      </div>
+                      )}
+                    </div>
+
+                    {/* PASS/FAIL SUMMARY SECTION */}
+                    {reportData.passFailSummary?.show && (
+                      <div className="border-t border-black grid grid-cols-2 divide-x divide-black/10 bg-white items-center h-8">
+                         <div className="flex items-center justify-between px-2 h-full">
+                            <span className="text-[7px] font-black text-gray-400 uppercase">Passed</span>
+                            <span className="text-[10px] font-black text-emerald-700">{reportData.passFailSummary.totalPassed}</span>
+                         </div>
+                         <div className="flex items-center justify-between px-2 h-full">
+                            <span className="text-[7px] font-black text-gray-400 uppercase">Failed</span>
+                            <span className="text-[10px] font-black text-red-600">{reportData.passFailSummary.totalFailed}</span>
+                         </div>
+                      </div>
+                    )}
+
+                    <div className="border-t border-black p-1 flex justify-between items-center bg-gray-100 px-3">
+                      <span className="text-[8px] font-black text-gray-500 uppercase">Grade:</span>
+                      <span className="text-lg font-black" style={{ color: reportColor }}>{reportData.overallGrade || 'F'}</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex flex-col items-center justify-center border-2 border-black rounded-lg bg-gray-50/50 font-mono text-[7px] uppercase tracking-[0.3em] text-gray-700 relative overflow-hidden">
+                  <div className="absolute inset-0 flex items-center justify-center opacity-10">
+                    <svg width="60" height="60" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+                    </svg>
+                  </div>
+                  <span className="z-10 bg-white px-2 font-black">Official Result Certification</span>
+                  <div className="absolute inset-x-0 h-[1px] bg-gray-200"></div>
+                </div>
+              </div>
+
+              {/* FINANCIAL STANDING SECTION */}
+              {showFees && reportData.feeSummary && (
+                <div className="border-2 border-black bg-emerald-50/30 rounded-lg overflow-hidden mt-2" style={{ backgroundColor: `${reportColor}05` }}>
+                  <div className="bg-emerald-800 text-white text-[10px] font-bold text-center py-0.5 uppercase tracking-widest" style={{ backgroundColor: reportColor }}>
+                    Financial Standing & Fee Status
+                  </div>
+                  <div className="p-3 grid grid-cols-4 gap-4 text-center divide-x divide-black/10">
+                    <div className="space-y-1">
+                      <p className="text-[8px] font-black text-gray-500 uppercase">Arrears (Opening)</p>
+                      <p className={`text-sm font-black ${reportData.feeSummary.openingBalance > 0 ? 'text-red-600' : 'text-gray-900'}`}>
+                        ₦{reportData.feeSummary.openingBalance?.toLocaleString() || '0'}
+                      </p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[8px] font-black text-gray-500 uppercase">Current Term Fee</p>
+                      <p className="text-sm font-black text-gray-900">
+                        ₦{reportData.feeSummary.currentTermFee?.toLocaleString() || '0'}
+                      </p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[8px] font-black text-gray-500 uppercase">Total Paid</p>
+                      <p className="text-sm font-black text-emerald-700">
+                        ₦{reportData.feeSummary.totalPaid?.toLocaleString() || '0'}
+                      </p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[8px] font-black text-gray-500 uppercase">Outstanding Balance</p>
+                      <p className={`text-lg font-black leading-none ${reportData.feeSummary.grandTotal > 0 ? 'text-red-700' : 'text-emerald-700'}`}>
+                        ₦{reportData.feeSummary.grandTotal?.toLocaleString() || '0'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="px-3 pb-2 text-[8px] text-center italic text-gray-500 border-t border-black/5 pt-1">
+                    Note: Full payment of all outstanding balances is required for continued access to student portal and future term results.
+                  </div>
+                </div>
+              )}
+
+              {/* REMARKS SECTION */}
+              {/* AI PERFORMANCE NARRATIVE */}
+              {(reportData.aiNarrative || (!reportData.isPublished && (schoolSettings?.packageType === 'premium' || schoolSettings?.packageType === 'standard'))) && (
+                <div className="mt-2 border-2 border-emerald-800 bg-emerald-50/20 rounded-lg overflow-hidden relative" style={{ borderColor: schoolSettings?.primaryColor }}>
+                  <div className="bg-emerald-800 text-white text-[10px] font-bold py-1 px-4 flex justify-between items-center uppercase tracking-widest" style={{ backgroundColor: schoolSettings?.primaryColor }}>
+                    <span>Personalized Academic Performance Narrative</span>
+                    <span className="bg-white/20 px-2 rounded text-[8px]">AI POWERED</span>
+                  </div>
+                  <div className="p-4 relative">
+                    {reportData.aiNarrative ? (
+                      <div className="space-y-3">
+                        <p className="text-xs font-medium italic leading-relaxed text-gray-800">
+                          {reportData.aiNarrative}
+                        </p>
+                        <div className="flex justify-end print:hidden">
+                           <button 
+                            onClick={handleGenerateNarrative}
+                            disabled={generatingNarrative}
+                            className="text-[10px] font-bold text-emerald-700 hover:text-emerald-900 flex items-center gap-1 bg-emerald-100 px-2 py-1 rounded transition-all"
+                           >
+                            {generatingNarrative ? 'Regenerating...' : '🔄 Regenerate Narrative'}
+                           </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center py-2 print:hidden">
+                        <button
+                          onClick={handleGenerateNarrative}
+                          disabled={generatingNarrative}
+                          className="bg-emerald-800 text-white px-6 py-2 rounded-xl text-xs font-bold shadow-lg shadow-emerald-200 hover:brightness-110 flex items-center gap-2 mx-auto transition-all"
+                          style={{ backgroundColor: schoolSettings?.primaryColor }}
+                        >
+                          {generatingNarrative ? (
+                            <div className="w-3 h-3 border-2 border-white border-t-transparent animate-spin rounded-full"></div>
+                          ) : '✨ Generate AI Performance Summary'}
+                        </button>
+                        <p className="text-[9px] text-gray-400 mt-2 italic">Based on term results, attendance, and psychomotor skills.</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div className="border-2 border-black bg-white rounded-lg overflow-hidden mt-2">
+                <div className="grid grid-cols-2 divide-x-2 divide-black">
+                  <div className="p-2 space-y-1">
+                    <p className="text-[10px] font-black uppercase text-gray-500">Form Master's Remark</p>
+                    <p className="text-xs font-medium italic leading-snug min-h-[40px] flex items-center">
+                      "{reportData.formMasterRemark || 'No specific remark recorded.'}"
+                    </p>
+                    <div className="pt-1 border-t border-black/10 flex justify-between items-center">
+                      <span className="text-[9px] font-bold">Name: {reportData.student?.formMaster || '......................'}</span>
+                      <div className="flex items-center gap-1">
+                        <svg className="w-4 h-4 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                        <span className="text-[7px] font-mono text-gray-400">VERIFIED</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="p-2 space-y-1">
+                    <p className="text-[10px] font-black uppercase text-gray-500">Principal's Remark</p>
+                    <p className="text-xs font-medium italic leading-snug min-h-[40px] flex items-center">
+                      "{reportData.principalRemark || 'Satisfactory result. Keep striving for excellence.'}"
+                    </p>
+                    <div className="pt-1 border-t border-black/10 flex justify-between items-center text-[9px] font-bold">
+                      <div>
+                        <span className="mr-1">Term Ends:</span>
+                        <span className="underline font-black">{reportData.term?.endDate ? formatDateVerbose(reportData.term.endDate) : '....................'}</span>
+                      </div>
+                      <div>
+                        <span className="mr-1">Next Term Begins:</span>
+                        <span className="underline font-black">{reportData.term?.nextTermBegins ? formatDateVerbose(reportData.term.nextTermBegins) : '....................'}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* SIGNATURES & VERIFICATION */}
+              <div className="mt-2 grid grid-cols-3 gap-8 items-end print:mt-1">
+                <div className="space-y-2">
+                  <div className="w-full h-8 bg-white border-b border-gray-300 flex items-end gap-[0.5px] opacity-20 grayscale">
+                    {[...Array(60)].map((_, i) => (
+                      <div key={i} className="bg-black" style={{ height: (i % 8 === 0 ? '100%' : '80%'), width: (i % 5 === 0 ? '2px' : '1px') }}></div>
+                    ))}
+                  </div>
+                  <p className="text-[7px] font-mono font-bold uppercase tracking-[0.2em] text-gray-400">
+                    Verification ID: {reportData.student?.admissionNumber?.toString().replace('/', '-')}-{reportData.term?.id?.toString().slice(-4)}
+                  </p>
+                </div>
+
+                <div className="text-center flex flex-col items-center">
+                  <div className="h-[45px] flex items-end justify-center mb-1">
+                    {reportData.student?.formMasterSignatureUrl ? (
+                      <img src={reportData.student.formMasterSignatureUrl.startsWith('data:') || reportData.student.formMasterSignatureUrl.startsWith('http') ? reportData.student.formMasterSignatureUrl : `${API_BASE_URL}${reportData.student.formMasterSignatureUrl}`} alt="Teacher Signature" className="h-[40px] w-auto mix-blend-multiply" />
+                    ) : (
+                      <div className="text-3xl font-signature text-gray-800 tracking-wider mix-blend-multiply pt-2 transform -rotate-2">{reportData.student?.formMaster || 'Verified'}</div>
+                    )}
+                  </div>
+                  <div className="border-b-2 border-black w-full mb-1 opacity-80"></div>
+                  <p className="text-[10px] font-black uppercase">Teacher's Signature</p>
+                  <p className="text-[8px] text-gray-400 uppercase mt-0.5">{reportData.student?.formMasterSignatureUrl ? 'Digitally Signed' : 'Automated Seal'}</p>
+                </div>
+
+                <div className="text-center flex flex-col items-center">
+                  <div className="h-[45px] flex items-end justify-center mb-1">
+                    {reportData.term?.principalSignatureUrl ? (
+                      <img src={reportData.term.principalSignatureUrl.startsWith('data:') || reportData.term.principalSignatureUrl.startsWith('http') ? reportData.term.principalSignatureUrl : `${API_BASE_URL}${reportData.term.principalSignatureUrl}`} alt="Principal Signature" className="h-[40px] w-auto mix-blend-multiply" />
+                    ) : (
+                      <div className="text-[32px] font-signature tracking-wider mix-blend-multiply pt-2 transform -rotate-3" style={{ color: schoolSettings?.primaryColor || '#065f46' }}>{schoolSettings?.principalName || 'Principal'}</div>
+                    )}
+                  </div>
+                  <div className="border-b-2 w-full mb-1" style={{ borderColor: schoolSettings?.primaryColor || '#065f46' }}></div>
+                  <p className="text-[10px] font-black uppercase" style={{ color: schoolSettings?.primaryColor || '#065f46' }}>Principal's Signature</p>
+                  <p className="text-[8px] text-gray-400 uppercase mt-0.5">{reportData.term?.principalSignatureUrl ? 'Digitally Signed' : 'Automated Seal'}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+            );
+          })()}
+      </div>
+      )}
+
+
+
+
+      {showWhatsAppModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 print:hidden animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-2">
+                <svg className="w-6 h-6 text-[#25D366]" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.733-1.455L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.413 9.863-9.847.002-2.632-1.02-5.107-2.875-6.963C16.595 1.989 14.128 1.01 11.5 1.01c-5.448 0-9.882 4.414-9.885 9.851-.001 1.761.47 3.487 1.365 5.011l-.99 3.618 3.733-.979zm11.585-6.38c-.328-.164-1.942-.959-2.242-1.069-.3-.11-.518-.164-.736.164-.218.327-.847 1.069-1.038 1.287-.19.219-.382.245-.71.082-.328-.164-1.386-.511-2.64-1.63-1.053-.94-1.763-2.1-1.97-2.455-.207-.354-.022-.547.142-.71.147-.146.328-.382.492-.573.164-.19.218-.328.328-.546.11-.219.055-.41-.028-.573-.082-.164-.736-1.775-1.01-2.429-.267-.642-.56-.554-.736-.563-.17-.008-.367-.01-.563-.01-.196 0-.518.073-.79.364-.272.291-1.037 1.01-1.037 2.463 0 1.452 1.055 2.858 1.202 3.056.147.199 2.074 3.167 5.025 4.444.702.304 1.25.485 1.678.62.705.224 1.347.193 1.854.117.565-.084 1.942-.793 2.214-1.527.272-.735.272-1.363.19-1.5-.082-.137-.3-.219-.628-.383z"/>
+                </svg>
+                WhatsApp to Parent
+              </h3>
+              <button onClick={() => setShowWhatsAppModal(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <form onSubmit={sendWhatsApp} className="space-y-6">
+              <div className="space-y-2">
+                <label className="block text-sm font-bold text-gray-700">Recipient Phone Number</label>
+                <input
+                  type="text"
+                  placeholder="e.g. 08031234567 or 2348031234567"
+                  value={whatsAppPhone}
+                  onChange={(e) => setWhatsAppPhone(e.target.value)}
+                  className="w-full border border-gray-300 rounded-xl px-4 py-3 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium transition-all"
+                  required
+                />
+                <p className="text-xs text-gray-500">
+                  Enter the parent's WhatsApp number. If the school WhatsApp bot is enabled and configured, it will send automatically. Otherwise, it will launch manual send via WhatsApp Web/app.
+                </p>
+              </div>
+              <div className="flex gap-3 justify-end pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowWhatsAppModal(false)}
+                  className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl transition-all text-sm"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={sendingWhatsApp}
+                  className="px-6 py-2.5 bg-[#25D366] hover:bg-[#20ba5a] text-white font-bold rounded-xl transition-all shadow-md text-sm flex items-center gap-2 disabled:opacity-50"
+                >
+                  {sendingWhatsApp ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent animate-spin rounded-full"></div>
+                      Sending...
+                    </>
+                  ) : (
+                    'Send Report'
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showEmailModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 print:hidden">
+          <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-2xl font-black text-gray-900 tracking-tight">Email Report Card</h3>
+              <button onClick={() => setShowEmailModal(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <form onSubmit={sendEmail} className="space-y-6">
+              <div className="space-y-2">
+                <label className="block text-sm font-bold text-gray-700">Recipient Email</label>
+                <input
+                  type="email"
+                  value={emailAddress}
+                  onChange={(e) => setEmailAddress(e.target.value)}
+                  placeholder="parent@example.com"
+                  className="w-full rounded-2xl border-gray-200 bg-gray-50/50 p-4 focus:ring-primary transition-all border outline-none font-medium"
+                  required
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={sendingEmail}
+                className="w-full bg-primary text-white py-4 rounded-2xl font-black shadow-lg shadow-primary/25 hover:brightness-110 disabled:opacity-50 transition-all flex items-center justify-center gap-3"
+              >
+                {sendingEmail ? 'Sending...' : 'Send Report'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        @media print {
+          @page { 
+            size: A4; 
+            margin: 0; 
+          }
+          body { background: white !important; margin: 0; padding: 0; }
+          .min-h-screen { background: white !important; padding: 0 !important; }
+          .max-w-[210mm] { max-width: 100% !important; margin: 0 !important; width: 100% !important; }
+          
+          .emerald-border-A4 {
+            width: 210mm !important;
+            height: 297mm !important;
+            max-height: 297mm !important;
+            overflow: hidden !important;
+            margin: 0 auto !important;
+            padding: 8mm !important;
+            box-sizing: border-box !important;
+            page-break-after: always !important;
+            break-after: page !important;
+            border: 6px solid #065f46 !important; 
+            -webkit-print-color-adjust: exact; 
+          }
+          
+          table { border-collapse: collapse !important; width: 100% !important; }
+          td, th { border: 1px solid black !important; padding: 2px !important; }
+          * { box-sizing: border-box !important; }
+          .bg-emerald-800 { background-color: #065f46 !important; -webkit-print-color-adjust: exact; }
+          .bg-gray-200 { background-color: #e5e7eb !important; -webkit-print-color-adjust: exact; }
+          .bg-gray-300 { background-color: #d1d5db !important; -webkit-print-color-adjust: exact; }
+          .bg-gray-100 { background-color: #f3f4f6 !important; -webkit-print-color-adjust: exact; }
+          .bg-gray-50 { background-color: #f9fafb !important; -webkit-print-color-adjust: exact; }
+        }
+        * { box-sizing: border-box !important; }
+
+        @media screen and (max-width: 794px) {
+          .report-card-wrapper {
+            margin: 0 -1rem;
+            padding: 0 1rem;
+            height: auto !important;
+            overflow: visible !important;
+          }
+          #result-sheet {
+            transform: scale(0.45);
+            transform-origin: top left;
+            margin-bottom: calc((0.45 - 1) * 297mm) !important;
+          }
+        }
+
+        /* Disable scale, transitions, and animations when generating PDF to prevent scaled-down screenshotting */
+        body.is-generating-pdf * {
+          transition: none !important;
+          animation: none !important;
+        }
+        body.is-generating-pdf #result-sheet {
+          transform: none !important;
+          margin-bottom: 0 !important;
+        }
+        body.is-generating-pdf .report-card-wrapper {
+          margin: 0 !important;
+          padding: 0 !important;
+          overflow: visible !important;
+        }
+      `}</style>
+    </div>
+  );
+};
+
+
+export default ReportCard;
+

@@ -632,16 +632,137 @@ router.put('/:id', authenticate, authorize(['admin', 'sub_admin', 'principal', '
   }
 });
 
-// Delete user (Admin/Principal only) - Hard Delete
+// Check user dependencies before deletion (Admin/Principal only)
+router.get('/:id/dependencies', authenticate, authorize(['admin', 'sub_admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin']), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = parseInt(id);
+    const schoolId = parseInt(req.schoolId);
+
+    const user = await prisma.user.findFirst({
+      where: { id: userId, schoolId },
+      include: { teacher: true, student: true, Parent: true }
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const dependencies = {};
+    let totalDependencies = 0;
+
+    if (user.role === 'teacher' || user.teacher) {
+      const teacherId = user.teacher?.id;
+
+      // Count all teacher-related dependencies
+      const [
+        assignments, classTeacherRoles, lessonPlans, lessonNotes,
+        examRepos, cbtExams, cbtQuestionBanks, quranRecords,
+        homework, learningResources, staffAttendance, payrollRecords,
+        leaveRequests, loanRequests, materialRequests, hrMessages,
+        departmentResources, feePayments, certificatesIssued, testimonialsIssued
+      ] = await Promise.all([
+        prisma.teacherAssignment.count({ where: { teacherId: userId, schoolId } }),
+        prisma.class.count({ where: { classTeacherId: userId, schoolId } }),
+        prisma.lessonPlan.count({ where: { teacherId: userId, schoolId } }),
+        prisma.lessonNote.count({ where: { teacherId: userId, schoolId } }),
+        prisma.examRepository.count({ where: { teacherId: userId, schoolId } }),
+        prisma.cBTExam.count({ where: { teacherId: userId, schoolId } }),
+        prisma.cBTQuestionBank.count({ where: { teacherId: userId, schoolId } }),
+        prisma.quranRecord.count({ where: { teacherId: userId, schoolId } }),
+        prisma.homework.count({ where: { teacherId: userId, schoolId } }),
+        prisma.learningResource.count({ where: { teacherId: userId, schoolId } }),
+        prisma.staffAttendance.count({ where: { userId, schoolId } }),
+        prisma.payrollRecord.count({ where: { staffId: userId } }),
+        prisma.leaveRequest.count({ where: { staffId: userId, schoolId } }),
+        prisma.loanRequest.count({ where: { staffId: userId } }),
+        prisma.materialRequest.count({ where: { staffId: userId, schoolId } }),
+        prisma.hRMessage.count({ where: { staffId: userId, schoolId } }),
+        prisma.departmentResource.count({ where: { uploaderId: userId, schoolId } }),
+        prisma.feePayment.count({ where: { recordedBy: userId, schoolId } }),
+        prisma.certificate.count({ where: { issuedBy: userId, schoolId } }),
+        prisma.testimonial.count({ where: { issuedBy: userId, schoolId } })
+      ]);
+
+      // Only include non-zero dependencies
+      if (assignments > 0) dependencies.subjectAssignments = assignments;
+      if (classTeacherRoles > 0) dependencies.classTeacherRoles = classTeacherRoles;
+      if (lessonPlans > 0) dependencies.lessonPlans = lessonPlans;
+      if (lessonNotes > 0) dependencies.lessonNotes = lessonNotes;
+      if (examRepos > 0) dependencies.examRepositories = examRepos;
+      if (cbtExams > 0) dependencies.cbtExams = cbtExams;
+      if (cbtQuestionBanks > 0) dependencies.cbtQuestionBanks = cbtQuestionBanks;
+      if (quranRecords > 0) dependencies.quranRecords = quranRecords;
+      if (homework > 0) dependencies.homework = homework;
+      if (learningResources > 0) dependencies.learningResources = learningResources;
+      if (staffAttendance > 0) dependencies.staffAttendance = staffAttendance;
+      if (payrollRecords > 0) dependencies.payrollRecords = payrollRecords;
+      if (leaveRequests > 0) dependencies.leaveRequests = leaveRequests;
+      if (loanRequests > 0) dependencies.loanRequests = loanRequests;
+      if (materialRequests > 0) dependencies.materialRequests = materialRequests;
+      if (hrMessages > 0) dependencies.hrMessages = hrMessages;
+      if (departmentResources > 0) dependencies.departmentResources = departmentResources;
+      if (feePayments > 0) dependencies.feePaymentsRecorded = feePayments;
+      if (certificatesIssued > 0) dependencies.certificatesIssued = certificatesIssued;
+      if (testimonialsIssued > 0) dependencies.testimonialsIssued = testimonialsIssued;
+
+      // Fetch class teacher details for display
+      if (classTeacherRoles > 0) {
+        const classes = await prisma.class.findMany({
+          where: { classTeacherId: userId, schoolId },
+          select: { name: true, arm: true }
+        });
+        dependencies.classTeacherDetails = classes.map(c => c.arm ? `${c.name} ${c.arm}` : c.name);
+      }
+
+      totalDependencies = Object.keys(dependencies).filter(k => k !== 'classTeacherDetails').reduce((sum, key) => sum + (dependencies[key] || 0), 0);
+    } else if (user.role === 'student') {
+      const studentId = user.student?.id;
+      if (studentId) {
+        const [results, attendance, feeRecords, quranRecords] = await Promise.all([
+          prisma.result.count({ where: { studentId, schoolId } }),
+          prisma.attendanceRecord.count({ where: { studentId, schoolId } }),
+          prisma.feeRecord.count({ where: { studentId, schoolId } }),
+          prisma.quranRecord.count({ where: { studentId, schoolId } })
+        ]);
+        if (results > 0) dependencies.results = results;
+        if (attendance > 0) dependencies.attendanceRecords = attendance;
+        if (feeRecords > 0) dependencies.feeRecords = feeRecords;
+        if (quranRecords > 0) dependencies.quranRecords = quranRecords;
+        totalDependencies = results + attendance + feeRecords + quranRecords;
+      }
+    }
+
+    const hasDependencies = totalDependencies > 0;
+
+    res.json({
+      userId,
+      role: user.role,
+      userName: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+      hasDependencies,
+      totalDependencies,
+      dependencies,
+      recommendation: hasDependencies ? 'deactivate' : 'safe_to_delete',
+      isActive: user.isActive
+    });
+  } catch (error) {
+    console.error('Check dependencies error:', error);
+    res.status(500).json({ error: 'Failed to check user dependencies' });
+  }
+});
+
+// Delete user (Admin/Principal only) - Hard Delete with Safety Guards
 router.delete('/:id', authenticate, authorize(['admin', 'sub_admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin']), async (req, res) => {
   try {
     const { id } = req.params;
     const userId = parseInt(id);
+    const schoolId = parseInt(req.schoolId);
+    const { force } = req.body || {};
 
     const user = await prisma.user.findFirst({
       where: {
         id: userId,
-        schoolId: parseInt(req.schoolId)
+        schoolId
       },
       include: {
         student: true,
@@ -654,51 +775,155 @@ router.delete('/:id', authenticate, authorize(['admin', 'sub_admin', 'principal'
       return res.status(404).json({ error: 'User not found' });
     }
 
+    // Server-side safety guard for teachers with dependencies
+    if (user.role === 'teacher' || user.teacher) {
+      const [assignmentCount, classTeacherCount] = await Promise.all([
+        prisma.teacherAssignment.count({ where: { teacherId: userId, schoolId } }),
+        prisma.class.count({ where: { classTeacherId: userId, schoolId } })
+      ]);
+
+      if ((assignmentCount > 0 || classTeacherCount > 0) && !force) {
+        return res.status(409).json({
+          error: 'This teacher has active responsibilities. Use the dependency check to review before deleting.',
+          hasDependencies: true,
+          assignments: assignmentCount,
+          classTeacherRoles: classTeacherCount,
+          suggestion: 'Consider deactivating the teacher instead of deleting. Pass { force: true } to confirm permanent deletion.'
+        });
+      }
+    }
+
     // Manual Cascade Delete
     await prisma.$transaction(async (prisma) => {
       if (user.role === 'student') {
         const studentId = user.student?.id;
         if (studentId) {
           // Comprehensive manual cascade delete for student records
-          await prisma.attendanceRecord.deleteMany({ where: { studentId, schoolId: parseInt(req.schoolId) } });
-          await prisma.quranRecord.deleteMany({ where: { studentId, schoolId: parseInt(req.schoolId) } });
-          await prisma.quranTarget.deleteMany({ where: { studentId, schoolId: parseInt(req.schoolId) } });
-          await prisma.cBTResult.deleteMany({ where: { studentId, schoolId: parseInt(req.schoolId) } });
-          await prisma.homeworkSubmission.deleteMany({ where: { studentId, schoolId: parseInt(req.schoolId) } });
-          await prisma.psychomotorDomain.deleteMany({ where: { studentId, schoolId: parseInt(req.schoolId) } });
-          await prisma.studentReportCard.deleteMany({ where: { studentId, schoolId: parseInt(req.schoolId) } });
-          await prisma.intervention.deleteMany({ where: { studentId, schoolId: parseInt(req.schoolId) } });
-          await prisma.miscellaneousFeePayment.deleteMany({ where: { studentId, schoolId: parseInt(req.schoolId) } });
-          await prisma.result.deleteMany({ where: { studentId, schoolId: parseInt(req.schoolId) } });
+          await prisma.attendanceRecord.deleteMany({ where: { studentId, schoolId } });
+          await prisma.quranRecord.deleteMany({ where: { studentId, schoolId } });
+          await prisma.quranTarget.deleteMany({ where: { studentId, schoolId } });
+          await prisma.cBTResult.deleteMany({ where: { studentId, schoolId } });
+          await prisma.homeworkSubmission.deleteMany({ where: { studentId, schoolId } });
+          await prisma.psychomotorDomain.deleteMany({ where: { studentId, schoolId } });
+          await prisma.studentReportCard.deleteMany({ where: { studentId, schoolId } });
+          await prisma.intervention.deleteMany({ where: { studentId, schoolId } });
+          await prisma.miscellaneousFeePayment.deleteMany({ where: { studentId, schoolId } });
+          await prisma.result.deleteMany({ where: { studentId, schoolId } });
           
           // Delete Fee Payments first (requires fetching fee record IDs)
-          const feeRecords = await prisma.feeRecord.findMany({ where: { studentId, schoolId: parseInt(req.schoolId) }, select: { id: true } });
+          const feeRecords = await prisma.feeRecord.findMany({ where: { studentId, schoolId }, select: { id: true } });
           const feeRecordIds = feeRecords.map(fr => fr.id);
-          await prisma.feePayment.deleteMany({ where: { feeRecordId: { in: feeRecordIds }, schoolId: parseInt(req.schoolId) } });
-          await prisma.feeRecord.deleteMany({ where: { studentId, schoolId: parseInt(req.schoolId) } });
-          await prisma.examCard.deleteMany({ where: { studentId, schoolId: parseInt(req.schoolId) } });
-          await prisma.promotionHistory.deleteMany({ where: { studentId, schoolId: parseInt(req.schoolId) } });
-          await prisma.onlinePayment.deleteMany({ where: { studentId, schoolId: parseInt(req.schoolId) } });
+          await prisma.feePayment.deleteMany({ where: { feeRecordId: { in: feeRecordIds }, schoolId } });
+          await prisma.feeRecord.deleteMany({ where: { studentId, schoolId } });
+          await prisma.examCard.deleteMany({ where: { studentId, schoolId } });
+          await prisma.promotionHistory.deleteMany({ where: { studentId, schoolId } });
+          await prisma.onlinePayment.deleteMany({ where: { studentId, schoolId } });
           await prisma.certificate.deleteMany({ where: { studentId } });
           await prisma.testimonial.deleteMany({ where: { studentId } });
-          await prisma.alumni.deleteMany({ where: { studentId, schoolId: parseInt(req.schoolId) } });
+          await prisma.alumni.deleteMany({ where: { studentId, schoolId } });
           await prisma.homeworkSubmission.deleteMany({ where: { studentId } });
           
           await prisma.student.delete({
             where: {
               id: studentId,
-              schoolId: parseInt(req.schoolId)
+              schoolId
             }
           });
         }
       } else if (user.role === 'teacher' || user.teacher) {
         const teacherId = user.teacher?.id;
         if (teacherId) {
-          await prisma.teacherAssignment.deleteMany({
-            where: { teacherId: userId, schoolId: parseInt(req.schoolId) }
+          // Clean up TeacherAvailability (references Teacher.id, not User.id)
+          await prisma.teacherAvailability.deleteMany({
+            where: { teacherId, schoolId }
           });
+
+          // Clean up TeacherAssignments
+          await prisma.teacherAssignment.deleteMany({
+            where: { teacherId: userId, schoolId }
+          });
+
+          // Unlink from classes where teacher is class teacher
+          await prisma.class.updateMany({
+            where: { classTeacherId: userId, schoolId },
+            data: { classTeacherId: null }
+          });
+
+          // Clean up lesson plans and notes
+          await prisma.lessonPlan.deleteMany({ where: { teacherId: userId, schoolId } });
+          await prisma.lessonNote.deleteMany({ where: { teacherId: userId, schoolId } });
+
+          // Clean up exam repositories
+          await prisma.examRepository.deleteMany({ where: { teacherId: userId, schoolId } });
+
+          // Clean up CBT data — delete questions first (FK to CBTExam), then exams
+          const cbtExams = await prisma.cBTExam.findMany({ where: { teacherId: userId, schoolId }, select: { id: true } });
+          const cbtExamIds = cbtExams.map(e => e.id);
+          if (cbtExamIds.length > 0) {
+            await prisma.cBTResult.deleteMany({ where: { examId: { in: cbtExamIds }, schoolId } });
+            await prisma.cBTQuestion.deleteMany({ where: { examId: { in: cbtExamIds } } });
+          }
+          await prisma.cBTExam.deleteMany({ where: { teacherId: userId, schoolId } });
+          await prisma.cBTQuestionBank.deleteMany({ where: { teacherId: userId, schoolId } });
+
+          // Clean up homework — delete submissions first, then homework
+          const homeworks = await prisma.homework.findMany({ where: { teacherId: userId, schoolId }, select: { id: true } });
+          const homeworkIds = homeworks.map(h => h.id);
+          if (homeworkIds.length > 0) {
+            await prisma.homeworkSubmission.deleteMany({ where: { homeworkId: { in: homeworkIds } } });
+          }
+          await prisma.homework.deleteMany({ where: { teacherId: userId, schoolId } });
+
+          // Clean up learning resources
+          await prisma.learningResource.deleteMany({ where: { teacherId: userId, schoolId } });
+
+          // Clean up Quran records (as teacher — teacherId is required, must delete)
+          await prisma.quranRecord.deleteMany({ where: { teacherId: userId, schoolId } });
+
+          // Clean up interventions (teacherId is required, must delete)
+          await prisma.intervention.deleteMany({ where: { teacherId: userId, schoolId } });
+
+          // Clean up staff attendance
+          await prisma.staffAttendance.updateMany({
+            where: { verifiedById: userId, schoolId },
+            data: { verifiedById: null }
+          });
+          await prisma.staffAttendance.deleteMany({ where: { userId, schoolId } });
+
+          // Clean up payroll — delete allowances and deductions first
+          const payrollRecords = await prisma.payrollRecord.findMany({ where: { staffId: userId }, select: { id: true } });
+          const payrollIds = payrollRecords.map(p => p.id);
+          if (payrollIds.length > 0) {
+            await prisma.payrollAllowance.deleteMany({ where: { payrollRecordId: { in: payrollIds } } });
+            await prisma.payrollDeduction.deleteMany({ where: { payrollRecordId: { in: payrollIds } } });
+          }
+          await prisma.payrollRecord.deleteMany({ where: { staffId: userId } });
+
+          // Clean up HR records
+          await prisma.leaveRequest.deleteMany({ where: { staffId: userId, schoolId } });
+          await prisma.loanRequest.deleteMany({ where: { staffId: userId } });
+          await prisma.materialRequest.deleteMany({ where: { staffId: userId, schoolId } });
+          await prisma.hRMessage.deleteMany({ where: { staffId: userId, schoolId } });
+          await prisma.departmentResource.deleteMany({ where: { uploaderId: userId, schoolId } });
+
+          // Nullify nullable references that point to this user
+          await prisma.homeworkSubmission.updateMany({ where: { gradedBy: userId }, data: { gradedBy: null } });
+          await prisma.feeRecord.updateMany({ where: { clearedBy: userId }, data: { clearedBy: null } });
+
+          // Delete certificates and testimonials issued by this teacher
+          // issuedBy is required (not nullable), so we must delete them
+          await prisma.certificate.deleteMany({ where: { issuedBy: userId, schoolId } });
+          await prisma.testimonial.deleteMany({ where: { issuedBy: userId, schoolId } });
+
+          // Delete fee payments recorded by this teacher (recordedBy is required)
+          await prisma.feePayment.deleteMany({ where: { recordedBy: userId, schoolId } });
+
+          // Clean up push subscriptions
+          await prisma.pushSubscription.deleteMany({ where: { userId, schoolId } });
+
+          // Delete the Teacher profile record
           await prisma.teacher.delete({
-            where: { id: teacherId, schoolId: parseInt(req.schoolId) }
+            where: { id: teacherId, schoolId }
           });
         }
       } else if (user.role === 'parent' || user.Parent) {
@@ -710,17 +935,30 @@ router.delete('/:id', authenticate, authorize(['admin', 'sub_admin', 'principal'
       }
 
       // Cleanup user-created records that might block deletion
-      await prisma.newsEvent.deleteMany({ where: { authorId: userId, schoolId: parseInt(req.schoolId) } });
-      await prisma.notice.deleteMany({ where: { authorId: userId, schoolId: parseInt(req.schoolId) } });
-      await prisma.galleryImage.deleteMany({ where: { uploadedBy: userId, schoolId: parseInt(req.schoolId) } });
+      await prisma.newsEvent.deleteMany({ where: { authorId: userId, schoolId } });
+      await prisma.notice.deleteMany({ where: { authorId: userId, schoolId } });
+      await prisma.galleryImage.deleteMany({ where: { uploadedBy: userId, schoolId } });
       await prisma.nudge.deleteMany({ where: { OR: [{ senderId: userId }, { receiverId: userId }] } });
       await prisma.department.updateMany({ where: { headId: userId }, data: { headId: null } });
+      await prisma.pushSubscription.deleteMany({ where: { userId } });
+
+      // Handle HR records for non-teacher staff (in case admin, sub_admin etc.)
+      await prisma.leaveRequest.deleteMany({ where: { staffId: userId, schoolId } }).catch(() => {});
+      await prisma.loanRequest.deleteMany({ where: { staffId: userId } }).catch(() => {});
+      await prisma.materialRequest.deleteMany({ where: { staffId: userId, schoolId } }).catch(() => {});
+      await prisma.hRMessage.deleteMany({ where: { staffId: userId, schoolId } }).catch(() => {});
+
+      // Nullify processor references in HR records
+      await prisma.leaveRequest.updateMany({ where: { processedById: userId }, data: { processedById: null } });
+      await prisma.loanRequest.updateMany({ where: { processedById: userId }, data: { processedById: null } });
+      await prisma.materialRequest.updateMany({ where: { processedById: userId }, data: { processedById: null } });
+      await prisma.hRMessage.updateMany({ where: { processedById: userId }, data: { processedById: null } });
 
       // Delete User
       await prisma.user.delete({
         where: {
           id: userId,
-          schoolId: parseInt(req.schoolId)
+          schoolId
         }
       });
     });
@@ -729,14 +967,15 @@ router.delete('/:id', authenticate, authorize(['admin', 'sub_admin', 'principal'
 
     // Log the deletion
     logAction({
-      schoolId: parseInt(req.schoolId),
+      schoolId,
       userId: req.user.id,
       action: 'DELETE',
       resource: 'USER',
       details: {
         deletedUserId: userId,
         role: user.role,
-        username: user.username
+        username: user.username,
+        forceDelete: !!force
       },
       ipAddress: req.ip
     });

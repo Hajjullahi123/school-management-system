@@ -1,0 +1,22 @@
+// TEMPORARY TEST ROUTE - NO AUTH
+// Add this at the TOP of gallery.js after the multer setup
+
+router.post('/test-upload', upload.single('image'), async (req, res) => {
+  try {
+    console.log('TEST UPLOAD - File received:', req.file);
+    console.log('TEST UPLOAD - Body:', req.body);
+    
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file' });
+    }
+
+    res.json({ 
+      message: 'SUCCESS!',
+      filename: req.file.filename,
+      path: req.file.path
+    });
+  } catch (error) {
+    console.error('TEST ERROR:', error);
+    res.status(500).json({ error: error.message });
+  }
+});

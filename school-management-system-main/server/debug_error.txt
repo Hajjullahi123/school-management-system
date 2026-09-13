@@ -1,0 +1,94 @@
+
+Invalid `prisma.parent.findFirst()` invocation:
+
+{
+  include: {
+    parentChildren: {
+      include: {
+        classModel: {
+          include: {
+            classTeacher: {
+              select: {
+                firstName: true,
+                lastName: true,
+                photoUrl: true,
+                username: true,
+                signatureUrl: true,
+                teacher: {
+                  select: {
+                    publicPhone: true,
+                    publicEmail: true,
+                    publicWhatsapp: true
+                  }
+                }
+              }
+            }
+          }
+        },
+        user: {
+          select: {
+            firstName: true,
+            lastName: true,
+            email: true,
+            photoUrl: true
+          }
+        },
+        results: {
+          where: {
+            schoolId: 59
+          },
+          orderBy: {
+            createdAt: "desc"
+          },
+          take: 1
+        },
+        attendanceRecords: {
+          where: {
+            schoolId: 59
+          },
+          orderBy: {
+            date: "desc"
+          },
+          take: 10
+        },
+        MiscellaneousFeePayment: {
+          where: {
+            schoolId: 59
+          },
+          include: {
+            fee: true,
+            ~~~
+?           MiscellaneousFee?: true,
+?           Student?: true,
+?           School?: true
+          },
+          orderBy: {
+            paymentDate: "desc"
+          }
+        },
+        FeeRecord: {
+          where: {
+            schoolId: 59
+          },
+          include: {
+            academicSession: true,
+            term: true,
+            FeePayment: {
+              where: {
+                schoolId: 59
+              },
+              orderBy: {
+                paymentDate: "desc"
+              }
+            }
+          },
+          orderBy: {
+            createdAt: "desc"
+          }
+        }
+      }
+    }
+  }
+}
+
+Unknown field `fee` for include statement on model `MiscellaneousFeePayment`. Available options are marked with ?.

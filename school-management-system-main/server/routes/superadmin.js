@@ -1,0 +1,906 @@
+const express = require('express');
+const router = express.Router();
+const prisma = require('../db');
+const { authenticate, authorize } = require('../middleware/auth');
+const { logAction } = require('../utils/audit');
+const { generateAdminUsername } = require('../utils/usernameGenerator');
+
+/**
+ * @route   GET /api/superadmin/stats
+ * @desc    Get global system statistics and growth analysis
+ * @access  SuperAdmin only
+ */
+router.get('/stats', authenticate, authorize(['superadmin']), async (req, res) => {
+  try {
+    // Fetch counts in parallel to minimize response time
+    const [schoolCount, userCount, studentCount, teacherCount, auditCount] = await Promise.all([
+      prisma.school.count(),
+      prisma.user.count(),
+      prisma.student.count(),
+      prisma.teacher.count(),
+      prisma.auditLog.count()
+    ]);
+
+    // 1. School with most active users
+    const schoolActivity = await prisma.school.findMany({
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        _count: { select: { users: true } }
+      },
+      orderBy: { users: { _count: 'desc' } },
+      take: 5
+    });
+
+    // 2. Schools approaching student quota (>80% used)
+    const schools = await prisma.school.findMany({
+      select: {
+        id: true,
+        name: true,
+        maxStudents: true,
+        _count: { select: { students: true } }
+      }
+    });
+
+    const approachingQuota = schools
+      .filter(s => s.maxStudents > 0 && (s._count.students / s.maxStudents) >= 0.8)
+      .map(s => ({
+        ...s,
+        usage: ((s._count.students / s.maxStudents) * 100).toFixed(1)
+      }))
+      .sort((a, b) => b.usage - a.usage);
+
+    // 3. Licenses expiring soon (next 30 days)
+    const thirtyDaysFromNow = new Date();
+    thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+
+    const expiringSoon = await prisma.school.findMany({
+      where: {
+        isActivated: true,
+        expiresAt: {
+          lte: thirtyDaysFromNow,
+          gte: new Date()
+        }
+      },
+      select: { id: true, name: true, expiresAt: true }
+    });
+
+    res.json({
+      schools: schoolCount,
+      users: userCount,
+      students: studentCount,
+      teachers: teacherCount,
+      audits: auditCount,
+      growthInsights: {
+        mostActive: schoolActivity,
+        approachingQuota,
+        expiringSoon
+      }
+    });
+  } catch (error) {
+    console.error('Superadmin stats error:', error);
+    res.status(500).json({ error: 'Failed to fetch global stats' });
+  }
+});
+
+/**
+ * @route   GET /api/superadmin/academic-intelligence
+ * @desc    Get academic performance metrics across all schools
+ * @access  SuperAdmin only
+ */
+router.get('/academic-intelligence', authenticate, authorize(['superadmin']), async (req, res) => {
+  try {
+    const { sessionId, termId } = req.query;
+
+    const schools = await prisma.school.findMany({
+      select: { id: true, name: true, slug: true }
+    });
+
+    const intelligence = [];
+
+    for (const school of schools) {
+      const where = { schoolId: school.id };
+      if (termId) where.termId = parseInt(termId);
+      
+      const [results, atRiskCount] = await Promise.all([
+        prisma.result.findMany({
+          where,
+          select: { totalScore: true }
+        }),
+        prisma.result.groupBy({
+          by: ['studentId'],
+          where: { ...where, totalScore: { lt: 40 } },
+          _count: { studentId: true }
+        })
+      ]);
+
+      const avgScore = results.length > 0 
+        ? results.reduce((acc, r) => acc + (r.totalScore || 0), 0) / results.length 
+        : 0;
+
+      intelligence.push({
+        schoolId: school.id,
+        schoolName: school.name,
+        averagePerformance: parseFloat(avgScore.toFixed(2)),
+        atRiskCount: atRiskCount.length,
+        totalDataPoints: results.length
+      });
+    }
+
+    res.json(intelligence.sort((a, b) => b.averagePerformance - a.averagePerformance));
+  } catch (error) {
+    console.error('Cross-school intelligence error:', error);
+    res.status(500).json({ error: 'Failed to fetch global academic intelligence' });
+  }
+});
+
+/**
+ * @route   POST /api/superadmin/impersonate/:schoolId
+ * @desc    Log in as a school admin for troubleshooting
+ * @access  SuperAdmin only
+ */
+router.post('/impersonate/:schoolId', authenticate, authorize(['superadmin']), async (req, res) => {
+  try {
+    const schoolId = parseInt(req.params.schoolId);
+    const school = await prisma.school.findUnique({ where: { id: schoolId } });
+
+    if (!school) return res.status(404).json({ error: 'School not found' });
+
+    const { JWT_SECRET } = require('../middleware/auth');
+    const jwt = require('jsonwebtoken');
+
+    // Find ANY admin user for this school
+    const adminUser = await prisma.user.findFirst({
+      where: {
+        schoolId,
+        role: 'admin'
+      },
+      include: {
+        school: true,
+        student: true,
+        teacher: true
+      }
+    });
+
+    if (!adminUser) return res.status(404).json({ error: 'No admin user found for this school' });
+
+    // Sign exactly like standard login
+    const token = jwt.sign(
+      {
+        id: adminUser.id,
+        schoolId: adminUser.schoolId,
+        username: adminUser.username,
+        role: adminUser.role,
+        firstName: adminUser.firstName,
+        lastName: adminUser.lastName
+      },
+      JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    // Set cookie exactly like standard login
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    });
+
+    res.json({
+      success: true,
+      token,
+      user: {
+        id: adminUser.id,
+        username: adminUser.username,
+        role: adminUser.role,
+        firstName: adminUser.firstName,
+        lastName: adminUser.lastName,
+        schoolId: adminUser.schoolId,
+        schoolSlug: adminUser.school?.slug,
+        schoolLogo: adminUser.school?.logoUrl,
+        schoolName: adminUser.school?.name,
+        signatureUrl: adminUser.signatureUrl,
+        photoUrl: adminUser.photoUrl
+      }
+    });
+
+    logAction({
+      schoolId: 1,
+      userId: req.user.id,
+      action: 'IMPERSONATE_ADMIN',
+      resource: 'SCHOOL_USER',
+      details: { schoolId, adminUserId: adminUser.id },
+      ipAddress: req.ip
+    });
+  } catch (error) {
+    console.error('Impersonation error:', error);
+    res.status(500).json({ error: 'Failed to impersonate admin' });
+  }
+});
+
+/**
+ * @route   GET /api/superadmin/schools
+ * @desc    List all schools with basic info
+ * @access  SuperAdmin only
+ */
+router.get('/schools', authenticate, authorize(['superadmin']), async (req, res) => {
+  try {
+    const schools = await prisma.school.findMany({
+      include: {
+        _count: {
+          select: {
+            users: true,
+            students: true,
+            teachers: true
+          }
+        },
+        users: {
+          where: { role: 'admin' },
+          take: 1,
+          orderBy: { createdAt: 'asc' },
+          select: { username: true }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    // Flattening for convenience
+    const enrichedSchools = schools.map(s => ({
+      ...s,
+      adminUsername: s.users[0]?.username || 'admin'
+    }));
+
+    res.json(enrichedSchools);
+  } catch (error) {
+    console.error('List schools error:', error);
+    res.status(500).json({ error: 'Failed to fetch schools' });
+  }
+});
+
+// Helper to generate a random 8-char password
+const generateRandomPassword = () => {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
+  let pass = '';
+  for (let i = 0; i < 8; i++) {
+    pass += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return pass;
+};
+
+/**
+ * @route   POST /api/superadmin/schools
+ * @desc    Create a new school entry
+ * @access  SuperAdmin only
+ */
+router.post('/schools', authenticate, authorize(['superadmin']), async (req, res) => {
+  try {
+    const { name, slug, address, phone, email, customDomain } = req.body;
+
+    if (!name || !slug) {
+      return res.status(400).json({ error: 'Name and Slug are required' });
+    }
+
+    // Check if slug exists
+    const existing = await prisma.school.findUnique({ where: { slug } });
+    if (existing) {
+      return res.status(400).json({ error: 'School with this slug already exists' });
+    }
+
+    console.log(`[SuperAdmin] Creating school: ${name} (${slug})`);
+    const tempPassword = generateRandomPassword();
+
+    // Generate 3-letter code from name
+    const words = name.trim().split(/\s+/).filter(Boolean);
+    let rawCode = '';
+    if (words.length >= 3) {
+      rawCode = (words[0][0] + words[1][0] + words[2][0]).toUpperCase();
+    } else if (words.length === 2) {
+      rawCode = (words[0][0] + words[1][0] + words[1][1]).toUpperCase();
+    } else {
+      rawCode = name.substring(0, 3).toUpperCase();
+    }
+    rawCode = rawCode.replace(/[^A-Z0-9]/g, '');
+    if (rawCode.length < 3) rawCode = (rawCode + 'XXX').substring(0, 3);
+
+    // Use a transaction to ensure both school and admin user are created
+    const result = await prisma.$transaction(async (tx) => {
+      // Ensure code is unique in transaction
+      let code = rawCode;
+      let counter = 1;
+      while (await tx.school.findFirst({ where: { code } })) {
+        code = rawCode.substring(0, 2) + counter;
+        counter++;
+      }
+
+      const newSchool = await tx.school.create({
+        data: {
+          name,
+          slug,
+          code,
+          address,
+          phone,
+          email,
+          customDomain: customDomain ? customDomain.replace(/^https?:\/\//i, '').replace(/^www\./i, '').replace(/\/+$/, '').toLowerCase().trim() : null
+        }
+      });
+
+      // Create default admin user for this school with prefixed username
+      const bcrypt = require('bcryptjs');
+      const hashedPassword = await bcrypt.hash(tempPassword, 10);
+      const adminUsername = await generateAdminUsername(newSchool.id, code, new Date().getFullYear());
+
+      const adminUser = await tx.user.create({
+        data: {
+          schoolId: newSchool.id,
+          username: adminUsername,
+          passwordHash: hashedPassword,
+          role: 'admin',
+          firstName: 'School',
+          lastName: 'Administrator',
+          email: email || `admin@${slug}.com`,
+          isActive: true
+        }
+      });
+
+      return { school: newSchool, admin: adminUser };
+    });
+
+    const { school, admin } = result;
+    console.log(`[SuperAdmin] School created with ID: ${school.id} (Code: ${school.code}) and Admin user created`);
+
+    res.status(201).json({
+      school,
+      credentials: {
+        username: admin.username,
+        password: tempPassword,
+        schoolSlug: slug
+      }
+    });
+
+    const { logAction } = require('../utils/audit');
+    logAction({
+      schoolId: 1,
+      userId: req.user.id,
+      action: 'CREATE_SCHOOL',
+      resource: 'SCHOOL',
+      details: { schoolId: school.id, name: school.name, adminCreated: true },
+      ipAddress: req.ip
+    });
+  } catch (error) {
+    console.error('Create school error:', error);
+    res.status(500).json({ error: 'Failed to create school' });
+  }
+});
+
+/**
+ * @route   POST /api/superadmin/schools/:id/reset-admin
+ * @desc    Reset the default admin password for a school
+ * @access  SuperAdmin only
+ */
+router.post('/schools/:id/reset-admin', authenticate, authorize(['superadmin']), async (req, res) => {
+  try {
+    const schoolId = parseInt(req.params.id);
+    const { manualPassword } = req.body;
+
+    // Use manual password if provided, otherwise generate random one
+    const tempPassword = manualPassword ? manualPassword.trim() : generateRandomPassword();
+
+    if (manualPassword && manualPassword.length < 6) {
+      return res.status(400).json({ error: 'Manual password must be at least 6 characters' });
+    }
+
+    const bcrypt = require('bcryptjs');
+    const hashedPassword = await bcrypt.hash(tempPassword, 10);
+
+    const school = await prisma.school.findUnique({ where: { id: schoolId } });
+    if (!school) return res.status(404).json({ error: 'School not found' });
+
+    // Find the first admin user for this school (regardless of username)
+    const existingAdmin = await prisma.user.findFirst({
+      where: {
+        schoolId,
+        role: 'admin'
+      },
+      orderBy: { createdAt: 'asc' }
+    });
+
+    let targetUsername = 'admin';
+
+    if (existingAdmin) {
+      targetUsername = existingAdmin.username;
+      await prisma.user.update({
+        where: { id: existingAdmin.id },
+        data: {
+          passwordHash: hashedPassword,
+          isActive: true,
+          mustChangePassword: false
+        }
+      });
+    } else {
+      let targetUsername = await generateAdminUsername(schoolId, school.code || 'SCH', new Date().getFullYear());
+
+      // Check if this username is already taken in this school
+      const usernameConflict = await prisma.user.findUnique({
+        where: {
+          schoolId_username: {
+            schoolId,
+            username: targetUsername
+          }
+        }
+      });
+
+      if (usernameConflict) {
+        // If 'admin' is taken, append a suffix
+        targetUsername = `admin_${school.slug}`;
+      }
+
+      await prisma.user.create({
+        data: {
+          schoolId,
+          username: targetUsername,
+          passwordHash: hashedPassword,
+          role: 'admin',
+          firstName: 'School',
+          lastName: 'Administrator',
+          email: school.email || `admin@${school.slug}.com`,
+          isActive: true,
+          mustChangePassword: false
+        }
+      });
+    }
+
+    res.json({
+      message: 'Admin credentials reset successfully',
+      credentials: {
+        username: targetUsername,
+        password: tempPassword,
+        schoolSlug: school.slug
+      }
+    });
+
+    logAction({
+      schoolId: 1,
+      userId: req.user.id,
+      action: 'RESET_SCHOOL_ADMIN',
+      resource: 'SCHOOL_USER',
+      details: { schoolId, schoolName: school.name },
+      ipAddress: req.ip
+    });
+  } catch (error) {
+    console.error('Reset school admin error:', error);
+    res.status(500).json({ error: 'Failed to reset admin credentials' });
+  }
+});
+
+/**
+ * @route   PUT /api/superadmin/schools/:id
+ * @desc    Update school details (name, slug, address, phone, email)
+ * @access  SuperAdmin only
+ */
+router.put('/schools/:id', authenticate, authorize(['superadmin', 'admin']), async (req, res) => {
+  try {
+    const schoolId = parseInt(req.params.id);
+
+    if (req.user.role !== 'superadmin' && req.user.schoolId !== schoolId) {
+      return res.status(403).json({ error: 'You do not have permission to update this school' });
+    }
+    const { name, slug, address, phone, email, customDomain } = req.body;
+
+    if (slug) {
+      const existing = await prisma.school.findFirst({
+        where: {
+          slug,
+          NOT: { id: schoolId }
+        }
+      });
+      if (existing) {
+        return res.status(400).json({ error: 'Another school already uses this slug' });
+      }
+    }
+
+    const updatedSchool = await prisma.school.update({
+      where: { id: schoolId },
+      data: {
+        name,
+        slug: slug?.toLowerCase().replace(/\s+/g, '-'),
+        address,
+        phone,
+        email,
+        customDomain: customDomain ? customDomain.replace(/^https?:\/\//i, '').replace(/^www\./i, '').replace(/\/+$/, '').toLowerCase().trim() : null
+      }
+    });
+
+    res.json({ message: 'School details updated successfully', school: updatedSchool });
+
+    logAction({
+      schoolId: 1,
+      userId: req.user.id,
+      action: 'UPDATE_SCHOOL',
+      resource: 'SCHOOL',
+      details: { schoolId, updates: req.body },
+      ipAddress: req.ip
+    });
+  } catch (error) {
+    console.error('Update school error:', error);
+    res.status(500).json({ error: 'Failed to update school details' });
+  }
+});
+
+/**
+ * @route   DELETE /api/superadmin/schools/:id
+ * @desc    Hard delete a school and ALL its data
+ * @access  SuperAdmin only
+ */
+router.delete('/schools/:id', authenticate, authorize(['superadmin']), async (req, res) => {
+  const schoolId = parseInt(req.params.id);
+  
+  if (schoolId === 1) {
+    return res.status(400).json({ error: 'The primary system school (ID 1) cannot be deleted.' });
+  }
+
+  try {
+    const school = await prisma.school.findUnique({ where: { id: schoolId } });
+    if (!school) return res.status(404).json({ error: 'School not found' });
+
+    console.log(`[SuperAdmin] Starting cascading delete for school: ${school.name} (ID: ${schoolId})`);
+
+    // Perform manual cascading delete in a transaction to handle FK constraints
+    await prisma.$transaction(async (tx) => {
+      const where = { schoolId };
+
+      // 1. Delete deeply nested records first
+      await tx.result.deleteMany({ where });
+      await tx.attendanceRecord.deleteMany({ where });
+      await tx.staffAttendance.deleteMany({ where });
+      await tx.feePayment.deleteMany({ where });
+      await tx.feeRecord.deleteMany({ where });
+      await tx.onlinePayment.deleteMany({ where });
+      await tx.classFeeStructure.deleteMany({ where });
+      await tx.miscellaneousFeePayment.deleteMany({ where });
+      await tx.miscellaneousFee.deleteMany({ where });
+      await tx.examCard.deleteMany({ where });
+      await tx.cBTResult.deleteMany({ where });
+      await tx.cBTExam.deleteMany({ where });
+      await tx.cBTQuestionBank.deleteMany({ where });
+      await tx.cBTQuestion.deleteMany({ where: { schoolId } }); // If exists
+      await tx.quranRecord.deleteMany({ where });
+      await tx.quranTarget.deleteMany({ where });
+      await tx.homeworkSubmission.deleteMany({ where });
+      await tx.homework.deleteMany({ where });
+      await tx.lessonNote.deleteMany({ where });
+      await tx.lessonPlan.deleteMany({ where });
+      await tx.curriculum.deleteMany({ where });
+      await tx.teacherAssignment.deleteMany({ where });
+      await tx.classSubject.deleteMany({ where });
+      await tx.timetable.deleteMany({ where });
+      await tx.examRepository.deleteMany({ where });
+      await tx.studentReportCard.deleteMany({ where });
+      await tx.resultPublication.deleteMany({ where });
+      await tx.promotionHistory.deleteMany({ where });
+      await tx.staffAttendance.deleteMany({ where });
+      await tx.auditLog.deleteMany({ where });
+      await tx.newsEvent.deleteMany({ where });
+      await tx.notice.deleteMany({ where });
+      await tx.galleryImage.deleteMany({ where });
+      await tx.alumniDonation.deleteMany({ where });
+      await tx.alumniEvent.deleteMany({ where });
+      await tx.alumniStory.deleteMany({ where });
+      await tx.alumni.deleteMany({ where });
+      await tx.parentTeacherMessage.deleteMany({ where });
+      await tx.whatsAppLog.deleteMany({ where });
+      await tx.schoolHoliday.deleteMany({ where });
+      await tx.counter.deleteMany({ where });
+      await tx.psychomotorDomain.deleteMany({ where });
+      await tx.certificate.deleteMany({ where });
+      await tx.testimonial.deleteMany({ where });
+
+      // 2. Delete main entities
+      await tx.student.deleteMany({ where });
+      await tx.teacherAvailability.deleteMany({ where });
+      await tx.teacher.deleteMany({ where });
+      await tx.parent.deleteMany({ where });
+      await tx.user.deleteMany({ where });
+      await tx.subject.deleteMany({ where });
+      await tx.class.deleteMany({ where });
+      await tx.term.deleteMany({ where });
+      await tx.academicSession.deleteMany({ where });
+      await tx.department.deleteMany({ where });
+
+      // 3. Finally delete the school itself
+      await tx.school.delete({ where: { id: schoolId } });
+    });
+
+    res.json({ message: 'School and all associated data deleted successfully' });
+    console.log(`[SuperAdmin] School deleted successfully: ${school.name} (ID: ${schoolId})`);
+
+    logAction({
+      schoolId: 1,
+      userId: req.user.id,
+      action: 'DELETE_SCHOOL',
+      resource: 'SCHOOL',
+      details: { deletedSchoolId: schoolId, name: school.name },
+      ipAddress: req.ip
+    });
+  } catch (error) {
+    console.error('Delete school error:', error);
+    res.status(500).json({ error: `Failed to delete school: ${error.message}` });
+  }
+});
+
+/**
+ * @route   POST /api/superadmin/schools/:id/toggle-activation
+ * @desc    Activate or Deactivate a school's license access
+ * @access  SuperAdmin only
+ */
+router.post('/schools/:id/toggle-activation', authenticate, authorize(['superadmin']), async (req, res) => {
+  try {
+    const schoolId = parseInt(req.params.id);
+    const school = await prisma.school.findUnique({ where: { id: schoolId } });
+
+    if (!school) return res.status(404).json({ error: 'School not found' });
+
+    const updatedSchool = await prisma.school.update({
+      where: { id: schoolId },
+      data: { isActivated: !school.isActivated }
+    });
+
+    res.json({
+      message: `School ${updatedSchool.isActivated ? 'activated' : 'deactivated'} successfully`,
+      isActivated: updatedSchool.isActivated
+    });
+
+    logAction({
+      schoolId: 1,
+      userId: req.user.id,
+      action: updatedSchool.isActivated ? 'ACTIVATE_SCHOOL' : 'DEACTIVATE_SCHOOL',
+      resource: 'SCHOOL',
+      details: { schoolId, name: school.name },
+      ipAddress: req.ip
+    });
+  } catch (error) {
+    console.error('Toggle school activation error:', error);
+    res.status(500).json({ error: 'Failed to update school status' });
+  }
+});
+
+/**
+ * @route   GET /api/superadmin/audit
+ * @desc    Global Audit Log View
+ * @access  SuperAdmin only
+ */
+router.get('/audit', authenticate, authorize(['superadmin']), async (req, res) => {
+  try {
+    const { limit = 100, offset = 0 } = req.query;
+
+    const logs = await prisma.auditLog.findMany({
+      include: {
+        school: { select: { name: true, slug: true } }
+      },
+      orderBy: { createdAt: 'desc' },
+      take: parseInt(limit),
+      skip: parseInt(offset)
+    });
+
+    const total = await prisma.auditLog.count();
+
+    // Fetch user details manually
+    const userIds = [...new Set(logs.map(log => log.userId).filter(Boolean))];
+    const users = await prisma.user.findMany({
+      where: { id: { in: userIds } },
+      select: { id: true, firstName: true, lastName: true, username: true, role: true }
+    });
+
+    const userMap = users.reduce((acc, user) => {
+      acc[user.id] = user;
+      return acc;
+    }, {});
+
+    const enrichedLogs = logs.map(log => ({
+      ...log,
+      user: log.userId ? userMap[log.userId] : null
+    }));
+
+    res.json({
+      logs: enrichedLogs,
+      total
+    });
+  } catch (error) {
+    console.error('Global audit error:', error);
+    res.status(500).json({ error: 'Failed to fetch global audit logs' });
+  }
+});
+
+/**
+ * @route   GET /api/superadmin/global-settings
+ * @desc    Get global developer settings
+ * @access  Public (for login page)
+ */
+router.get('/global-settings', async (req, res) => {
+  try {
+    let settings = await prisma.globalSettings.findFirst();
+    if (!settings) {
+      // Create default if not exists
+      settings = await prisma.globalSettings.create({
+        data: { id: 1 }
+      });
+    }
+    res.json(settings);
+  } catch (error) {
+    console.error('Get global settings error:', error);
+    res.status(500).json({ error: 'Failed to fetch global settings' });
+  }
+});
+
+/**
+ * @route   POST /api/superadmin/global-settings
+ * @desc    Update global developer settings
+ * @access  SuperAdmin only
+ */
+router.post('/global-settings', authenticate, authorize(['superadmin']), async (req, res) => {
+  try {
+    const {
+      facebookUrl, instagramUrl, whatsappUrl, websiteUrl,
+      contactPhone, contactEmail,
+      platformPaystackKey, platformFlutterwaveKey, platformSecretKey,
+      basicPrice, standardPrice, premiumPrice,
+      s3AccessKey, s3SecretKey, s3BucketName, s3Region, enableAutoBackup, backupRetentionDays,
+      latestAppVersion, apkDownloadUrl, geminiApiKey, groqApiKey,
+      whatsappProvider, whatsappPhoneNumber, twilioAccountSid, twilioAuthToken,
+      metaAccessToken, metaPhoneNumberId, metaBusinessAccountId, metaVerifyToken
+    } = req.body;
+
+    const settings = await prisma.globalSettings.upsert({
+      where: { id: 1 },
+      update: {
+        facebookUrl,
+        instagramUrl,
+        whatsappUrl,
+        websiteUrl,
+        contactPhone,
+        contactEmail,
+        platformPaystackKey,
+        platformFlutterwaveKey,
+        platformSecretKey,
+        basicPrice: parseFloat(basicPrice) || undefined,
+        standardPrice: parseFloat(standardPrice) || undefined,
+        premiumPrice: parseFloat(premiumPrice) || undefined,
+        s3AccessKey,
+        s3SecretKey,
+        s3BucketName,
+        s3Region,
+        enableAutoBackup: enableAutoBackup === true || enableAutoBackup === 'true',
+        backupRetentionDays: parseInt(backupRetentionDays) || undefined,
+        latestAppVersion: latestAppVersion || undefined,
+        apkDownloadUrl: apkDownloadUrl || undefined,
+        geminiApiKey: geminiApiKey || undefined,
+        groqApiKey: groqApiKey || undefined,
+        whatsappProvider: whatsappProvider || undefined,
+        whatsappPhoneNumber: whatsappPhoneNumber || undefined,
+        twilioAccountSid: twilioAccountSid || undefined,
+        twilioAuthToken: twilioAuthToken || undefined,
+        metaAccessToken: metaAccessToken || undefined,
+        metaPhoneNumberId: metaPhoneNumberId || undefined,
+        metaBusinessAccountId: metaBusinessAccountId || undefined,
+        metaVerifyToken: metaVerifyToken || undefined
+      },
+      create: {
+        id: 1,
+        facebookUrl,
+        instagramUrl,
+        whatsappUrl,
+        websiteUrl,
+        contactPhone,
+        contactEmail,
+        platformPaystackKey,
+        platformFlutterwaveKey,
+        platformSecretKey,
+        basicPrice: parseFloat(basicPrice) || 50000,
+        standardPrice: parseFloat(standardPrice) || 120000,
+        premiumPrice: parseFloat(premiumPrice) || 250000,
+        s3AccessKey,
+        s3SecretKey,
+        s3BucketName,
+        s3Region,
+        enableAutoBackup: enableAutoBackup === true || enableAutoBackup === 'true',
+        backupRetentionDays: parseInt(backupRetentionDays) || 30,
+        latestAppVersion: latestAppVersion || "1.0.0",
+        apkDownloadUrl,
+        geminiApiKey: geminiApiKey || undefined,
+        groqApiKey: groqApiKey || undefined,
+        whatsappProvider: whatsappProvider || "twilio",
+        whatsappPhoneNumber,
+        twilioAccountSid,
+        twilioAuthToken,
+        metaAccessToken,
+        metaPhoneNumberId,
+        metaBusinessAccountId,
+        metaVerifyToken
+      }
+    });
+
+    res.json({ message: 'Global settings updated successfully', settings });
+
+    logAction({
+      schoolId: 1,
+      userId: req.user.id,
+      action: 'UPDATE_GLOBAL_SETTINGS',
+      resource: 'GLOBAL_SETTINGS',
+      details: req.body,
+      ipAddress: req.ip
+    });
+  } catch (error) {
+    console.error('Update global settings error:', error);
+    res.status(500).json({ error: 'Failed to update global settings' });
+  }
+});
+
+/**
+ * @route   GET /api/superadmin/audit
+ * @desc    Get global audit logs for all schools
+ * @access  SuperAdmin only
+ */
+router.get('/audit', authenticate, authorize(['superadmin']), async (req, res) => {
+  try {
+    const { schoolId, action, resource, startDate, endDate, limit = 50, offset = 0 } = req.query;
+
+    const where = {};
+    if (schoolId) where.schoolId = parseInt(schoolId);
+    if (action) where.action = action;
+    if (resource) where.resource = resource;
+
+    if (startDate || endDate) {
+      where.createdAt = {};
+      if (startDate) where.createdAt.gte = new Date(startDate);
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        where.createdAt.lte = end;
+      }
+    }
+
+    const [logs, total] = await Promise.all([
+      prisma.auditLog.findMany({
+        where,
+        include: {
+          school: {
+            select: { name: true, slug: true }
+          }
+        },
+        orderBy: { createdAt: 'desc' },
+        take: parseInt(limit),
+        skip: parseInt(offset)
+      }),
+      prisma.auditLog.count({ where })
+    ]);
+
+    // Enrich with user details
+    const userIds = [...new Set(logs.map(log => log.userId).filter(Boolean))];
+    const users = await prisma.user.findMany({
+      where: { id: { in: userIds } },
+      select: { id: true, firstName: true, lastName: true, username: true, role: true }
+    });
+
+    const userMap = users.reduce((acc, user) => {
+      acc[user.id] = user;
+      return acc;
+    }, {});
+
+    const enrichedLogs = logs.map(log => ({
+      ...log,
+      user: log.userId ? userMap[log.userId] : null
+    }));
+
+    res.json({
+      logs: enrichedLogs,
+      total,
+      limit: parseInt(limit),
+      offset: parseInt(offset)
+    });
+  } catch (error) {
+    console.error('Superadmin audit logs error:', error);
+    res.status(500).json({ error: 'Failed to fetch global audit logs' });
+  }
+});
+
+module.exports = router;

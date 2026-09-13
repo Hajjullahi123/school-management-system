@@ -55,6 +55,8 @@ const UserManagement = () => {
   const [photoPreview, setPhotoPreview] = useState(null);
   const [photoFile, setPhotoFile] = useState(null);
   const [generatedCredentials, setGeneratedCredentials] = useState(null);
+  const [deleteModal, setDeleteModal] = useState({ show: false, userId: null, userName: '', loading: false, dependencies: null, confirmName: '', forceDeleting: false });
+  const [deactivating, setDeactivating] = useState(null);
   const handlePrintCredentials = () => {
     const originalTitle = document.title;
     if (generatedCredentials?.username) {
@@ -209,20 +211,88 @@ const UserManagement = () => {
     }
   };
 
-  const handleDelete = async (userId) => {
-    if (!confirm('Are you sure you want to delete this user? This action cannot be undone.')) return;
+  const handleDeleteClick = async (userId) => {
+    const user = users.find(u => u.id === userId);
+    const userName = `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || user?.username || '';
+    setDeleteModal({ show: true, userId, userName, loading: true, dependencies: null, confirmName: '', forceDeleting: false });
     try {
-      const response = await api.delete(`/api/users/${userId}`);
+      const response = await api.get(`/api/users/${userId}/dependencies`);
+      if (response.ok) {
+        const data = await response.json();
+        setDeleteModal(prev => ({ ...prev, loading: false, dependencies: data }));
+      } else {
+        setDeleteModal(prev => ({ ...prev, loading: false, dependencies: { hasDependencies: false, dependencies: {} } }));
+      }
+    } catch (error) {
+      console.error('Error checking dependencies:', error);
+      setDeleteModal(prev => ({ ...prev, loading: false, dependencies: { hasDependencies: false, dependencies: {} } }));
+    }
+  };
+
+  const handleForceDelete = async () => {
+    setDeleteModal(prev => ({ ...prev, forceDeleting: true }));
+    try {
+      const response = await api.delete(`/api/users/${deleteModal.userId}`, {
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ force: true })
+      });
       if (response.ok) {
         alert('User deleted successfully');
         fetchUsers();
+        setDeleteModal({ show: false, userId: null, userName: '', loading: false, dependencies: null, confirmName: '', forceDeleting: false });
       } else {
         const data = await response.json();
         alert(data.error || 'Failed to delete user');
+        setDeleteModal(prev => ({ ...prev, forceDeleting: false }));
       }
     } catch (error) {
       console.error('Error deleting user:', error);
       alert('Failed to delete user');
+      setDeleteModal(prev => ({ ...prev, forceDeleting: false }));
+    }
+  };
+
+  const handleSimpleDelete = async () => {
+    setDeleteModal(prev => ({ ...prev, forceDeleting: true }));
+    try {
+      const response = await api.delete(`/api/users/${deleteModal.userId}`);
+      if (response.ok) {
+        alert('User deleted successfully');
+        fetchUsers();
+        setDeleteModal({ show: false, userId: null, userName: '', loading: false, dependencies: null, confirmName: '', forceDeleting: false });
+      } else {
+        const data = await response.json();
+        alert(data.error || 'Failed to delete user');
+        setDeleteModal(prev => ({ ...prev, forceDeleting: false }));
+      }
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      alert('Failed to delete user');
+      setDeleteModal(prev => ({ ...prev, forceDeleting: false }));
+    }
+  };
+
+  const handleDeactivateToggle = async (userId) => {
+    const user = users.find(u => u.id === userId);
+    if (!user) return;
+    const newStatus = !user.isActive;
+    const action = newStatus ? 'activate' : 'deactivate';
+    if (!confirm(`Are you sure you want to ${action} this user?`)) return;
+    setDeactivating(userId);
+    try {
+      const response = await api.put(`/api/users/${userId}`, { isActive: newStatus });
+      if (response.ok) {
+        alert(`User ${action}d successfully`);
+        fetchUsers();
+      } else {
+        const data = await response.json();
+        alert(data.error || `Failed to ${action} user`);
+      }
+    } catch (error) {
+      console.error(`Error ${action} user:`, error);
+      alert(`Failed to ${action} user`);
+    } finally {
+      setDeactivating(null);
     }
   };
 
@@ -562,7 +632,21 @@ const UserManagement = () => {
                                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
                                         </button>
                                       )}
-                                      <button onClick={() => handleDelete(user.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-xl transition-all" title="Delete">
+                                      <button
+                                        onClick={() => handleDeactivateToggle(user.id)}
+                                        disabled={deactivating === user.id}
+                                        className={`p-2 ${user.isActive ? 'text-amber-600 hover:bg-amber-50' : 'text-green-600 hover:bg-green-50'} rounded-xl transition-all`}
+                                        title={user.isActive ? 'Deactivate User' : 'Activate User'}
+                                      >
+                                        {deactivating === user.id ? (
+                                          <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                                        ) : user.isActive ? (
+                                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>
+                                        ) : (
+                                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                        )}
+                                      </button>
+                                      <button onClick={() => handleDeleteClick(user.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-xl transition-all" title="Delete">
                                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                                       </button>
                                     </>
@@ -851,6 +935,143 @@ const UserManagement = () => {
             <div className="mt-10 text-center">
               <p className="text-[10px] font-black text-gray-400 uppercase max-w-md mx-auto leading-relaxed">Please update your password immediately after initial login. Keep this document in a safe environment.</p>
             </div>
+          </div>
+        </div>
+      )}
+      {/* Delete Confirmation Modal */}
+      {deleteModal.show && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="p-6 border-b border-gray-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                  <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">Delete User</h3>
+                  <p className="text-sm text-gray-500">{deleteModal.userName}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-6">
+              {deleteModal.loading ? (
+                <div className="flex flex-col items-center gap-3 py-8">
+                  <svg className="w-8 h-8 animate-spin text-gray-400" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                  <p className="text-sm text-gray-500">Checking dependencies...</p>
+                </div>
+              ) : deleteModal.dependencies?.hasDependencies ? (
+                <>
+                  {/* Warning Banner */}
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4">
+                    <div className="flex items-start gap-3">
+                      <svg className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>
+                      <div>
+                        <p className="text-sm font-bold text-amber-800">This user has active responsibilities!</p>
+                        <p className="text-xs text-amber-700 mt-1">Deleting will permanently remove all associated data. Consider deactivating instead.</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Dependencies List */}
+                  <div className="bg-gray-50 rounded-xl p-4 mb-4">
+                    <p className="text-xs font-bold text-gray-500 uppercase mb-3">Linked Records ({deleteModal.dependencies.totalDependencies})</p>
+                    <div className="space-y-2">
+                      {Object.entries(deleteModal.dependencies.dependencies || {}).filter(([key]) => key !== 'classTeacherDetails').map(([key, value]) => (
+                        <div key={key} className="flex justify-between items-center text-sm">
+                          <span className="text-gray-600">{key.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase())}</span>
+                          <span className="font-bold text-gray-900 bg-white px-2 py-0.5 rounded">{value}</span>
+                        </div>
+                      ))}
+                    </div>
+                    {deleteModal.dependencies.dependencies?.classTeacherDetails && (
+                      <div className="mt-3 pt-3 border-t border-gray-200">
+                        <p className="text-xs font-bold text-gray-500 mb-1">Class Teacher For:</p>
+                        <div className="flex flex-wrap gap-1">
+                          {deleteModal.dependencies.dependencies.classTeacherDetails.map((cls, i) => (
+                            <span key={i} className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">{cls}</span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Deactivation Recommendation */}
+                  <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-4">
+                    <p className="text-sm font-bold text-green-800 mb-1">✓ Recommended: Deactivate Instead</p>
+                    <p className="text-xs text-green-700">Deactivating preserves all data and allows reactivation later. The user will be unable to log in.</p>
+                    <button
+                      onClick={() => {
+                        handleDeactivateToggle(deleteModal.userId);
+                        setDeleteModal({ show: false, userId: null, userName: '', loading: false, dependencies: null, confirmName: '', forceDeleting: false });
+                      }}
+                      className="mt-3 w-full bg-green-600 text-white text-sm font-bold py-2.5 px-4 rounded-xl hover:bg-green-700 transition-all"
+                    >
+                      Deactivate User Instead
+                    </button>
+                  </div>
+
+                  {/* Force Delete Section */}
+                  <div className="border border-red-200 rounded-xl p-4">
+                    <p className="text-sm font-bold text-red-700 mb-2">⚠ Permanent Deletion</p>
+                    <p className="text-xs text-gray-600 mb-3">
+                      Type <span className="font-bold text-red-600">"{deleteModal.userName}"</span> to confirm permanent deletion:
+                    </p>
+                    <input
+                      type="text"
+                      value={deleteModal.confirmName}
+                      onChange={(e) => setDeleteModal(prev => ({ ...prev, confirmName: e.target.value }))}
+                      placeholder="Type user's name to confirm..."
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                    />
+                    <button
+                      onClick={handleForceDelete}
+                      disabled={deleteModal.confirmName.trim().toLowerCase() !== deleteModal.userName.trim().toLowerCase() || deleteModal.forceDeleting}
+                      className="mt-3 w-full bg-red-600 text-white text-sm font-bold py-2.5 px-4 rounded-xl hover:bg-red-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      {deleteModal.forceDeleting ? 'Deleting...' : 'Delete Permanently'}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                /* No dependencies — simple confirmation */
+                <div>
+                  <p className="text-sm text-gray-600 mb-4">
+                    This user has no active responsibilities. Are you sure you want to permanently delete <span className="font-bold">{deleteModal.userName}</span>?
+                  </p>
+                  <p className="text-xs text-gray-400 mb-4">This action cannot be undone.</p>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setDeleteModal({ show: false, userId: null, userName: '', loading: false, dependencies: null, confirmName: '', forceDeleting: false })}
+                      className="flex-1 bg-gray-100 text-gray-700 text-sm font-bold py-2.5 px-4 rounded-xl hover:bg-gray-200 transition-all"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleSimpleDelete}
+                      disabled={deleteModal.forceDeleting}
+                      className="flex-1 bg-red-600 text-white text-sm font-bold py-2.5 px-4 rounded-xl hover:bg-red-700 transition-all disabled:opacity-50"
+                    >
+                      {deleteModal.forceDeleting ? 'Deleting...' : 'Delete User'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer — Cancel Button (shown when dependencies exist) */}
+            {!deleteModal.loading && deleteModal.dependencies?.hasDependencies && (
+              <div className="px-6 pb-6">
+                <button
+                  onClick={() => setDeleteModal({ show: false, userId: null, userName: '', loading: false, dependencies: null, confirmName: '', forceDeleting: false })}
+                  className="w-full bg-gray-100 text-gray-700 text-sm font-bold py-2.5 px-4 rounded-xl hover:bg-gray-200 transition-all"
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

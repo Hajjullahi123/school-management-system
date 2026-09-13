@@ -1,0 +1,4287 @@
+import { useState, useEffect, useRef } from 'react';
+import { saveAs } from 'file-saver';
+import { safeDocumentDownload } from '../../utils/mobileDownload';
+import { api } from '../../api';
+import { useAuth } from '../../context/AuthContext';
+import PrintReceiptModal from '../../components/PrintReceiptModal';
+import PrintScholarshipModal from '../../components/PrintScholarshipModal';
+import { formatCurrency, formatNumber, formatDate } from '../../utils/formatters';
+import { toast } from 'react-hot-toast';
+import useSchoolSettings from '../../hooks/useSchoolSettings';
+import { API_BASE_URL } from '../../api';
+import ExcelJS from 'exceljs';
+import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
+
+export default function FeeManagement() {
+  const recordsRef = useRef(null);
+  const { user: authUser } = useAuth();
+  const { settings: schoolSettings } = useSchoolSettings();
+  const isViewOnly = ['superadmin', 'proprietor'].includes(authUser?.role?.toLowerCase());
+  const [students, setStudents] = useState([]);
+  const [currentTerm, setCurrentTerm] = useState(null);
+  const [currentSession, setCurrentSession] = useState(null);
+  const [summary, setSummary] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [strictEnrollment, setStrictEnrollment] = useState(true);
+
+  // Payment States
+  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [paymentAmount, setPaymentAmount] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('cash');
+  const [paymentReference, setPaymentReference] = useState('');
+  const [paymentNotes, setPaymentNotes] = useState('');
+  const [studentFeeSummary, setStudentFeeSummary] = useState(null);
+  const [loadingSummary, setLoadingSummary] = useState(false);
+
+  // Term/Session selection for payment
+  const [allTerms, setAllTerms] = useState([]);
+  const [allSessions, setAllSessions] = useState([]);
+  const [selectedPaymentTerm, setSelectedPaymentTerm] = useState(null);
+  const [selectedPaymentSession, setSelectedPaymentSession] = useState(null);
+
+  // Edit Payment State
+  const [editingPayment, setEditingPayment] = useState(null);
+  const [processingPayment, setProcessingPayment] = useState(false);
+
+  // Print Receipt Modal State
+  const [receiptModalOpen, setReceiptModalOpen] = useState(false);
+  const [receiptPayment, setReceiptPayment] = useState(null);
+  const [receiptStudent, setReceiptStudent] = useState(null);
+
+  // Scholarship Print State
+  const [scholarshipModalOpen, setScholarshipModalOpen] = useState(false);
+  const [scholarshipStudent, setScholarshipStudent] = useState(null);
+
+  // Filter states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterClass, setFilterClass] = useState('all');
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [classes, setClasses] = useState([]);
+
+  // Class navigation
+  const [selectedClassView, setSelectedClassView] = useState(null);
+  const [classSummaries, setClassSummaries] = useState({});
+
+  // Bulk operations
+  const [selectedStudents, setSelectedStudents] = useState([]);
+  const [showBulkClear, setShowBulkClear] = useState(false);
+
+  // Payment history
+  const [showPaymentHistory, setShowPaymentHistory] = useState(false);
+  const [paymentHistory, setPaymentHistory] = useState([]);
+  const [historyStudent, setHistoryStudent] = useState(null);
+
+  // Restriction Management State
+  const [restrictionModalOpen, setRestrictionModalOpen] = useState(false);
+  const [restrictionReason, setRestrictionReason] = useState('');
+  const [isRestricted, setIsRestricted] = useState(false);
+  const [restrictionStudent, setRestrictionStudent] = useState(null);
+
+  // Fee Adjustment State
+  const [editingFeeRecord, setEditingFeeRecord] = useState(null);
+  const [adjustedExpected, setAdjustedExpected] = useState('');
+
+  // Tab State
+  const [activeTab, setActiveTab] = useState('standard'); // 'standard' or 'misc'
+  const [detailedAnalytics, setDetailedAnalytics] = useState([]);
+  const [loadingMisc, setLoadingMisc] = useState(false);
+  const [expandedFee, setExpandedFee] = useState(null);
+  const [expandedClass, setExpandedClass] = useState(null);
+  const [selectedMiscTerm, setSelectedMiscTerm] = useState(null);
+  const [selectedMiscSession, setSelectedMiscSession] = useState(null);
+
+  // Misc Payment States
+  const [selectedMiscPayment, setSelectedMiscPayment] = useState(null);
+  const [showMiscFeeModal, setShowMiscFeeModal] = useState(false);
+  const [miscFeeLoading, setMiscFeeLoading] = useState(false);
+  const [miscFeeFormData, setMiscFeeFormData] = useState({
+    title: '',
+    description: '',
+    amount: '',
+    isCompulsory: false,
+    classIds: [],
+    sessionId: '',
+    termId: ''
+  });
+  const [miscFormData, setMiscFormData] = useState({
+    amount: '',
+    paymentMethod: 'cash',
+    receiptNumber: ''
+  });
+
+  const handleEditFee = (student) => {
+    const record = student.feeRecords[0];
+    setEditingFeeRecord({ student, record });
+    setAdjustedExpected(record?.expectedAmount?.toString() || '0');
+  };
+
+  const saveFeeRecord = async () => {
+    if (!editingFeeRecord) return;
+
+    try {
+      const expected = parseFloat(adjustedExpected) || 0;
+
+      if (expected < 0) {
+        toast.error('Fee amount cannot be negative');
+        return;
+      }
+
+      const oldExpected = editingFeeRecord.record?.expectedAmount || 0;
+      if (expected === oldExpected) {
+        toast.error('No changes detected');
+        return;
+      }
+
+      if (!confirm(`Change term fee from ₦${formatNumber(oldExpected)} to ₦${formatNumber(expected)}? This will recalculate the student's balance and update all subsequent terms.`)) {
+        return;
+      }
+
+      setLoading(true);
+      // Use the VIEWED term/session, not always the current one
+      const targetTermId = selectedViewTerm?.id || currentTerm.id;
+      const targetSessionId = selectedViewSession?.id || currentSession.id;
+      const response = await api.post('/api/fees/record', {
+        studentId: editingFeeRecord.student.id,
+        termId: targetTermId,
+        academicSessionId: targetSessionId,
+        expectedAmount: expected
+        // NOTE: paidAmount is NOT sent — it stays as-is from individual payment records
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        toast.success('Fee adjusted successfully. Subsequent terms updated.');
+        setEditingFeeRecord(null);
+        // Refresh the view we're actually looking at
+        if (viewAllTerms) {
+          await loadStudentsAllTerms(targetSessionId);
+        } else {
+          await loadStudents(targetTermId, targetSessionId);
+          await loadSummary(targetTermId, targetSessionId);
+        }
+      } else {
+        toast.error(data.error || 'Failed to adjust fee record');
+      }
+    } catch (error) {
+      console.error('Error adjusting fee:', error);
+      toast.error('Failed to save changes');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRestrictClick = (student) => {
+    setRestrictionStudent(student);
+    setIsRestricted(student.isExamRestricted || false);
+    setRestrictionReason(student.examRestrictionReason || '');
+    setRestrictionModalOpen(true);
+  };
+
+  const saveRestriction = async () => {
+    if (!restrictionStudent) return;
+
+    try {
+      const response = await api.put(`/api/students/${restrictionStudent.id}`, {
+        isExamRestricted: isRestricted,
+        examRestrictionReason: restrictionReason
+      });
+
+      if (response.ok) {
+        alert('Restriction settings updated successfully');
+        setRestrictionModalOpen(false);
+        // Refresh data — use the VIEWED term/session
+        const refreshTermId = selectedViewTerm?.id || currentTerm.id;
+        const refreshSessionId = selectedViewSession?.id || currentSession.id;
+        if (viewAllTerms) {
+          await loadStudentsAllTerms(refreshSessionId);
+        } else {
+          await loadStudents(refreshTermId, refreshSessionId);
+        }
+      } else {
+        const data = await response.json();
+        alert(data.error || 'Failed to update restriction');
+      }
+    } catch (error) {
+      console.error('Error saving restriction:', error);
+      alert('Failed to save restriction settings');
+    }
+  };
+
+  // View mode
+  const [viewMode, setViewMode] = useState('table');
+
+  // View filters - for selecting which term/session to view
+  const [selectedViewTerm, setSelectedViewTerm] = useState(null);
+  const [selectedViewSession, setSelectedViewSession] = useState(null);
+  const [viewAllTerms, setViewAllTerms] = useState(false);
+  const [viewAllSessions, setViewAllSessions] = useState(false);
+
+  useEffect(() => {
+    if (selectedClassView) {
+      recordsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [selectedClassView]);
+
+  useEffect(() => {
+    if (currentTerm && currentSession) {
+      if (viewAllSessions) {
+        loadStudentsAllSessions();
+      } else if (viewAllTerms) {
+        loadStudentsAllTerms(selectedViewSession?.id || currentSession.id);
+      } else {
+        const tId = selectedViewTerm?.id || currentTerm.id;
+        const sId = selectedViewSession?.id || currentSession.id;
+        loadStudents(tId, sId);
+        loadSummary(tId, sId);
+      }
+    }
+  }, [strictEnrollment]);
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'misc') {
+      fetchDetailedAnalytics();
+    }
+  }, [activeTab, selectedMiscTerm, selectedMiscSession]);
+
+  const fetchDetailedAnalytics = async () => {
+    try {
+      setLoadingMisc(true);
+      let url = '/api/misc-fees/detailed-analytics';
+      const params = new URLSearchParams();
+      if (selectedMiscSession) params.append('sessionId', selectedMiscSession);
+      if (selectedMiscTerm) params.append('termId', selectedMiscTerm);
+
+      if (params.toString()) {
+        url += `?${params.toString()}`;
+      }
+
+      const response = await api.get(url);
+      if (response.ok) {
+        const data = await response.json();
+        setDetailedAnalytics(Array.isArray(data) ? data : []);
+      }
+    } catch (error) {
+      console.error('Error fetching detailed analytics:', error);
+    } finally {
+      setLoadingMisc(false);
+    }
+  };
+
+  const handleCreateMiscFee = async (e) => {
+    e.preventDefault();
+    if (!miscFeeFormData.title || !miscFeeFormData.amount) {
+      toast.error('Title and Amount are required');
+      return;
+    }
+    if (miscFeeFormData.classIds.length === 0) {
+      toast.error('Please select at least one class');
+      return;
+    }
+
+    try {
+      setMiscFeeLoading(true);
+      const response = await api.post('/api/misc-fees', {
+        ...miscFeeFormData,
+        academicSessionId: miscFeeFormData.sessionId || selectedMiscSession,
+        termId: miscFeeFormData.termId || selectedMiscTerm,
+        amount: parseFloat(miscFeeFormData.amount)
+      });
+
+      if (response.ok) {
+        toast.success('Miscellaneous fee created successfully');
+        setShowMiscFeeModal(false);
+        setMiscFeeFormData({
+          title: '',
+          description: '',
+          amount: '',
+          isCompulsory: false,
+          classIds: [],
+          sessionId: '',
+          termId: ''
+        });
+        fetchDetailedAnalytics();
+      } else {
+        const data = await response.json();
+        toast.error(data.error || 'Failed to create fee');
+      }
+    } catch (error) {
+      console.error('Error creating misc fee:', error);
+      toast.error('An error occurred while creating the fee');
+    } finally {
+      setMiscFeeLoading(false);
+    }
+  };
+
+  const handleMiscClassToggle = (classId) => {
+    const idStr = classId.toString();
+    setMiscFeeFormData(prev => ({
+      ...prev,
+      classIds: prev.classIds.includes(idStr)
+        ? prev.classIds.filter(id => id !== idStr)
+        : [...prev.classIds, idStr]
+    }));
+  };
+
+  const handleMiscPaymentSubmit = async (e) => {
+    e.preventDefault();
+    if (!selectedMiscPayment) return;
+
+    try {
+      setLoadingMisc(true);
+      const response = await api.post('/api/misc-fees/payments', {
+        studentId: selectedMiscPayment.student.id,
+        feeId: selectedMiscPayment.fee.id,
+        amount: parseFloat(miscFormData.amount),
+        paymentMethod: miscFormData.paymentMethod,
+        receiptNumber: miscFormData.receiptNumber
+      });
+
+      if (response.ok) {
+        toast.success('Payment recorded successfully');
+        setSelectedMiscPayment(null);
+        setMiscFormData({ amount: '', paymentMethod: 'cash', receiptNumber: '' });
+        fetchDetailedAnalytics(); // Refresh data
+      } else {
+        const error = await response.json();
+        toast.error(error.error || 'Failed to record payment');
+      }
+    } catch (error) {
+      console.error('Error recording misc payment:', error);
+      toast.error('An error occurred while recording payment');
+    } finally {
+      setLoadingMisc(false);
+    }
+  };
+
+  const handlePrintMiscReceipt = async (paymentId) => {
+    try {
+      const response = await api.get(`/api/misc-fees/receipt/${paymentId}`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to fetch receipt data');
+      }
+      const payment = await response.json();
+
+      const primaryColor = schoolSettings.primaryColor || '#0f766e';
+      const logoUrl = schoolSettings.logoUrl
+        ? (schoolSettings.logoUrl.startsWith('http') ? schoolSettings.logoUrl : `${API_BASE_URL}${schoolSettings.logoUrl}`)
+        : null;
+
+      // Generate security markers
+      const securityHash = btoa(`MISC-${payment.id}-${payment.student.id}`).substring(0, 12).toUpperCase();
+      const barcodeText = `MISC-${payment.id}`;
+      const barcodeUrl = `https://bwipjs-api.metafloor.com/?bcid=code128&text=${encodeURIComponent(barcodeText)}&scale=3&rotate=N&includetext=true&backgroundcolor=ffffff&height=12`;      const printWindow = window.open('', '_blank');
+      printWindow.document.write(`
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <title>Receipt - ${payment.student.admissionNumber}</title>
+        <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
+        <style>
+          @page {
+            size: auto;
+            margin: 0mm;
+          }
+          @media print {
+            html, body { margin: 0 !important; padding: 0 !important; background: white !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            .no-print { display: none !important; }
+            .receipt-card { box-shadow: none !important; border: none !important; margin: 0 auto !important; width: 74mm !important; height: 100mm !important; break-inside: avoid !important; page-break-inside: avoid !important; }
+          }
+          * { box-sizing: border-box; }
+          body {
+            font-family: 'Outfit', sans-serif;
+            margin: 0;
+            padding: 4mm;
+            background: #f1f5f9;
+            color: #1e293b;
+            line-height: 1.2;
+            font-size: 10px;
+          }
+          .receipt-card {
+            background: white;
+            width: 74mm;
+            height: 100mm;
+            margin: 0 auto;
+            border-radius: 4mm;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            position: relative;
+            border: 0.5mm solid rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+          }
+          .security-bg {
+            position: absolute;
+            inset: 0;
+            background-image: radial-gradient(${primaryColor}05 1px, transparent 1px);
+            background-size: 3mm 3mm;
+            pointer-events: none;
+            z-index: 0;
+          }
+          .watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-45deg);
+            font-size: 50px;
+            font-weight: 800;
+            color: rgba(0, 0, 0, 0.03);
+            pointer-events: none;
+            text-transform: uppercase;
+            white-space: nowrap;
+            z-index: 0;
+            letter-spacing: 2mm;
+          }
+          .receipt-header {
+            background: linear-gradient(135deg, ${primaryColor}, ${primaryColor}dd);
+            padding: 3mm 4mm;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1mm solid rgba(0,0,0,0.1);
+            position: relative;
+            z-index: 1;
+          }
+          .school-info h1 {
+            margin: 0;
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: -0.2mm;
+            line-height: 1;
+          }
+          .school-info p {
+            margin: 1mm 0 0;
+            opacity: 0.9;
+            font-size: 7px;
+            font-weight: 600;
+          }
+          .receipt-badge {
+            background: white;
+            color: ${primaryColor};
+            padding: 1mm 2mm;
+            border-radius: 1mm;
+            font-size: 8px;
+            font-weight: 800;
+            text-transform: uppercase;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+          }
+          .receipt-body {
+            padding: 3mm 4mm;
+            position: relative;
+            z-index: 1;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+          }
+          .id-line {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2mm;
+            font-size: 8px;
+            font-weight: 700;
+            color: #64748b;
+          }
+          .section-title {
+            font-size: 8px;
+            font-weight: 800;
+            color: ${primaryColor};
+            text-transform: uppercase;
+            letter-spacing: 0.5mm;
+            margin-bottom: 2mm;
+            display: flex;
+            align-items: center;
+          }
+          .section-title::after {
+            content: '';
+            flex: 1;
+            height: 0.2mm;
+            background: ${primaryColor}20;
+            margin-left: 2mm;
+          }
+          .info-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2mm;
+            margin-bottom: 2mm;
+          }
+          .info-group {
+            margin-bottom: 1.5mm;
+          }
+          .info-label {
+            font-size: 7px;
+            color: #94a3b8;
+            text-transform: uppercase;
+            font-weight: 800;
+            margin-bottom: 0.2mm;
+          }
+          .info-value {
+            font-size: 9px;
+            font-weight: 700;
+            color: #0f172a;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+          .amount-section {
+            background: #f8fafc;
+            border-radius: 2mm;
+            padding: 3mm;
+            text-align: center;
+            border: 0.5mm dashed #e2e8f0;
+            margin: 2mm 0;
+            position: relative;
+          }
+          .amount-label {
+            font-size: 8px;
+            font-weight: 800;
+            color: #64748b;
+            text-transform: uppercase;
+            margin-bottom: 1mm;
+          }
+          .amount-value {
+            font-size: 18px;
+            font-weight: 800;
+            color: ${primaryColor};
+            font-family: 'JetBrains Mono', monospace;
+          }
+          .security-footer {
+            margin-top: auto;
+            padding-top: 2mm;
+            border-top: 0.2mm solid #f1f5f9;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+          }
+          .security-hash-box {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 7px;
+            color: #64748b;
+            background: #f1f5f9;
+            padding: 0.5mm 1.5mm;
+            border-radius: 0.5mm;
+          }
+          .signatures {
+            margin-top: 2mm;
+            display: flex;
+            justify-content: center;
+          }
+          .sig-box {
+            width: 30mm;
+            text-align: center;
+          }
+          .sig-line {
+            border-top: 0.3mm solid #cbd5e1;
+            margin-bottom: 1mm;
+          }
+          .sig-label {
+            font-size: 7px;
+            color: #94a3b8;
+            font-weight: 700;
+            text-transform: uppercase;
+          }
+          .digital-seal {
+            position: absolute;
+            bottom: 15mm;
+            right: 2mm;
+            width: 20mm;
+            height: 20mm;
+            opacity: 0.6;
+            pointer-events: none;
+            z-index: 5;
+            transform: rotate(-10deg);
+          }
+        </style>
+      </head>
+      <body>
+        <div class="receipt-card">
+          <div class="security-bg"></div>
+          <div class="watermark">PAID</div>
+          
+          <div class="receipt-header">
+            <div class="school-info">
+              <h1>${schoolSettings.schoolName || 'SMS'}</h1>
+              <p>${schoolSettings.schoolAddress?.substring(0, 30) || 'Official Receipt'}</p>
+            </div>
+            <div class="receipt-badge">MISC</div>
+          </div>
+
+          <div class="receipt-body">
+            <div class="id-line">
+              <span>NO: ${payment.receiptNumber || payment.id}</span>
+              <span>${new Date(payment.paymentDate).toLocaleDateString()}</span>
+            </div>
+
+            <div class="section-title">Student Details</div>
+            <div class="info-group">
+              <div class="info-label">Student Name</div>
+              <div class="info-value">${payment.student?.user?.firstName || 'Unknown'} ${payment.student?.user?.lastName || ''}</div>
+            </div>
+            <div class="info-row">
+              <div class="info-group">
+                <div class="info-label">Student ID</div>
+                <div class="info-value">${payment.student.admissionNumber}</div>
+              </div>
+              <div class="info-group">
+                <div class="info-label">Class</div>
+                <div class="info-value">${payment.student.classModel?.name || ''} ${payment.student.classModel?.arm || ''}</div>
+              </div>
+            </div>
+
+            <div class="section-title" style="margin-top: 1mm;">Payment Info</div>
+            <div class="info-group" style="margin-bottom: 1mm;">
+              <div class="info-label">Fee Title</div>
+              <div class="info-value">${payment.fee.title}</div>
+            </div>
+            <div class="info-row">
+              <div class="info-group">
+                <div class="info-label">Method</div>
+                <div class="info-value" style="text-transform: uppercase;">${payment.paymentMethod}</div>
+              </div>
+              <div class="info-group">
+                <div class="info-label">Recorded By</div>
+                <div class="info-value">STAFF</div>
+              </div>
+            </div>
+
+            <div class="amount-section">
+              <div class="amount-label">Verified Payment</div>
+              <div class="amount-value">₦${payment.amount.toLocaleString()}</div>
+            </div>
+
+            <div style="text-align: center; margin-top: 1mm;">
+              <img src="${barcodeUrl}" alt="Barcode" style="max-width: 40mm; height: auto;" />
+            </div>
+
+            <div class="signatures">
+              <div class="sig-box">
+                <div class="sig-line"></div>
+                <div class="sig-label">Authorized Signature</div>
+              </div>
+            </div>
+
+            <div class="security-footer">
+              <div class="security-hash-box">${securityHash}</div>
+              <div style="font-size: 6px; color: #94a3b8; font-weight: 700;">
+                SECURE PRINT • ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </div>
+            </div>
+
+            <div class="digital-seal">
+              <svg width="100%" height="100%" viewBox="0 0 120 120">
+                <circle cx="60" cy="60" r="55" fill="none" stroke="${primaryColor}" stroke-width="2" stroke-dasharray="3,2" />
+                <path id="sealPath" d="M 60,60 m -40,0 a 40,40 0 1,1 80,0 a 40,40 0 1,1 -80,0" fill="none"/>
+                <text font-size="8" font-weight="800" fill="${primaryColor}">
+                  <textPath href="#sealPath">AUTHENTIC RECEIPT • ${schoolSettings.schoolName?.split(' ')[0] || 'SMS'} • </textPath>
+                </text>
+                <text x="60" y="65" text-anchor="middle" font-size="14" font-weight="900" fill="${primaryColor}">VALID</text>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="no-print" style="margin-top: 10px; display: flex; gap: 8px; justify-content: center;">
+          <button onclick="window.print()" style="padding: 6px 12px; background: ${primaryColor}; color: white; border: none; border-radius: 4px; font-weight: 800; font-size: 10px; cursor: pointer; text-transform: uppercase;">Print</button>
+          <button onclick="window.close()" style="padding: 6px 12px; background: white; color: #475569; border: 1px solid #e2e8f0; border-radius: 4px; font-weight: 800; font-size: 10px; cursor: pointer; text-transform: uppercase;">Close</button>
+        </div>
+      </body>
+      </html>
+    `);
+      printWindow.document.close();
+      
+      printWindow.onload = () => {
+        setTimeout(() => {
+          printWindow.print();
+        }, 300);
+      };
+
+      if (printWindow.document.readyState === 'complete') {
+        setTimeout(() => {
+          if (printWindow.print) printWindow.print();
+        }, 800);
+      }
+    } catch (error) {
+      toast.error('Error generating receipt: ' + error.message);
+    }
+  };
+
+  const handleDownloadMiscReceipt = async (paymentId) => {
+    if (downloadingMisc) return;
+    setDownloadingMisc(true);
+    const toastId = toast.loading('Generating PDF Receipt...');
+
+    try {
+      const response = await api.get(`/api/misc-fees/receipt/${paymentId}`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to fetch receipt data');
+      }
+      const payment = await response.json();
+
+      const primaryColor = schoolSettings.primaryColor || '#0f766e';
+      const logoUrl = schoolSettings.logoUrl
+        ? (schoolSettings.logoUrl.startsWith('http') ? schoolSettings.logoUrl : `${API_BASE_URL}${schoolSettings.logoUrl}`)
+        : null;
+
+      const securityHash = btoa(`MISC-${payment.id}-${payment.student.id}`).substring(0, 12).toUpperCase();
+      const barcodeText = `MISC-${payment.id}`;
+      const barcodeUrl = `https://bwipjs-api.metafloor.com/?bcid=code128&text=${encodeURIComponent(barcodeText)}&scale=3&rotate=N&includetext=true&backgroundcolor=ffffff&height=12`;
+
+      // Define CSS specifically for capture
+      const receiptHTML = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+          <style>
+            body { margin: 0; padding: 0; background: white; }
+            .receipt-card {
+              width: 74mm;
+              height: 100mm;
+              background: white;
+              border: 0.5mm solid #eee;
+              display: flex;
+              flex-direction: column;
+              font-family: 'Outfit', sans-serif;
+              overflow: hidden;
+            }
+            .header { background: ${primaryColor}; padding: 3mm 4mm; color: white; display: flex; justify-content: space-between; align-items: center; }
+            .school-info h1 { margin: 0; font-size: 10px; text-transform: uppercase; }
+            .school-info p { margin: 1mm 0 0; font-size: 7px; opacity: 0.9; }
+            .badge { background: white; color: ${primaryColor}; padding: 1mm 2mm; border-radius: 1mm; font-size: 8px; font-weight: 800; }
+            .body { padding: 4mm; flex: 1; display: flex; flex-direction: column; }
+            .id-line { display: flex; justify-content: space-between; font-size: 8px; font-weight: 700; color: #64748b; margin-bottom: 3mm; }
+            .section-title { font-size: 8px; font-weight: 800; color: ${primaryColor}; text-transform: uppercase; margin-bottom: 2mm; border-bottom: 0.2mm solid ${primaryColor}20; }
+            .info-group { margin-bottom: 2mm; }
+            .info-label { font-size: 7px; color: #94a3b8; text-transform: uppercase; font-weight: 800; }
+            .info-value { font-size: 9px; font-weight: 700; color: #0f172a; }
+            .amount-section { background: #f8fafc; border-radius: 2mm; padding: 3mm; text-align: center; border: 0.5mm dashed #e2e8f0; margin: 3mm 0; }
+            .amount-val { font-size: 18px; font-weight: 800; color: ${primaryColor}; }
+            .barcode { max-width: 40mm; height: auto; margin: 2mm auto; display: block; }
+            .sig-line { border-top: 0.3mm solid #cbd5e1; margin: 4mm auto 1mm; width: 30mm; }
+            .sig-label { font-size: 7px; color: #94a3b8; text-align: center; text-transform: uppercase; font-weight: 700; }
+            .footer { margin-top: auto; display: flex; justify-content: space-between; align-items: center; padding-top: 2mm; border-top: 0.2mm solid #f1f5f9; }
+            .hash { font-size: 7px; color: #64748b; background: #f1f5f9; padding: 0.5mm 1mm; }
+          </style>
+        </head>
+        <body>
+          <div id="misc-receipt-capture" class="receipt-card">
+            <div class="header">
+              <div class="school-info">
+                <h1>${schoolSettings.schoolName || 'SMS'}</h1>
+                <p>${schoolSettings.schoolAddress?.substring(0, 30) || ''}</p>
+              </div>
+              <div class="badge">MISC</div>
+            </div>
+            <div class="body">
+              <div class="id-line">
+                <span>NO: ${payment.receiptNumber || payment.id}</span>
+                <span>${new Date(payment.paymentDate).toLocaleDateString()}</span>
+              </div>
+              <div class="section-title">Student</div>
+              <div class="info-group">
+                <div class="info-label">Name</div>
+                <div class="info-value">${payment.student?.user?.firstName || ''} ${payment.student?.user?.lastName || ''}</div>
+              </div>
+              <div class="section-title">Payment</div>
+              <div class="info-group">
+                <div class="info-label">Fee Title</div>
+                <div class="info-value">${payment.fee.title}</div>
+              </div>
+              <div class="amount-section">
+                <div class="amount-val">₦${payment.amount.toLocaleString()}</div>
+              </div>
+              <img src="${barcodeUrl}" class="barcode" />
+              <div class="sig-line"></div>
+              <div class="sig-label">Authorized Signature</div>
+              <div class="footer">
+                <div class="hash">${securityHash}</div>
+                <div style="font-size: 6px; color: #94a3b8;">${new Date().toLocaleTimeString()}</div>
+              </div>
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
+
+      // Render to hidden iframe
+      const iframe = document.createElement('iframe');
+      iframe.style.position = 'fixed';
+      iframe.style.visibility = 'hidden';
+      document.body.appendChild(iframe);
+      const doc = iframe.contentWindow.document;
+      doc.open();
+      doc.write(receiptHTML);
+      doc.close();
+
+      await new Promise(r => setTimeout(r, 1500));
+
+      const container = doc.getElementById('misc-receipt-capture');
+      const canvas = await html2canvas(container, { scale: 3, useCORS: true });
+      const imgData = canvas.toDataURL('image/png');
+      
+      const pdf = new jsPDF({
+        orientation: 'p',
+        unit: 'mm',
+        format: [74, 100]
+      });
+
+      pdf.addImage(imgData, 'PNG', 0, 0, 74, 100);
+      safeDocumentDownload(pdf, `MiscReceipt-${payment.receiptNumber || payment.id}.pdf`);
+
+      document.body.removeChild(iframe);
+      toast.success('Receipt downloaded successfully', { id: toastId });
+    } catch (error) {
+      console.error('PDF Generation failed:', error);
+      toast.error('Failed to generate PDF receipt', { id: toastId });
+    } finally {
+      setDownloadingMisc(false);
+    }
+  };
+
+  const fetchData = async () => {
+    try {
+      // Get current term, session, and classes
+      const [termsRes, sessionsRes, classesRes] = await Promise.all([
+        api.get('/api/terms'),
+        api.get('/api/academic-sessions'),
+        api.get('/api/classes')
+      ]);
+
+      const termsData = await termsRes.json();
+      const sessionsData = await sessionsRes.json();
+      const classesData = await classesRes.json();
+
+      const terms = Array.isArray(termsData) ? termsData : [];
+      const sessions = Array.isArray(sessionsData) ? sessionsData : [];
+      const classesArr = Array.isArray(classesData) ? classesData : [];
+
+      const activeTerm = terms.find(t => t.isCurrent) || terms[0] || null;
+      const activeSession = sessions.find(s => s.isCurrent) || sessions[0] || null;
+
+      setCurrentTerm(activeTerm);
+      setCurrentSession(activeSession);
+      setAllTerms(terms);
+      setAllSessions(sessions);
+      setClasses(classesArr);
+
+      // Initialize misc filters
+      if (activeTerm) setSelectedMiscTerm(activeTerm.id);
+      if (activeSession) setSelectedMiscSession(activeSession.id);
+
+      setAllTerms(terms);
+      setAllSessions(sessions);
+
+      // Set default payment term/session to current
+      setSelectedPaymentTerm(activeTerm);
+      setSelectedPaymentSession(activeSession);
+
+      // Set default VIEW term/session to current
+      setSelectedViewTerm(activeTerm);
+      setSelectedViewSession(activeSession);
+
+      if (activeTerm && activeSession) {
+        await loadStudents(activeTerm.id, activeSession.id);
+        await loadSummary(activeTerm.id, activeSession.id);
+      }
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      alert('Failed to load data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleViewFilterChange = async (termId, sessionId, viewAllTerms = false, viewAllSessions = false) => {
+    setViewAllTerms(viewAllTerms);
+    setViewAllSessions(viewAllSessions);
+
+    if (viewAllSessions) {
+      setSelectedViewSession(null);
+      setSelectedViewTerm(null);
+      await loadStudentsAllSessions();
+    } else if (viewAllTerms) {
+      const session = allSessions.find(s => s.id === sessionId);
+      setSelectedViewSession(session);
+      setSelectedViewTerm(null);
+      await loadStudentsAllTerms(sessionId);
+    } else {
+      const term = allTerms.find(t => t.id === termId);
+      const session = allSessions.find(s => s.id === sessionId);
+      setSelectedViewTerm(term);
+      setSelectedViewSession(session);
+      await loadStudents(termId, sessionId);
+      await loadSummary(termId, sessionId);
+    }
+  };
+
+  const loadStudentsAllSessions = async () => {
+    try {
+      setLoading(true);
+      let allStudentsData = [];
+
+      for (const session of allSessions) {
+        const sessionTerms = allTerms.filter(t => t.academicSessionId === session.id);
+        for (const term of sessionTerms) {
+          const response = await api.get(
+            `/api/fees/students?termId=${term.id}&academicSessionId=${session.id}&ignoreJoinDate=${!strictEnrollment}`
+          );
+
+          if (!response.ok) continue;
+
+          const data = await response.json();
+          if (Array.isArray(data)) {
+            data.forEach(student => {
+              if (student.feeRecords && student.feeRecords.length > 0) {
+                student.feeRecords.forEach(record => {
+                  record.termName = term.name;
+                  record.sessionName = session.name;
+                });
+              }
+            });
+            allStudentsData = [...allStudentsData, ...data];
+          }
+        }
+      }
+
+      const studentMap = new Map();
+      allStudentsData.forEach(student => {
+        if (!studentMap.has(student.id)) {
+          studentMap.set(student.id, {
+            ...student,
+            feeRecords: []
+          });
+        }
+        const existingStudent = studentMap.get(student.id);
+        if (student.feeRecords && student.feeRecords.length > 0) {
+          existingStudent.feeRecords.push(...student.feeRecords);
+        }
+      });
+
+      const studentsArray = Array.from(studentMap.values()).map(student => {
+        const aggregatedRecord = student.feeRecords.reduce((acc, curr) => ({
+          expectedAmount: acc.expectedAmount + curr.expectedAmount,
+          paidAmount: acc.paidAmount + curr.paidAmount,
+          balance: acc.balance + curr.balance,
+          isClearedForExam: curr.isClearedForExam // Use most recent
+        }), { expectedAmount: 0, paidAmount: 0, balance: 0, isClearedForExam: true });
+
+        return {
+          ...student,
+          feeRecords: [aggregatedRecord, ...student.feeRecords]
+        };
+      });
+
+      setStudents(studentsArray);
+      calculateClassSummaries(studentsArray);
+
+      const totalExpected = studentsArray.reduce((sum, s) => sum + (s.feeRecords[0]?.expectedAmount || 0), 0);
+      const totalPaid = studentsArray.reduce((sum, s) => sum + (s.feeRecords[0]?.paidAmount || 0), 0);
+      const totalBalance = studentsArray.reduce((sum, s) => sum + (s.feeRecords[0]?.balance || 0), 0);
+      const clearedStudents = studentsArray.filter(s => s.feeRecords[0]?.isClearedForExam).length;
+
+      setSummary({
+        totalStudents: studentsArray.length,
+        totalExpected,
+        totalPaid,
+        totalBalance,
+        clearedStudents,
+        restrictedStudents: studentsArray.length - clearedStudents
+      });
+
+    } catch (error) {
+      console.error('Error loading all sessions data:', error);
+      alert('Failed to load cumulative session data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadStudentsAllTerms = async (sessionId) => {
+    try {
+      setLoading(true);
+      const termsInSession = allTerms.filter(t => t.academicSessionId === sessionId);
+      let allStudentsData = [];
+
+      for (const term of termsInSession) {
+        const response = await api.get(
+          `/api/fees/students?termId=${term.id}&academicSessionId=${sessionId}&ignoreJoinDate=${!strictEnrollment}`
+        );
+
+        if (!response.ok) {
+          console.error(`Failed to load students for term ${term.name}`);
+          continue;
+        }
+
+        const data = await response.json();
+
+        if (Array.isArray(data)) {
+          data.forEach(student => {
+            if (student.feeRecords && student.feeRecords.length > 0) {
+              student.feeRecords.forEach(record => {
+                record.termName = term.name;
+              });
+            }
+          });
+          allStudentsData = [...allStudentsData, ...data];
+        }
+      }
+
+      const studentMap = new Map();
+      allStudentsData.forEach(student => {
+        if (!studentMap.has(student.id)) {
+          studentMap.set(student.id, {
+            ...student,
+            feeRecords: []
+          });
+        }
+        const existingStudent = studentMap.get(student.id);
+        if (student.feeRecords && student.feeRecords.length > 0) {
+          existingStudent.feeRecords.push(...student.feeRecords);
+        }
+      });
+
+      const studentsArray = Array.from(studentMap.values()).map(student => {
+        // Aggregate fee records for the student
+        // Sort records by term start date to ensure the last one is the most recent
+        const sortedRecords = [...student.feeRecords].sort((a, b) => {
+          const termA = allTerms.find(t => t.id === a.termId);
+          const termB = allTerms.find(t => t.id === b.termId);
+          return (termA?.startDate || '').localeCompare(termB?.startDate || '');
+        });
+
+        const aggregatedRecord = sortedRecords.reduce((acc, curr, index) => {
+          const isLast = index === sortedRecords.length - 1;
+          return {
+            expectedAmount: acc.expectedAmount + curr.expectedAmount,
+            paidAmount: acc.paidAmount + curr.paidAmount,
+            // The true cumulative balance is the balance of the most recent term record
+            balance: isLast ? curr.balance : acc.balance,
+            // A student is cleared cumulatively only if cleared in the most recent term record
+            isClearedForExam: isLast ? curr.isClearedForExam : acc.isClearedForExam
+          };
+        }, { expectedAmount: 0, paidAmount: 0, balance: 0, isClearedForExam: true });
+
+        return {
+          ...student,
+          // We'll keep the actual records but put an aggregated summary at index 0 for UI components
+          feeRecords: [aggregatedRecord, ...student.feeRecords]
+        };
+      });
+
+      setStudents(studentsArray);
+      calculateClassSummaries(studentsArray);
+
+      // Calculate overall session summary for Cumulative View
+      const totalExpected = studentsArray.reduce((sum, s) => sum + (s.feeRecords[0]?.expectedAmount || 0), 0);
+      const totalPaid = studentsArray.reduce((sum, s) => sum + (s.feeRecords[0]?.paidAmount || 0), 0);
+      const totalBalance = studentsArray.reduce((sum, s) => sum + (s.feeRecords[0]?.balance || 0), 0);
+      const clearedStudents = studentsArray.filter(s => s.feeRecords[0]?.isClearedForExam).length;
+
+      setSummary({
+        totalStudents: studentsArray.length,
+        totalExpected,
+        totalPaid,
+        totalBalance,
+        clearedStudents,
+        restrictedStudents: studentsArray.length - clearedStudents
+      });
+
+    } catch (error) {
+      console.error('Error loading all terms data:', error);
+      alert('Failed to load cumulative data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadStudents = async (termId, sessionId) => {
+    try {
+      const response = await api.get(
+        `/api/fees/students?termId=${termId}&academicSessionId=${sessionId}&ignoreJoinDate=${!strictEnrollment}`
+      );
+
+      if (!response.ok) {
+        // API returned an error
+        const errorData = await response.json();
+        console.error('Error loading students:', errorData);
+        setStudents([]);
+        return;
+      }
+
+      const data = await response.json();
+
+      // Ensure data is an array
+      if (Array.isArray(data)) {
+        setStudents(data);
+        calculateClassSummaries(data);
+      } else {
+        console.error('Expected array but got:', typeof data);
+        setStudents([]);
+      }
+    } catch (error) {
+      console.error('Error loading students:', error);
+      setStudents([]);
+    }
+  };
+
+  const calculateClassSummaries = (studentsData) => {
+    const summaries = {};
+
+    studentsData.forEach(student => {
+      const classId = student.classId || 'historical';
+      const className = student.classId 
+        ? (student.classModel ? `${student.classModel.name}${student.classModel.arm || ''}` : 'Unknown Class')
+        : 'Historical/Alumni (No Current Class)';
+
+      if (!summaries[classId]) {
+        summaries[classId] = {
+          classId: classId,
+          className: className,
+          totalStudents: 0,
+          totalExpected: 0,
+          totalPaid: 0,
+          totalBalance: 0,
+          clearedStudents: 0,
+          unclearedStudents: 0
+        };
+      }
+
+      const feeRecord = student.feeRecords[0];
+      summaries[classId].totalStudents++;
+      summaries[classId].totalExpected += feeRecord?.expectedAmount || 0;
+      summaries[classId].totalPaid += feeRecord?.paidAmount || 0;
+      summaries[classId].totalArrears = (summaries[classId].totalArrears || 0) + (feeRecord?.openingBalance || 0);
+      summaries[classId].totalBalance += feeRecord?.balance || 0;
+
+      if (feeRecord?.isClearedForExam) {
+        summaries[classId].clearedStudents++;
+      } else {
+        summaries[classId].unclearedStudents++;
+      }
+    });
+
+    setClassSummaries(summaries);
+  };
+
+  const loadSummary = async (termId, sessionId) => {
+    try {
+      const response = await api.get(
+        `/api/fees/summary?termId=${termId}&academicSessionId=${sessionId}&ignoreJoinDate=${!strictEnrollment}`
+      );
+
+      if (!response.ok) {
+        console.error('Error loading summary: API returned error');
+        setSummary(null);
+        return;
+      }
+
+      const data = await response.json();
+
+      // Ensure data has the expected properties
+      if (data && typeof data === 'object' && 'totalStudents' in data) {
+        setSummary(data);
+      } else {
+        console.error('Invalid summary data received');
+        setSummary(null);
+      }
+    } catch (error) {
+      console.error('Error loading summary:', error);
+      setSummary(null);
+    }
+  };
+
+  const fetchStudentFeeSummary = async (studentId) => {
+    try {
+      setLoadingSummary(true);
+      // Use the VIEWED term/session as the reference point
+      const refTermId = selectedViewTerm?.id || currentTerm.id;
+      const refSessionId = selectedViewSession?.id || currentSession.id;
+      
+      const response = await api.get(`/api/fees/student/${studentId}/summary?termId=${refTermId}&academicSessionId=${refSessionId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setStudentFeeSummary(data);
+      }
+    } catch (error) {
+      console.error('Error fetching student summary:', error);
+    } finally {
+      setLoadingSummary(false);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedStudent) {
+      // Set default payment term/session to the currently viewed ones
+      setSelectedPaymentTerm(selectedViewTerm || currentTerm);
+      setSelectedPaymentSession(selectedViewSession || currentSession);
+      fetchStudentFeeSummary(selectedStudent.id);
+    } else {
+      setStudentFeeSummary(null);
+    }
+  }, [selectedStudent]);
+
+  const recordPayment = async (studentId) => {
+    if (!paymentAmount || parseFloat(paymentAmount) <= 0) {
+      alert('Please enter a valid payment amount');
+      return;
+    }
+
+    // Use the selected payment term's balance for informative messages
+    const selectedTermBalance = studentFeeSummary?.outstandingTerms?.find(
+      t => t.termId === (selectedPaymentTerm?.id || currentTerm?.id)
+    )?.balance || 0;
+
+    // Wait for summary to load to avoid false ceiling blocks
+    if (!studentFeeSummary) {
+      alert('Student financial summary is still loading. Please wait a moment...');
+      return;
+    }
+
+    const grandTotal = studentFeeSummary?.grandTotal || 0;
+    const amount = parseFloat(paymentAmount);
+
+    // Hard fee ceiling: Block if payment exceeds outstanding balance
+    if (grandTotal > 0 && amount > grandTotal) {
+      alert(
+        `⛔ FEE CEILING ERROR\n\n` +
+        `This payment (₦${formatNumber(amount)}) exceeds the student's total outstanding balance (₦${formatNumber(grandTotal)}).\n\n` +
+        `The system is configured to prevent overpayments. Please reduce the amount.`
+      );
+      return;
+    } else if (grandTotal <= 0) {
+      alert(
+        `⛔ FEE CEILING ERROR\n\n` +
+        `This student has no outstanding balance (current balance: ₦${formatNumber(grandTotal)}).\n\n` +
+        `You cannot record a payment on a cleared account.`
+      );
+      return;
+    }
+
+    try {
+      setProcessingPayment(true);
+      const response = await api.post('/api/fees/payment', {
+        studentId,
+        termId: selectedPaymentTerm?.id || currentTerm.id,
+        academicSessionId: selectedPaymentSession?.id || currentSession.id,
+        amount: parseFloat(paymentAmount),
+        paymentMethod,
+        reference: paymentReference,
+        notes: paymentNotes
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to record payment');
+      }
+
+      alert('Payment recorded successfully');
+
+      // Generate receipt
+      if (confirm('Would you like to print a receipt?')) {
+        setReceiptPayment(data.payment);
+        setReceiptStudent(selectedStudent);
+        setReceiptModalOpen(true);
+      }
+
+      // Reset form
+      setPaymentAmount('');
+      setPaymentMethod('cash');
+      setPaymentReference('');
+      setPaymentNotes('');
+      setSelectedStudent(null);
+
+      // Refresh data — use the VIEWED term/session, not the current one
+      const refreshTermId = selectedViewTerm?.id || currentTerm.id;
+      const refreshSessionId = selectedViewSession?.id || currentSession.id;
+      if (viewAllTerms) {
+        await loadStudentsAllTerms(refreshSessionId);
+      } else {
+        await loadStudents(refreshTermId, refreshSessionId);
+        await loadSummary(refreshTermId, refreshSessionId);
+      }
+    } catch (error) {
+      console.error('Error recording payment:', error);
+      alert(error.message || 'Failed to record payment');
+    } finally {
+      setProcessingPayment(false);
+    }
+  };
+
+  const updatePayment = async () => {
+    if (!editingPayment || !paymentAmount || parseFloat(paymentAmount) <= 0) {
+      alert('Please enter a valid payment amount');
+      return;
+    }
+
+    // Hard fee ceiling: Block if update causes overpayment
+    const newAmount = parseFloat(paymentAmount);
+    const oldAmount = editingPayment.amount || 0;
+    const feeRecord = historyStudent?.feeRecords?.[0];
+    if (feeRecord) {
+      const currentBalance = feeRecord.balance || 0;
+      const projectedBalance = currentBalance + oldAmount - newAmount;
+      if (projectedBalance < 0) {
+        alert(
+          `⛔ FEE CEILING ERROR\n\n` +
+          `Changing this payment to ₦${formatNumber(newAmount)} would cause an overpayment (Credit: ₦${formatNumber(Math.abs(projectedBalance))}).\n\n` +
+          `Action blocked by System Policy.`
+        );
+        return;
+      }
+    }
+
+    try {
+      setProcessingPayment(true);
+      const response = await api.put(`/api/fees/payment/${editingPayment.id}`, {
+        amount: parseFloat(paymentAmount),
+        paymentMethod,
+        reference: paymentReference,
+        notes: paymentNotes
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update payment');
+      }
+
+      alert('Payment updated successfully');
+
+      // Refresh history
+      await viewPaymentHistory(historyStudent);
+
+      // Refresh main data — use the VIEWED term/session
+      const refreshTermId = selectedViewTerm?.id || currentTerm.id;
+      const refreshSessionId = selectedViewSession?.id || currentSession.id;
+      if (viewAllTerms) {
+        await loadStudentsAllTerms(refreshSessionId);
+      } else {
+        await loadStudents(refreshTermId, refreshSessionId);
+        await loadSummary(refreshTermId, refreshSessionId);
+      }
+
+      // Close modal
+      setEditingPayment(null);
+      setPaymentAmount('');
+      setPaymentMethod('cash');
+      setPaymentReference('');
+      setPaymentNotes('');
+    } catch (error) {
+      console.error('Error updating payment:', error);
+      alert(error.message || 'Failed to update payment');
+    } finally {
+      setProcessingPayment(false);
+    }
+  };
+
+  const deletePayment = async (paymentId) => {
+    if (!confirm('⚠️ Are you sure you want to PERMANENTLY DELETE this payment? This will increase the student\'s balance and update their arrears. This action cannot be undone.')) return;
+
+    try {
+      setProcessingPayment(true);
+      const response = await api.delete(`/api/fees/payment/${paymentId}`);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to delete payment');
+      }
+
+      toast.success('Payment deleted successfully');
+
+      // Refresh history
+      await viewPaymentHistory(historyStudent);
+
+      // Refresh main data
+      const refreshTermId = selectedViewTerm?.id || (currentTerm?.id);
+      const refreshSessionId = selectedViewSession?.id || (currentSession?.id);
+      if (viewAllTerms) {
+        await loadStudentsAllTerms(refreshSessionId);
+      } else {
+        await loadStudents(refreshTermId, refreshSessionId);
+        await loadSummary(refreshTermId, refreshSessionId);
+      }
+    } catch (error) {
+      console.error('Error deleting payment:', error);
+      toast.error(error.message || 'Failed to delete payment');
+    } finally {
+      setProcessingPayment(false);
+    }
+  };
+
+  const handleResetLedger = async (studentId) => {
+    if (!confirm('⚠️ EXTREME WARNING: You are about to RESET this student\'s entire ledger. This will PERMANENTLY DELETE all payment history and fee records for this student. This action cannot be undone.\n\nType "RESET" to confirm.')) return;
+    
+    const secondConfirm = prompt('Please type RESET to confirm permanent deletion:');
+    if (secondConfirm !== 'RESET') return;
+
+    try {
+      const response = await api.delete(`/api/fees/student/${studentId}/reset`);
+      if (!response.ok) throw new Error('Reset failed');
+      
+      alert('Student ledger has been completely wiped.');
+      setEditingFeeRecord(null);
+      if (viewAllSessions) {
+        await loadStudentsAllSessions();
+      } else if (viewAllTerms) {
+        await loadStudentsAllTerms(selectedViewSession?.id || currentSession.id);
+      } else {
+        await loadStudents(selectedViewTerm?.id || currentTerm.id, selectedViewSession?.id || currentSession.id);
+        await loadSummary(selectedViewTerm?.id || currentTerm.id, selectedViewSession?.id || currentSession.id);
+      }
+    } catch (err) {
+      alert('Error: ' + err.message);
+    }
+  };
+
+  const toggleClearance = async (studentId, isRestricted) => {
+    const actionText = isRestricted ? 'Allow' : 'Restrict';
+    const confirmMsg = isRestricted
+      ? 'Allow student to print examination card?'
+      : 'Restrict student from printing examination card? Use this if they haven\'t met minimum deposit or provided valid excuse.';
+
+    if (!confirm(confirmMsg)) return;
+
+    try {
+      const targetTermId = selectedViewTerm?.id || currentTerm.id;
+      const targetSessionId = selectedViewSession?.id || currentSession.id;
+      await api.post(`/api/fees/toggle-clearance/${studentId}`, {
+        termId: targetTermId,
+        academicSessionId: targetSessionId
+      });
+
+      alert(`Student ${actionText.toLowerCase()}ed successfully`);
+      await loadStudents(targetTermId, targetSessionId);
+      await loadSummary(targetTermId, targetSessionId);
+    } catch (error) {
+      console.error('Error toggling clearance:', error);
+      alert(error.message || 'Failed to update clearance status');
+    }
+  };
+
+  const bulkToggleClearance = async (action) => {
+    const isAllowing = action === 'allow';
+    const actionText = isAllowing ? 'Allow' : 'Restrict';
+
+    if (!confirm(`${actionText} ${selectedStudents.length} selected student(s) for examination?`)) return;
+
+    try {
+      setLoading(true);
+      let successCount = 0;
+      let failCount = 0;
+
+      for (const studentId of selectedStudents) {
+        try {
+          // We use the appropriate endpoint based on action
+          const endpoint = isAllowing ? '/api/fees/clear/' : '/api/fees/revoke-clearance/';
+          const batchTermId = selectedViewTerm?.id || currentTerm.id;
+          const batchSessionId = selectedViewSession?.id || currentSession.id;
+          await api.post(`${endpoint}${studentId}`, {
+            termId: batchTermId,
+            academicSessionId: batchSessionId
+          });
+          successCount++;
+        } catch (error) {
+          failCount++;
+        }
+      }
+
+      alert(`${actionText}ed ${successCount} student(s). Failed: ${failCount}`);
+      setSelectedStudents([]);
+      const refreshTermId = selectedViewTerm?.id || currentTerm.id;
+      const refreshSessionId = selectedViewSession?.id || currentSession.id;
+      await loadStudents(refreshTermId, refreshSessionId);
+      await loadSummary(refreshTermId, refreshSessionId);
+    } catch (error) {
+      console.error('Error in bulk clearance:', error);
+      alert('Failed to process bulk action');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const viewPaymentHistory = async (student) => {
+    try {
+      if (!student) return;
+      
+      const historyTermId = selectedViewTerm?.id || 'all';
+      // Defensive: Ensure session ID is valid
+      const historySessionId = selectedViewSession?.id || currentSession?.id;
+      
+      if (!historySessionId) {
+        console.warn('Cannot fetch payment history: No academic session identified.');
+        return;
+      }
+
+      const response = await api.get(
+        `/api/fees/payments/${student.id}?termId=${historyTermId}&academicSessionId=${historySessionId}`
+      );
+
+      const data = await response.json();
+      if (response.ok && Array.isArray(data)) {
+        setPaymentHistory(data);
+        setHistoryStudent(student);
+        setShowPaymentHistory(true);
+      } else {
+        console.error('Invalid payment history data:', data);
+        setPaymentHistory([]);
+        setHistoryStudent(student);
+        setShowPaymentHistory(true);
+        toast.error(data.error || 'No payment records found or failed to load.');
+      }
+    } catch (error) {
+      console.error('Error fetching payment history:', error);
+      toast.error('Failed to load payment history');
+      setPaymentHistory([]);
+    }
+  };
+
+  const startEditPayment = (payment) => {
+    setEditingPayment(payment);
+    setPaymentAmount(payment.amount.toString());
+    setPaymentMethod(payment.paymentMethod || 'cash');
+    setPaymentReference(payment.reference || '');
+    setPaymentNotes(payment.notes || '');
+  };
+
+  const sendBulkReminders = async () => {
+    if (!confirm(`Are you sure you want to send fee payment reminders to all students with outstanding balances for ${currentTerm?.name}?`)) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await api.post('/api/fees/bulk-reminder', {
+        termId: currentTerm?.id,
+        academicSessionId: currentSession?.id,
+        classId: selectedClassView || undefined
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        alert(data.message || 'Reminders are being sent!');
+      } else {
+        alert(data.error || 'Failed to send reminders');
+      }
+    } catch (error) {
+      console.error('Error sending reminders:', error);
+      alert('Failed to send reminders');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSyncRecords = async () => {
+    // Use selected view term/session, or fall back to current term/session
+    const syncTerm = selectedViewTerm || currentTerm;
+    const syncSession = selectedViewSession || currentSession;
+
+    if (!syncTerm || !syncSession) {
+      alert('Please select a specific term and session to sync, or ensure there is an active term and session.');
+      return;
+    }
+
+    if (!confirm(`This will automatically generate missing fee records for all active students for ${syncTerm.name} (${syncSession.name}). Standard fees will be applied to non-scholarship students. Proceed?`)) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await api.post('/api/fees/sync-records', {
+        termId: syncTerm.id,
+        academicSessionId: syncSession.id,
+        ignoreJoinDate: !strictEnrollment
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        alert(data.message);
+        // Refresh the correct view after sync
+        if (viewAllSessions) {
+          await loadStudentsAllSessions();
+        } else if (viewAllTerms) {
+          await loadStudentsAllTerms(syncSession.id);
+        } else {
+          await loadStudents(syncTerm.id, syncSession.id);
+          await loadSummary(syncTerm.id, syncSession.id);
+        }
+      } else {
+        alert(data.error || 'Sync failed');
+      }
+    } catch (error) {
+      console.error('Sync error:', error);
+      alert('Failed to sync records');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const exportToCSV = async (mode = 'cumulative', specificFilter = null) => {
+    let allStudents = Array.isArray(filteredStudents) ? filteredStudents : [];
+
+    if (specificFilter === 'scholarship') {
+      const allSource = Array.isArray(students) ? students : [];
+      allStudents = allSource.filter(s => s.isScholarship);
+      mode = 'class';
+    } else if (specificFilter && specificFilter !== 'all') {
+      const allSource = Array.isArray(students) ? students : [];
+      allStudents = allSource.filter(s => s.classId === parseInt(specificFilter));
+      mode = 'class';
+    }
+
+    if (allStudents.length === 0) {
+      toast.error('No students to export');
+      return;
+    }
+
+    const schoolName = schoolSettings?.schoolName || 'School Name';
+    const schoolAddr = schoolSettings?.schoolAddress || '';
+    const termName = selectedViewTerm?.name || currentTerm?.name || '';
+    const sessionName = selectedViewSession?.name || currentSession?.name || '';
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Fee Records');
+
+    // Title styling
+    worksheet.mergeCells('A1:H1');
+    const titleCell = worksheet.getCell('A1');
+    titleCell.value = schoolName.toUpperCase();
+    titleCell.font = { name: 'Arial', size: 16, bold: true };
+    titleCell.alignment = { vertical: 'middle', horizontal: 'center' };
+
+    worksheet.mergeCells('A2:H2');
+    const addrCell = worksheet.getCell('A2');
+    addrCell.value = schoolAddr;
+    addrCell.font = { name: 'Arial', size: 11, bold: false };
+    addrCell.alignment = { vertical: 'middle', horizontal: 'center' };
+
+    worksheet.mergeCells('A3:H3');
+    const termSessionCell = worksheet.getCell('A3');
+    termSessionCell.value = `FEE REPORT - Term: ${termName} | Session: ${sessionName}`;
+    termSessionCell.font = { name: 'Arial', size: 12, bold: true };
+    termSessionCell.alignment = { vertical: 'middle', horizontal: 'center' };
+
+    worksheet.mergeCells('A4:H4');
+    const generatedCell = worksheet.getCell('A4');
+    generatedCell.value = `Generated on: ${new Date().toLocaleString()}`;
+    generatedCell.font = { name: 'Arial', size: 10, italic: true };
+    generatedCell.alignment = { vertical: 'middle', horizontal: 'center' };
+
+    worksheet.addRow([]); // Blank row
+
+    const colHeaders = ['S/N', 'Admission Number', 'Student Name', 'Class', 'Previous Balance', 'Current Expected', 'Paid', 'Total Balance'];
+
+    const getBorder = () => ({
+      top: { style: 'thin' },
+      left: { style: 'thin' },
+      bottom: { style: 'thin' },
+      right: { style: 'thin' }
+    });
+
+    const addStyledRow = (data, isHeader = false, isSubtotal = false, isGrandTotal = false) => {
+      const row = worksheet.addRow(data);
+      row.eachCell((cell, colNumber) => {
+        cell.border = getBorder();
+        if (isHeader) {
+          cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E40AF' } };
+          cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        } else if (isGrandTotal) {
+          cell.font = { bold: true, size: 12 };
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFCD34D' } }; 
+        } else if (isSubtotal) {
+          cell.font = { bold: true };
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF3F4F6' } }; 
+        }
+
+        // Amount columns formatting
+        if (colNumber >= 5 && !isHeader && cell.value !== 'scholarship' && typeof cell.value === 'number') {
+           cell.numFmt = '#,##0.00';
+           if (!isSubtotal && !isGrandTotal) cell.alignment = { horizontal: 'right' };
+        }
+      });
+      return row;
+    };
+
+    if (mode === 'class') {
+      const classGroups = {};
+      allStudents.forEach(student => {
+        const className = student.classModel ? `${student.classModel.name}${student.classModel.arm || ''}` : 'Unassigned';
+        if (!classGroups[className]) classGroups[className] = [];
+        classGroups[className].push(student);
+      });
+
+      let grandPrev = 0, grandExpected = 0, grandPaid = 0, grandBalance = 0;
+
+      Object.keys(classGroups).sort().forEach(className => {
+        const classStudents = classGroups[className];
+        
+        worksheet.addRow([]);
+        const classTitleRow = worksheet.addRow([`CLASS: ${className}`]);
+        classTitleRow.font = { bold: true, size: 12, color: { argb: 'FF4338CA' } };
+        
+        addStyledRow(colHeaders, true);
+
+        let classPrev = 0, classExpected = 0, classPaid = 0, classBalance = 0;
+
+        classStudents.forEach((student, idx) => {
+          const fr = student.feeRecords?.[0];
+          const prev = fr?.openingBalance || 0;
+          const expected = fr?.expectedAmount || 0;
+          const paid = fr?.paidAmount || 0;
+          const balance = fr?.balance || 0;
+          classPrev += prev; classExpected += expected; classPaid += paid; classBalance += balance;
+
+          addStyledRow([
+            idx + 1,
+            student.admissionNumber || 'N/A',
+            `${student.user?.firstName || ''} ${student.user?.lastName || ''}`,
+            className,
+            student.isScholarship ? 'scholarship' : prev,
+            student.isScholarship ? 'scholarship' : expected,
+            student.isScholarship ? 'scholarship' : paid,
+            student.isScholarship ? 'scholarship' : balance
+          ]);
+        });
+
+        addStyledRow(['', '', '', `${className} SUBTOTAL:`, classPrev, classExpected, classPaid, classBalance], false, true);
+        grandPrev += classPrev; grandExpected += classExpected; grandPaid += classPaid; grandBalance += classBalance;
+      });
+
+      worksheet.addRow([]);
+      addStyledRow(['', '', '', 'GRAND TOTAL:', grandPrev, grandExpected, grandPaid, grandBalance], false, false, true);
+    } else {
+      addStyledRow(colHeaders, true);
+      let totalPrev = 0, totalExpected = 0, totalPaid = 0, totalBalance = 0;
+
+      allStudents.forEach((student, idx) => {
+        const fr = student.feeRecords?.[0];
+        const prev = fr?.openingBalance || 0;
+        const expected = fr?.expectedAmount || 0;
+        const paid = fr?.paidAmount || 0;
+        const balance = fr?.balance || 0;
+        totalPrev += prev; totalExpected += expected; totalPaid += paid; totalBalance += balance;
+
+        addStyledRow([
+          idx + 1,
+          student.admissionNumber || 'N/A',
+          `${student.user?.firstName || ''} ${student.user?.lastName || ''}`,
+          student.classModel ? `${student.classModel.name}${student.classModel.arm || ''}` : 'N/A',
+          student.isScholarship ? 'scholarship' : prev,
+          student.isScholarship ? 'scholarship' : expected,
+          student.isScholarship ? 'scholarship' : paid,
+          student.isScholarship ? 'scholarship' : balance
+        ]);
+      });
+
+      worksheet.addRow([]);
+      addStyledRow(['', '', '', 'TOTAL:', totalPrev, totalExpected, totalPaid, totalBalance], false, false, true);
+    }
+
+    worksheet.columns = [
+      { width: 5 },  // SN
+      { width: 22 }, // Admission
+      { width: 35 }, // Name
+      { width: 15 }, // Class
+      { width: 18 }, // Prev
+      { width: 18 }, // Expected
+      { width: 18 }, // Paid
+      { width: 18 }, // Balance
+    ];
+
+    const buf = await workbook.xlsx.writeBuffer();
+    saveAs(new Blob([buf]), `fee-records-${mode === 'class' ? 'by-class' : 'cumulative'}-${termName}-${sessionName}.xlsx`);
+  };
+
+  const exportMiscToCSV = async () => {
+    if (!detailedAnalytics.length) {
+      toast.error('No analytics data to export');
+      return;
+    }
+
+    const schoolName = schoolSettings?.schoolName || 'School Name';
+    const termName = allTerms.find(t => t.id === parseInt(selectedMiscTerm))?.name || 'All Terms';
+    const sessionName = allSessions.find(s => s.id === parseInt(selectedMiscSession))?.name || 'All Sessions';
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Miscellaneous Fees Report');
+
+    // Title styling
+    worksheet.mergeCells('A1:F1');
+    const titleCell = worksheet.getCell('A1');
+    titleCell.value = schoolName.toUpperCase();
+    titleCell.font = { name: 'Arial', size: 16, bold: true };
+    titleCell.alignment = { vertical: 'middle', horizontal: 'center' };
+
+    worksheet.mergeCells('A2:F2');
+    const termSessionCell = worksheet.getCell('A2');
+    termSessionCell.value = `MISCELLANEOUS FEES REPORT - Term: ${termName} | Session: ${sessionName}`;
+    termSessionCell.font = { name: 'Arial', size: 12, bold: true };
+    termSessionCell.alignment = { vertical: 'middle', horizontal: 'center' };
+
+    worksheet.mergeCells('A3:F3');
+    const generatedCell = worksheet.getCell('A3');
+    generatedCell.value = `Generated on: ${new Date().toLocaleString()}`;
+    generatedCell.font = { name: 'Arial', size: 10, italic: true };
+    generatedCell.alignment = { vertical: 'middle', horizontal: 'center' };
+
+    worksheet.addRow([]); // Blank row
+
+    const getBorder = () => ({
+      top: { style: 'thin' },
+      left: { style: 'thin' },
+      bottom: { style: 'thin' },
+      right: { style: 'thin' }
+    });
+
+    const addStyledRow = (data, isHeader = false, isSubtotal = false) => {
+      const row = worksheet.addRow(data);
+      row.eachCell((cell, colNumber) => {
+        cell.border = getBorder();
+        if (isHeader) {
+          cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E40AF' } };
+          cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        } else if (isSubtotal) {
+          cell.font = { bold: true, size: 11 };
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFCD34D' } }; 
+        }
+
+        // Amount formatting
+        if (!isHeader && (colNumber === 4 || colNumber === 5) && typeof cell.value === 'number') {
+           cell.numFmt = '#,##0.00';
+        }
+      });
+      return row;
+    };
+
+    detailedAnalytics.forEach(fee => {
+      worksheet.addRow([]);
+      const feeTitleRow = worksheet.addRow([`FEE: ${fee.title.toUpperCase()} (₦${formatNumber(fee.amount)})`]);
+      feeTitleRow.font = { bold: true, size: 12, color: { argb: 'FF4338CA' } };
+
+      addStyledRow(['Class', 'Student Name', 'Admission No', 'Paid', 'Balance', 'Status'], true);
+
+      fee.classes.forEach(cls => {
+        cls.students.forEach(student => {
+          const status = student.balance === 0 ? 'Fully Paid' : (student.totalPaid > 0 ? 'Partially Paid' : 'Pending');
+          addStyledRow([
+            `${cls.name}${cls.arm || ''}`,
+            student.name,
+            student.admissionNumber,
+            student.totalPaid,
+            student.balance,
+            status
+          ]);
+        });
+      });
+      
+      addStyledRow(['', '', 'SUBTOTALS:', fee.totalReceived, fee.outstanding, ''], false, true);
+    });
+
+    worksheet.columns = [
+      { width: 15 }, // Class
+      { width: 35 }, // Name
+      { width: 22 }, // Admission Number
+      { width: 18 }, // Paid
+      { width: 18 }, // Balance
+      { width: 18 }, // Status
+    ];
+
+    const buf = await workbook.xlsx.writeBuffer();
+    saveAs(new Blob([buf]), `miscellaneous-fees-report-${sessionName}-${termName}.xlsx`);
+  };
+
+  const printDetailedMiscReport = (fee) => {
+    const printWindow = window.open('', '_blank');
+    const primaryColor = schoolSettings?.primaryColor || '#0f766e';
+    const schoolName = schoolSettings?.schoolName || 'School';
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>${fee.title} - Status Report</title>
+          <style>
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+            body { font-family: 'Inter', sans-serif; padding: 40px; color: #1e293b; }
+            .header { text-align: center; border-bottom: 2px solid ${primaryColor}; padding-bottom: 20px; margin-bottom: 30px; }
+            .school-name { font-size: 24px; font-weight: 900; color: ${primaryColor}; margin: 0; }
+            .report-title { font-size: 18px; font-weight: 700; margin: 10px 0; text-transform: uppercase; }
+            .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px; }
+            .stat-card { padding: 15px; border-radius: 8px; background: #f8fafc; border: 1px solid #e2e8f0; }
+            .stat-label { font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; }
+            .stat-value { font-size: 16px; font-weight: 900; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th { text-align: left; padding: 12px; background: #f1f5f9; font-size: 11px; text-transform: uppercase; border: 1px solid #e2e8f0; }
+            td { padding: 10px; font-size: 12px; border: 1px solid #e2e8f0; }
+            .class-header { background: #f8fafc; font-weight: 700; }
+            .status-paid { color: #059669; font-weight: 700; }
+            .status-pending { color: #dc2626; font-weight: 700; }
+            @media print { .no-print { display: none; } }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1 class="school-name">${schoolName}</h1>
+            <div class="report-title">Miscellaneous Fee Status: ${fee.title}</div>
+            <div style="font-size: 12px; color: #64748b;">Generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</div>
+          </div>
+
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-label">Total Expected</div>
+              <div class="stat-value">₦${formatNumber(fee.totalExpected || 0)}</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Total Collected</div>
+              <div class="stat-value" style="color: #059669;">₦${formatNumber(fee.totalReceived || 0)}</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Total Outstanding</div>
+              <div class="stat-value" style="color: #dc2626;">₦${formatNumber(fee.outstanding || 0)}</div>
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Student Details</th>
+                <th>Class</th>
+                <th>Admission No</th>
+                <th>Amount Paid</th>
+                <th>Balance</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${(Array.isArray(fee.classes) ? fee.classes : []).map(cls => `
+                <tr class="class-header">
+                  <td colspan="6">${cls.name} ${cls.arm || ''} (${cls.students.length} students)</td>
+                </tr>
+                ${(Array.isArray(cls.students) ? cls.students : []).map(s => `
+                  <tr>
+                    <td>${s.name}</td>
+                    <td>${cls.name}</td>
+                    <td>${s.admissionNumber}</td>
+                    <td>₦${formatNumber(s.totalPaid)}</td>
+                    <td>₦${formatNumber(s.balance)}</td>
+                    <td class="${s.balance === 0 ? 'status-paid' : 'status-pending'}">
+                      ${s.balance === 0 ? 'FULLY PAID' : (s.totalPaid > 0 ? 'PARTIAL' : 'PENDING')}
+                    </td>
+                  </tr>
+                `).join('')}
+              `).join('')}
+            </tbody>
+          </table>
+          <script>window.print();</script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
+  const [downloadingDetailedMisc, setDownloadingDetailedMisc] = useState(false);
+  const handleDownloadDetailedMiscReport = async (fee) => {
+    if (downloadingDetailedMisc) return;
+    setDownloadingDetailedMisc(true);
+    const toastId = toast.loading('Generating Detailed Report PDF...');
+
+    try {
+      const primaryColor = schoolSettings?.primaryColor || '#0f766e';
+      const schoolName = schoolSettings?.schoolName || 'School';
+
+      const reportHTML = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+          <style>
+            body { font-family: 'Inter', sans-serif; padding: 20px; color: #1e293b; background: white; }
+            .report-container { width: 210mm; background: white; }
+            .header { text-align: center; border-bottom: 2px solid ${primaryColor}; padding-bottom: 20px; margin-bottom: 30px; }
+            .school-name { font-size: 24px; font-weight: 900; color: ${primaryColor}; margin: 0; }
+            .report-title { font-size: 18px; font-weight: 700; margin: 10px 0; text-transform: uppercase; }
+            .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px; }
+            .stat-card { padding: 15px; border-radius: 8px; background: #f8fafc; border: 1px solid #e2e8f0; }
+            .stat-label { font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; }
+            .stat-value { font-size: 16px; font-weight: 900; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th { text-align: left; padding: 12px; background: #f1f5f9; font-size: 11px; text-transform: uppercase; border: 1px solid #e2e8f0; }
+            td { padding: 10px; font-size: 10px; border: 1px solid #e2e8f0; }
+            .class-header { background: #f8fafc; font-weight: 700; }
+            .status-paid { color: #059669; font-weight: 700; }
+            .status-pending { color: #dc2626; font-weight: 700; }
+          </style>
+        </head>
+        <body>
+          <div id="detailed-report-capture" class="report-container">
+            <div class="header">
+              <h1 class="school-name">${schoolName}</h1>
+              <div class="report-title">Miscellaneous Fee Status: ${fee.title}</div>
+              <div style="font-size: 10px; color: #64748b;">Generated on ${new Date().toLocaleDateString()}</div>
+            </div>
+            <div class="stats-grid">
+              <div class="stat-card">
+                <div class="stat-label">Total Expected</div>
+                <div class="stat-value">₦${formatNumber(fee.totalExpected || 0)}</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">Total Collected</div>
+                <div class="stat-value" style="color: #059669;">₦${formatNumber(fee.totalReceived || 0)}</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">Total Outstanding</div>
+                <div class="stat-value" style="color: #dc2626;">₦${formatNumber(fee.outstanding || 0)}</div>
+              </div>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Student</th>
+                  <th>Class</th>
+                  <th>Admission No</th>
+                  <th>Paid</th>
+                  <th>Balance</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${(Array.isArray(fee.classes) ? fee.classes : []).map(cls => `
+                  <tr class="class-header">
+                    <td colspan="6">${cls.name} ${cls.arm || ''}</td>
+                  </tr>
+                  ${(Array.isArray(cls.students) ? cls.students : []).map(s => `
+                    <tr>
+                      <td>${s.name}</td>
+                      <td>${cls.name}</td>
+                      <td>${s.admissionNumber}</td>
+                      <td>₦${formatNumber(s.totalPaid)}</td>
+                      <td>₦${formatNumber(s.balance)}</td>
+                      <td class="${s.balance === 0 ? 'status-paid' : 'status-pending'}">
+                        ${s.balance === 0 ? 'FULLY PAID' : (s.totalPaid > 0 ? 'PARTIAL' : 'PENDING')}
+                      </td>
+                    </tr>
+                  `).join('')}
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </body>
+        </html>
+      `;
+
+      const iframe = document.createElement('iframe');
+      iframe.style.position = 'fixed';
+      iframe.style.visibility = 'hidden';
+      document.body.appendChild(iframe);
+      const doc = iframe.contentWindow.document;
+      doc.open();
+      doc.write(reportHTML);
+      doc.close();
+
+      await new Promise(r => setTimeout(r, 2000));
+
+      const container = doc.getElementById('detailed-report-capture');
+      const canvas = await html2canvas(container, { scale: 2, useCORS: true });
+      const imgData = canvas.toDataURL('image/png');
+      
+      const pdf = new jsPDF({
+        orientation: 'p',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      const imgWidth = 210;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+      safeDocumentDownload(pdf, `DetailedReport-${fee.title}-${new Date().getTime()}.pdf`);
+
+      document.body.removeChild(iframe);
+      toast.success('Report downloaded successfully', { id: toastId });
+    } catch (error) {
+      console.error('PDF Generation failed:', error);
+      toast.error('Failed to generate report PDF', { id: toastId });
+    } finally {
+      setDownloadingDetailedMisc(false);
+    }
+  };
+
+  const printReceipt = (payment, student) => {
+    setReceiptPayment(payment);
+    setReceiptStudent(student);
+    setReceiptModalOpen(true);
+  };
+
+  // Filter students
+  const filteredStudents = (Array.isArray(students) ? students : []).filter(student => {
+    const feeRecord = student.feeRecords?.[0];
+    const fullName = `${student.user?.firstName || ''} ${student.user?.lastName || ''} `.toLowerCase();
+    const admissionNumber = (student.admissionNumber || '').toLowerCase();
+    const searchLower = searchQuery.toLowerCase();
+
+    const matchesSearch = fullName.includes(searchLower) || admissionNumber.includes(searchLower);
+    const matchesClass = filterClass === 'all' || student.classId === parseInt(filterClass);
+    const matchesClassView = selectedClassView === null || 
+      (selectedClassView === 'scholarship' ? student.isScholarship : 
+       (selectedClassView === 'historical' ? !student.classId : student.classId === selectedClassView));
+    const matchesStatus = filterStatus === 'all' ||
+      (filterStatus === 'cleared' && feeRecord?.isClearedForExam) ||
+      (filterStatus === 'not-cleared' && !feeRecord?.isClearedForExam) ||
+      (filterStatus === 'owing' && feeRecord?.balance > 0) ||
+      (filterStatus === 'paid' && feeRecord?.balance === 0);
+
+    return matchesSearch && matchesClass && matchesClassView && matchesStatus;
+  });
+
+  const toggleStudentSelection = (studentId) => {
+    setSelectedStudents(prev =>
+      prev.includes(studentId)
+        ? prev.filter(id => id !== studentId)
+        : [...prev, studentId]
+    );
+  };
+
+  const selectAll = () => {
+    if (selectedStudents.length === filteredStudents.length) {
+      setSelectedStudents([]);
+    } else {
+      setSelectedStudents(filteredStudents.map(s => s.id));
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading fee records...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-7xl mx-auto p-6">
+      {/* Header with Diagnostics */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 p-6 bg-gradient-to-br from-slate-900 to-indigo-950 rounded-[32px] text-white shadow-2xl relative overflow-hidden">
+        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10"></div>
+        <div className="relative z-10">
+          <div className="flex items-center gap-3 mb-2">
+            <span className="px-2 py-0.5 bg-indigo-500/20 border border-indigo-400/30 rounded text-[10px] font-black uppercase tracking-widest text-indigo-300">
+              Administrative Portal
+            </span>
+            {(!selectedViewTerm?.isCurrent || !selectedViewSession?.isCurrent) && !viewAllSessions && !viewAllTerms && (
+               <span className="px-2 py-0.5 bg-amber-500/20 border border-amber-400/30 rounded text-[10px] font-black uppercase tracking-widest text-amber-300 animate-pulse">
+                Historical Records
+               </span>
+            )}
+          </div>
+          <h1 className="text-3xl md:text-4xl font-black tracking-tighter italic uppercase leading-none mb-2">Fee Management</h1>
+          <p className="text-indigo-200/60 font-bold flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
+            {viewAllSessions ? 'GLOBAL ACADEMIC HISTORY' : (viewAllTerms ? `All Terms of ${selectedViewSession?.name}` : `${selectedViewTerm?.name || currentTerm?.name || 'Loading...'} - ${selectedViewSession?.name || currentSession?.name || 'Session'}`)}
+          </p>
+        </div>
+
+        <div className="relative z-10 flex flex-wrap gap-4">
+          <div className="p-3 bg-white/5 backdrop-blur-md rounded-2xl border border-white/10 text-center min-w-[100px]">
+            <span className="text-[9px] font-black text-indigo-300 uppercase tracking-widest block mb-1">School ID</span>
+            <span className="text-lg font-black">{authUser?.schoolId || 'N/A'}</span>
+          </div>
+          <div className="p-3 bg-white/5 backdrop-blur-md rounded-2xl border border-white/10 text-center min-w-[100px]">
+            <span className="text-[9px] font-black text-indigo-300 uppercase tracking-widest block mb-1">Students</span>
+            <span className="text-lg font-black">{students.length}</span>
+          </div>
+          {students.length === 0 && !loading && !isViewOnly && (
+            <button 
+              onClick={handleSyncRecords}
+              className="bg-indigo-500 hover:bg-indigo-400 text-white px-5 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-indigo-500/20 transition-all flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+              Sync Records
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex border-b border-gray-200 mb-6">
+        <button
+          onClick={() => setActiveTab('standard')}
+          className={`px-6 py-3 font-bold text-sm uppercase tracking-widest transition-all ${activeTab === 'standard'
+            ? 'border-b-4 border-primary text-primary'
+            : 'text-gray-400 hover:text-gray-600'
+            }`}
+        >
+          Standard Fees
+        </button>
+        <button
+          onClick={() => setActiveTab('misc')}
+          className={`px-6 py-3 font-bold text-sm uppercase tracking-widest transition-all ${activeTab === 'misc'
+            ? 'border-b-4 border-primary text-primary'
+            : 'text-gray-400 hover:text-gray-600'
+            }`}
+        >
+          Other Fees
+        </button>
+      </div>
+
+      {activeTab === 'standard' ? (
+        <>
+
+          {/* Term/Session Selector */}
+          {!loading && allSessions.length > 0 && (
+            <div style={{
+              background: 'white',
+              padding: '20px',
+              borderRadius: '8px',
+              marginBottom: '24px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+            }}>
+              <h3 className="text-lg font-bold text-primary mb-4 flex items-center gap-2">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                View Fee Records
+              </h3>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+                <div>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600', fontSize: '14px', color: '#374151' }}>
+                    Academic Session
+                  </label>
+                  <select
+                    value={viewAllSessions ? 'all' : (selectedViewSession?.id || '')}
+                    onChange={(e) => {
+                      if (e.target.value === 'all') {
+                        handleViewFilterChange(null, null, true, true);
+                      } else {
+                        const sessionId = parseInt(e.target.value);
+                        const session = allSessions.find(s => s.id === sessionId);
+                        setSelectedViewSession(session);
+
+                        if (viewAllTerms) {
+                          handleViewFilterChange(null, sessionId, true, false);
+                        } else {
+                          const firstTerm = allTerms.find(t => t.academicSessionId === sessionId);
+                          if (firstTerm) {
+                            handleViewFilterChange(firstTerm.id, sessionId, false, false);
+                          }
+                        }
+                      }
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '6px',
+                      fontSize: '14px',
+                      backgroundColor: 'white',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <option value="all">📊 All Sessions (Cumulative)</option>
+                    {(Array.isArray(allSessions) ? allSessions : []).map(s => (
+                      <option key={s.id} value={s.id}>
+                        {s.name} {s.isCurrent ? '(Current)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600', fontSize: '14px', color: '#374151' }}>
+                    Term
+                  </label>
+                  <select
+                    value={viewAllTerms ? 'all' : (selectedViewTerm?.id || '')}
+                    onChange={(e) => {
+                      if (e.target.value === 'all') {
+                        handleViewFilterChange(null, selectedViewSession.id, true, false);
+                      } else {
+                        const termId = parseInt(e.target.value);
+                        handleViewFilterChange(termId, selectedViewSession.id, false, false);
+                      }
+                    }}
+                    disabled={viewAllSessions}
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '6px',
+                      fontSize: '14px',
+                      backgroundColor: 'white',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <option value="all">📊 All Terms (Cumulative)</option>
+                    {(Array.isArray(allTerms) ? allTerms : [])
+                      .filter(t => t.academicSessionId === selectedViewSession?.id)
+                      .map(t => (
+                        <option key={t.id} value={t.id}>
+                          {t.name} {t.isCurrent ? '(Current)' : ''}
+                        </option>
+                      ))
+                    }
+                  </select>
+                </div>
+
+                <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-4 rounded-xl border-2 border-primary flex flex-col justify-center">
+                  <div className="text-xs text-emerald-600 font-bold uppercase tracking-wider mb-1">Currently Viewing</div>
+                  <div className="text-primary font-black text-base">
+                    {viewAllTerms
+                      ? `${selectedViewSession?.name} - All Terms`
+                      : `${selectedViewSession?.name} - ${selectedViewTerm?.name} `
+                    }
+                  </div>
+                </div>
+
+                <div>
+                  <button
+                    onClick={() => {
+                      if (viewAllTerms) {
+                        handleViewFilterChange(null, selectedViewSession.id, true);
+                      } else {
+                        handleViewFilterChange(selectedViewTerm.id, selectedViewSession.id, false);
+                      }
+                    }}
+                    className="bg-primary hover:brightness-90 text-white flex items-center gap-2 px-5 py-2.5 rounded-md font-semibold text-sm transition-all"
+                    style={{
+                      border: 'none',
+                      cursor: 'pointer',
+                    }}
+                    onMouseOver={(e) => e.target.style.filter = 'brightness(0.9)'}
+                    onMouseOut={(e) => e.target.style.filter = 'brightness(1)'}
+                  >
+                    <span>🔄</span>
+                    <span>Refresh</span>
+                  </button>
+                </div>
+              </div>
+
+              {viewAllTerms && (
+                <div style={{
+                  marginTop: '15px',
+                  padding: '12px',
+                  background: '#fffbeb',
+                  border: '1px solid #fbbf24',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  color: '#92400e'
+                }}>
+                  ℹ️ <strong>Cumulative View:</strong> Showing combined fee records from all terms in {selectedViewSession?.name}.
+                  Each student shows total expected, paid, and balance across all terms.
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Summary Cards */}
+          {summary && (
+            <div className={`grid grid-cols-1 md:grid-cols-2 ${(!viewAllTerms && !viewAllSessions) ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-5 mb-6`}>
+              <div className="bg-gradient-to-br from-primary to-primary/90 text-white p-6 rounded-xl shadow-lg">
+                <h3 className="text-sm font-black uppercase tracking-widest mb-5 opacity-80">Quick Info</h3>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-white/80 text-sm font-medium">📊 Total Students</span>
+                    <span className="font-black text-xl text-white">{summary.totalStudents}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-white/80 text-sm font-medium">💰 Avg. Payment</span>
+                    <span className="font-black text-lg text-white">₦{summary.totalStudents > 0 ? formatNumber(summary.totalPaid / summary.totalStudents, { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : 0}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-white/80 text-sm font-medium">✅ Clearance Rate</span>
+                    <span className="font-black text-lg text-white">{summary.totalStudents > 0 ? ((summary.clearedStudents / summary.totalStudents) * 100).toFixed(1) : 0}%</span>
+                  </div>
+                  <div className="pt-3 border-t border-white/20">
+                    <button 
+                      onClick={() => setSelectedClassView(selectedClassView === 'scholarship' ? null : 'scholarship')}
+                      className={`w-full flex items-center justify-between p-2 rounded-lg transition-all ${selectedClassView === 'scholarship' ? 'bg-white/30 ring-2 ring-white/50' : 'hover:bg-white/10'}`}
+                    >
+                      <span className="text-yellow-200 text-sm font-bold uppercase tracking-tight">🎓 Scholarship Filter</span>
+                      <span className="font-black text-lg text-white">
+                        {students.filter(s => s.isScholarship).length}
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl shadow-lg p-6 text-white flex flex-col justify-between overflow-hidden">
+                <p className="text-sm font-bold text-emerald-100 uppercase tracking-wider mb-2">
+                  {viewAllTerms ? 'Total Collected (All Terms)' : viewAllSessions ? 'Total Collected (All Sessions)' : `Collected (${selectedViewTerm?.name || 'This Term'})`}
+                </p>
+                <p className="text-3xl font-black break-words">₦{formatNumber(summary.totalPaid)}</p>
+                <div className="mt-4 pt-3 border-t border-white/20">
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 bg-white/20 rounded-full h-2">
+                      <div className="bg-white h-2 rounded-full transition-all" style={{ width: `${summary.totalExpected > 0 ? Math.min((summary.totalPaid / summary.totalExpected) * 100, 100) : 0}%` }}></div>
+                    </div>
+                    <span className="text-sm font-black text-emerald-100">
+                      {summary.totalExpected > 0 ? ((summary.totalPaid / summary.totalExpected) * 100).toFixed(1) : 0}%
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-emerald-200 mt-1.5 font-bold uppercase tracking-wider">
+                    {viewAllTerms || viewAllSessions ? 'Cumulative collection across periods' : 'Collection for this term only — does not include other terms'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Term Outstanding Card - Only shown when viewing a specific term */}
+              {!viewAllTerms && !viewAllSessions && (
+                <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl shadow-lg p-6 text-white flex flex-col justify-between overflow-hidden">
+                  <p className="text-sm font-bold text-orange-100 uppercase tracking-wider mb-2">Term Outstanding</p>
+                  <p className="text-3xl font-black break-words">₦{formatNumber(summary.totalBalance)}</p>
+                  <div className="mt-4 pt-3 border-t border-white/20">
+                    <div className="flex items-center justify-between">
+                      <span className="text-orange-100 text-xs font-bold uppercase">For {selectedViewTerm?.name || 'Current Term'}</span>
+                      <span className="font-black text-orange-100 text-sm">
+                        {summary.totalExpected > 0 ? ((summary.totalBalance / summary.totalExpected) * 100).toFixed(1) : 0}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Total Cumulative Outstanding Card */}
+              <div className="bg-gradient-to-br from-red-600 to-red-700 rounded-xl shadow-lg p-6 text-white flex flex-col justify-between overflow-hidden">
+                <p className="text-sm font-bold text-red-100 uppercase tracking-wider mb-2">Total Outstanding</p>
+                <p className="text-3xl font-black break-words">₦{formatNumber(summary.grandTotalBalance || summary.totalBalance)}</p>
+                <div className="mt-4 pt-3 border-t border-white/20">
+                   <div className="flex items-center justify-between">
+                      <span className="text-red-100 text-xs font-bold uppercase">All History (Grand Total)</span>
+                      <div className="flex h-2 w-2 rounded-full bg-white animate-pulse"></div>
+                   </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+
+
+          {/* Filters and Actions */}
+          <div ref={recordsRef} className="bg-white rounded-lg shadow p-4 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Search</label>
+                <input
+                  type="text"
+                  placeholder="Search by name or admission number..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-primary focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Filter by Class</label>
+                <select
+                  value={filterClass}
+                  onChange={(e) => setFilterClass(e.target.value)}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-primary focus:border-transparent"
+                >
+                  <option value="all">All Classes</option>
+                  {(Array.isArray(classes) ? classes : []).map(cls => (
+                    <option key={cls.id} value={cls.id}>
+                      {cls.name}{cls.arm || ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Filter by Status</label>
+                <select
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-primary focus:border-transparent"
+                >
+                  <option value="all">All Status</option>
+                  <option value="cleared">✅ Access Allowed</option>
+                  <option value="not-cleared">🚫 Restricted</option>
+                  <option value="owing">💸 Owing</option>
+                  <option value="paid">💰 Fully Paid</option>
+                </select>
+              </div>
+              <div className="flex flex-col">
+                <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+                  <span>🛡️ Enrollment Logic</span>
+                </label>
+                <div 
+                  onClick={() => setStrictEnrollment(!strictEnrollment)}
+                  className={`relative w-full h-10 rounded-lg cursor-pointer transition-all duration-300 flex items-center px-2 gap-3 border ${strictEnrollment ? 'bg-indigo-600 border-indigo-600 shadow-sm' : 'bg-gray-100 border-gray-300'}`}
+                >
+                  <div className={`w-6 h-6 rounded-md bg-white transition-all duration-300 shadow-md flex items-center justify-center transform ${strictEnrollment ? 'translate-x-0' : 'translate-x-[calc(100%-1.5rem)]'}`} style={{
+                    marginLeft: strictEnrollment ? '0' : 'auto'
+                  }}>
+                    {strictEnrollment ? '✅' : '🔓'}
+                  </div>
+                  <span className={`text-[10px] font-bold uppercase tracking-tight flex-1 ${strictEnrollment ? 'text-white text-left' : 'text-gray-600 text-right'}`}>
+                    {strictEnrollment ? 'Strict' : 'Flexible'}
+                  </span>
+                  
+                  {/* Tooltip help icon */}
+                  <div className="group relative">
+                    <span className={`text-[10px] ${strictEnrollment ? 'text-indigo-200' : 'text-gray-400'}`}>ⓘ</span>
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-gray-900 text-white text-[9px] rounded shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 text-center leading-tight">
+                      {strictEnrollment ? 'Strict: Only students joined before term end are charged' : 'Flexible: All active students are charged regardless of join date'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">View Mode</label>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setViewMode('table')}
+                    className={`flex-1 px-3 py-2 rounded-md ${viewMode === 'table' ? 'bg-primary text-white' : 'bg-gray-200 text-gray-700'}`}
+                  >
+                    Table
+                  </button>
+                  <button
+                    onClick={() => setViewMode('cards')}
+                    className={`flex-1 px-3 py-2 rounded-md ${viewMode === 'cards' ? 'bg-primary text-white' : 'bg-gray-200 text-gray-700'}`}
+                  >
+                    Cards
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2 sm:gap-3">
+              <div className="flex-1 sm:flex-none relative group min-w-[220px]">
+                <select
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      exportToCSV('class', e.target.value);
+                      e.target.value = ''; // reset after selection
+                    }
+                  }}
+                  className="appearance-none w-full pl-4 pr-12 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-xs sm:text-sm font-bold cursor-pointer outline-none shadow-md transition-all"
+                  defaultValue=""
+                >
+                  <option value="" disabled>📥 Export By Class...</option>
+                  <option value="all">All Classes</option>
+                  {(Array.isArray(classes) ? classes : []).map(cls => (
+                    <option key={cls.id} value={cls.id}>
+                      {cls.name}{cls.arm || ''}
+                    </option>
+                  ))}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 border-l border-white/30 pl-2 ml-2">
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
+              <button
+                onClick={() => exportToCSV('cumulative')}
+                className="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 flex items-center justify-center gap-2 text-xs sm:text-sm font-semibold"
+              >
+                <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Cumulative
+              </button>
+              {!isViewOnly && (
+                <button
+                  onClick={handleSyncRecords}
+                  className="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 flex items-center justify-center gap-2 text-xs sm:text-sm font-semibold"
+                >
+                  <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Sync
+                </button>
+              )}
+
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-stretch sm:items-center mt-6 w-full">
+                <div className="flex-1 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 p-4 rounded-2xl flex items-center gap-4 shadow-sm">
+                  <div className="p-3 bg-blue-600 text-white rounded-xl shadow-lg shrink-0">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-0.5">Currently Viewing</p>
+                    <p className="text-sm font-bold text-blue-900 truncate">
+                      {viewAllSessions ? 'GLOBAL ACADEMIC HISTORY - ALL SESSIONS' : `${selectedViewSession?.name || 'Loading...'} - ${viewAllTerms ? 'All Terms (Cumulative)' : (selectedViewTerm?.name || 'Term')}`}
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => viewAllSessions ? loadStudentsAllSessions() : (viewAllTerms ? loadStudentsAllTerms(selectedViewSession.id) : handleViewFilterChange(selectedViewTerm.id, selectedViewSession.id, false, false))}
+                  className="bg-primary text-white px-6 py-4 rounded-2xl shadow-lg hover:brightness-95 transition-all active:scale-95 flex items-center justify-center gap-2 font-black uppercase text-xs tracking-widest sm:w-auto w-full"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Refresh View
+                </button>
+              </div>
+
+              {viewAllSessions && (
+                <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-3">
+                  <svg className="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <p className="text-xs font-bold text-amber-800">
+                    Showing aggregated fee records from every academic session in history. Each student shows their total expected, paid, and balance across all years.
+                  </p>
+                </div>
+              )}
+
+              {viewAllTerms && !viewAllSessions && (
+                <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-xl flex items-center gap-3">
+                  <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <p className="text-xs font-bold text-blue-800">
+                    Showing cumulative fee records for all terms within the selected academic session. Each student shows their total expected, paid, and balance across all terms.
+                  </p>
+                </div>
+              )}
+
+              <div className="w-full sm:w-auto flex flex-wrap gap-2">
+                {selectedStudents.length > 0 && !isViewOnly && (
+                  <>
+                    <button
+                      onClick={() => bulkToggleClearance('allow')}
+                      className="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 flex items-center justify-center gap-2 text-xs font-bold"
+                    >
+                      ✅ Allow ({selectedStudents.length})
+                    </button>
+                    <button
+                      onClick={() => bulkToggleClearance('restrict')}
+                      className="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 flex items-center justify-center gap-2 text-xs font-bold"
+                    >
+                      🚫 Restrict ({selectedStudents.length})
+                    </button>
+                  </>
+                )}
+              </div>
+
+              {!isViewOnly && (
+                <button
+                  onClick={sendBulkReminders}
+                  className="w-full sm:w-auto px-4 py-2.5 bg-orange-600 text-white rounded-md hover:bg-orange-700 flex items-center justify-center gap-2 text-xs sm:text-sm font-bold shadow-lg"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                  Send Fee Reminders
+                </button>
+              )}
+            </div>
+            <div className="mt-4 text-[10px] sm:text-xs text-gray-400 font-bold uppercase tracking-widest text-center sm:text-left">
+              Showing {filteredStudents.length} of {students.length} students
+            </div>
+          </div>
+
+          {/* Class Navigation */}
+          <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-gray-900">📚 Navigate by Class</h2>
+              {selectedClassView !== null && (
+                <button
+                  onClick={() => setSelectedClassView(null)}
+                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                  </svg>
+                  View All Classes
+                </button>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {/* All Classes Card */}
+              <button
+                onClick={() => setSelectedClassView(null)}
+                className={`p-5 rounded-xl border-2 transition-all transform hover:scale-105 hover:shadow-lg text-left ${selectedClassView === null
+                  ? 'border-primary bg-primary/5 shadow-md'
+                  : 'border-gray-200 bg-white hover:border-primary/50'
+                  }`}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-lg font-bold text-gray-900">All Classes</h3>
+                  {selectedClassView === null && (
+                    <svg className="w-6 h-6 text-primary" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Students:</span>
+                    <span className="font-bold text-gray-900">{students.length}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Expected:</span>
+                    <span className="font-bold text-blue-600">₦{formatNumber(summary?.totalExpected || 0)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Collected:</span>
+                    <span className="font-bold text-green-600">₦{formatNumber(summary?.totalPaid || 0)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Balance:</span>
+                    <span className="font-bold text-red-600">₦{formatNumber(summary?.totalBalance || 0)}</span>
+                  </div>
+                  <div className="mt-4 pt-4 border-t border-gray-100">
+                    <div className="w-full bg-gray-100 rounded-full h-1.5">
+                      <div
+                        className="bg-gradient-to-r from-green-500 to-primary h-1.5 rounded-full transition-all"
+                        style={{
+                          width: `${summary?.totalExpected > 0 ? (summary.totalPaid / summary.totalExpected) * 100 : 0}%`
+                        }}
+                      ></div>
+                    </div>
+                    <p className="text-[10px] text-gray-400 mt-1.5 text-center font-medium">
+                      {summary?.totalExpected > 0 ? ((summary.totalPaid / summary.totalExpected) * 100).toFixed(1) : 0}% overall collection
+                    </p>
+                  </div>
+                </div>
+              </button>
+
+              {/* Individual Class Cards */}
+              {Object.values(classSummaries || {}).map((classSummary) => (
+                <button
+                  key={classSummary.classId}
+                  onClick={() => setSelectedClassView(classSummary.classId)}
+                  className={`p-5 rounded-xl border-2 transition-all transform hover:scale-105 hover:shadow-lg text-left ${selectedClassView === classSummary.classId
+                    ? 'border-primary bg-primary/5 shadow-md'
+                    : 'border-gray-200 bg-white hover:border-primary/50'
+                    }`}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-lg font-bold text-gray-900">{classSummary.className}</h3>
+                    {selectedClassView === classSummary.classId && (
+                      <svg className="w-6 h-6 text-primary" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Students:</span>
+                      <span className="font-bold text-gray-900">{classSummary.totalStudents}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500 font-medium">Expected (Term):</span>
+                      <span className="font-black text-blue-600 tracking-tight">₦{formatNumber(classSummary.totalExpected)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500 font-medium">Collected (Term):</span>
+                      <span className="font-black text-emerald-600 tracking-tight">₦{formatNumber(classSummary.totalPaid)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm pt-1 border-t border-dashed border-gray-100">
+                      <span className="text-gray-400 italic text-[11px]">Previous Arrears:</span>
+                      <span className="font-bold text-gray-400 text-[11px]">₦{formatNumber(classSummary.totalArrears || 0)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm pt-1 mt-1 border-t-2 border-gray-100">
+                      <span className="text-gray-900 font-black uppercase text-[10px]">Total Balance:</span>
+                      <span className="font-black text-red-600 tracking-tight">₦{formatNumber(classSummary.totalBalance)}</span>
+                    </div>
+                    <div className="mt-3 pt-3 border-t border-gray-100">
+                      <div className="flex justify-between text-xs font-medium">
+                        <span className="text-gray-400 uppercase tracking-tighter">Allowed:</span>
+                        <span className="font-bold text-indigo-600">{classSummary.clearedStudents}</span>
+                      </div>
+                      <div className="flex justify-between text-xs font-medium mt-1">
+                        <span className="text-gray-400 uppercase tracking-tighter">Restricted:</span>
+                        <span className="font-bold text-amber-600">{classSummary.unclearedStudents}</span>
+                      </div>
+                    </div>
+                    {/* Progress Bar */}
+                    <div className="mt-3">
+                      <div className="w-full bg-gray-100 rounded-full h-1.5">
+                        <div
+                          className="bg-gradient-to-r from-green-500 to-primary h-1.5 rounded-full transition-all"
+                          style={{
+                            width: `${classSummary.totalExpected > 0 ? (classSummary.totalPaid / classSummary.totalExpected) * 100 : 0}%`
+                          }}
+                        ></div>
+                      </div>
+                      <p className="text-[10px] text-gray-400 mt-1.5 text-center font-medium">
+                        {classSummary.totalExpected > 0 ? ((classSummary.totalPaid / classSummary.totalExpected) * 100).toFixed(1) : 0}% collected
+                      </p>
+                    </div>
+                  </div>
+                </button>
+              ))}
+
+
+            </div>
+
+            {selectedClassView !== null && (
+              <div className="mt-4 p-4 bg-primary/5 border border-primary/20 rounded-lg">
+                <p className="text-sm text-primary">
+                  <strong>📌 Viewing:</strong> {selectedClassView === 'scholarship' ? 'Scholarship Students' : (Object.values(classSummaries).find(c => c.classId === selectedClassView)?.className || 'Selected Class')} -
+                  Showing {filteredStudents.length} student(s)
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Table View */}
+          {viewMode === 'table' && (
+            <div className="bg-white rounded-lg shadow overflow-hidden">
+              <div className="overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0 relative">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50 sticky top-0 z-10">
+                    <tr>
+                      <th className="px-3 py-3 text-left">
+                        <input
+                          type="checkbox"
+                          checked={selectedStudents.length === filteredStudents.length && filteredStudents.length > 0}
+                          onChange={selectAll}
+                          className="rounded border-gray-300 text-primary focus:ring-primary"
+                        />
+                      </th>
+                      <th className="px-3 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                        Student
+                      </th>
+                      <th className="px-3 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                        Class
+                      </th>
+                      <th className="px-3 py-3 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                        Prev. Balance
+                      </th>
+                      <th className="px-3 py-3 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                        Current Expected
+                      </th>
+                      <th className="px-3 py-3 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                        Paid
+                      </th>
+                      <th className="px-3 py-3 text-right text-[10px] font-black text-red-500 uppercase tracking-widest bg-red-50/50">
+                        Total Balance
+                      </th>
+                      <th className="px-3 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {filteredStudents.map((student) => {
+                      const feeRecord = student.feeRecords[0];
+                      const prevBalance = feeRecord?.openingBalance || 0;
+                      const currentExpected = feeRecord?.expectedAmount || 0;
+                      const paid = feeRecord?.paidAmount || 0;
+                      const totalBalance = currentExpected - paid;
+                      return (
+                        <tr key={student.id} className={`hover:bg-gray-50 ${student.isScholarship ? 'bg-emerald-50/30' : ''}`}>
+                          <td className="px-3 py-4 border-b border-gray-100">
+                            <input
+                              type="checkbox"
+                              checked={selectedStudents.includes(student.id)}
+                              onChange={() => toggleStudentSelection(student.id)}
+                              className="rounded border-gray-300 text-primary focus:ring-primary"
+                            />
+                          </td>
+                          <td className="px-3 py-4 border-b border-gray-100">
+                            <div className="min-w-[140px]">
+                              <div className="font-bold text-gray-900 leading-tight">
+                                {student.user?.firstName || ''} {student.user?.lastName || ''} {student.middleName || ''}
+                              </div>
+                              <div className="text-[10px] text-gray-400 font-medium">
+                                {student.admissionNumber}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-3 py-4 text-xs font-semibold text-gray-700 border-b border-gray-100">
+                            {student.classModel ?
+                              `${student.classModel.name}${student.classModel.arm || ''}` :
+                              'N/A'}
+                          </td>
+
+                          {student.isScholarship ? (
+                            <>
+                              <td colSpan="4" className="px-3 py-4 text-[11px] font-black text-center border-b border-gray-100 text-emerald-600 uppercase tracking-widest italic bg-emerald-50/50">
+                                🎓 SCHOLARSHIP
+                              </td>
+                              <td className="px-3 py-4 border-b border-gray-100">
+                                <div className="flex gap-1.5">
+                                  <button
+                                    onClick={() => {
+                                      setScholarshipStudent(student);
+                                      setScholarshipModalOpen(true);
+                                    }}
+                                    className="flex-1 bg-emerald-600 text-white hover:bg-emerald-700 px-2 py-1 rounded text-[10px] font-black uppercase tracking-tighter shadow-sm transition-all"
+                                  >
+                                    🖨️ Print Card
+                                  </button>
+                                  {!isViewOnly && (
+                                    <button
+                                      onClick={() => handleEditFee(student)}
+                                      className="bg-gray-100 text-gray-600 hover:bg-gray-200 px-2 py-1 rounded text-[10px] font-black transition-all flex-none aspect-square w-7 flex items-center justify-center"
+                                      title="Adjust settings"
+                                    >
+                                      ⚙️
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
+                            </>
+                          ) : (
+                            <>
+                              <td className="px-3 py-4 text-xs font-bold text-right border-b border-gray-100">
+                                <span className={prevBalance > 0 ? 'text-red-500' : 'text-gray-400'}>
+                                  ₦{formatNumber(prevBalance)}
+                                </span>
+                              </td>
+                              <td className="px-3 py-4 text-xs font-bold text-gray-900 text-right border-b border-gray-100">
+                                ₦{formatNumber(currentExpected)}
+                              </td>
+                              <td className="px-3 py-4 text-xs font-black text-green-600 text-right border-b border-gray-100">
+                                ₦{formatNumber(paid)}
+                              </td>
+                              <td className="px-3 py-4 text-xs font-black text-right border-b border-gray-100 bg-red-50/20">
+                                <span className={student.feeRecords[0]?.balance > 0 ? 'text-red-700' : (student.feeRecords[0]?.balance < 0 ? 'text-emerald-700' : 'text-gray-400')}>
+                                  ₦{formatNumber(student.feeRecords[0]?.balance || 0)}
+                                </span>
+                              </td>
+                              <td className="px-3 py-4 border-b border-gray-100">
+                                <div className="flex flex-wrap gap-1.5 min-w-[160px]">
+                                  {!isViewOnly && (
+                                    <button
+                                      onClick={() => setSelectedStudent(student)}
+                                      className="bg-primary/10 text-primary hover:bg-primary hover:text-white px-2 py-1 rounded text-[10px] font-black uppercase tracking-tighter transition-all"
+                                    >
+                                      💰 Pay
+                                    </button>
+                                  )}
+                                  <button
+                                    onClick={() => viewPaymentHistory(student)}
+                                    className="bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white px-2 py-1 rounded text-[10px] font-black uppercase tracking-tighter transition-all"
+                                  >
+                                    🕒 {isViewOnly ? 'View Records' : 'Edit Records'}
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      setReceiptStudent(student);
+                                      setReceiptPayment(null);
+                                      setReceiptModalOpen(true);
+                                    }}
+                                    className="bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white px-2 py-1 rounded text-[10px] font-black uppercase tracking-tighter transition-all"
+                                  >
+                                    🖨️ Receipt
+                                  </button>
+                                  {!isViewOnly && (
+                                    <button
+                                      onClick={() => handleEditFee(student)}
+                                      className="bg-orange-50 text-orange-600 hover:bg-orange-600 hover:text-white px-2 py-1 rounded text-[10px] font-black uppercase tracking-tighter transition-all"
+                                    >
+                                      ⚙️ Adjust
+                                    </button>
+                                  )}
+                                  <a
+                                    href={`https://wa.me/${student.parentGuardianPhone?.replace(/\D/g, '') || ''}?text=${encodeURIComponent(`Hello ${student.parentGuardianName}, this is a friendly reminder from ${schoolSettings.schoolName} regarding the outstanding fees for ${student.user?.firstName} (${student.admissionNumber}). The current balance is ₦${formatNumber(student.feeRecords[0]?.balance || 0)}. Please kindly make payments at your earliest convenience. Thank you.`)}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="bg-green-50 text-green-600 hover:bg-green-600 hover:text-white px-2 py-1 rounded text-[10px] font-black uppercase tracking-tighter transition-all flex items-center gap-1"
+                                  >
+                                    <span>📱</span> WhatsApp
+                                  </a>
+                                </div>
+                              </td>
+                            </>
+                          )}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Cards View */}
+          {viewMode === 'cards' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {filteredStudents.map((student) => {
+                const feeRecord = student.feeRecords[0];
+                const prevBalance = feeRecord?.openingBalance || 0;
+                const currentExpected = feeRecord?.expectedAmount || 0;
+                const paid = feeRecord?.paidAmount || 0;
+                const totalBalance = currentExpected - paid; // Changed to term-specific balance
+                const totalDue = prevBalance + currentExpected;
+                const paymentPercent = totalDue > 0 ? Math.min((paid / totalDue) * 100, 100) : 0;
+
+                if (student.isScholarship) {
+                  return (
+                    <div key={student.id} className="rounded-2xl overflow-hidden shadow-lg border border-emerald-200 bg-gradient-to-br from-emerald-500 to-teal-700 text-white p-5 relative">
+                      <div className="absolute top-0 right-0 -mr-6 -mt-6 w-24 h-24 rounded-full bg-white/10 blur-2xl"></div>
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-10 h-10 rounded-full bg-white/20 border border-white/30 flex items-center justify-center font-black text-sm">
+                          {student.user?.firstName?.[0]}{student.user?.lastName?.[0]}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-black text-sm truncate">{student.user?.firstName || ''} {student.user?.lastName || ''} {student.middleName || ''}</p>
+                          <p className="text-emerald-100 text-xs font-medium">{student.admissionNumber}</p>
+                        </div>
+                        <span className="px-2 py-0.5 bg-yellow-400 text-yellow-900 text-[9px] font-black uppercase rounded-sm">Scholar</span>
+                      </div>
+                      <p className="text-sm font-bold text-emerald-100">
+                        {student.classModel ? `${student.classModel.name}${student.classModel.arm || ''}` : 'N/A'}
+                      </p>
+                      <p className="text-xs text-emerald-200 mt-2 italic">Full scholarship — fees waived</p>
+                      <div className="flex gap-2 mt-4 pt-3 border-t border-white/20">
+                        <button onClick={() => viewPaymentHistory(student)} className="flex-1 bg-white/20 hover:bg-white/30 text-white text-xs font-bold py-1.5 rounded-lg transition-all">{isViewOnly ? 'View Records' : 'Edit Records'}</button>
+                        <button onClick={() => { setReceiptStudent(student); setReceiptPayment(null); setReceiptModalOpen(true); }} className="flex-1 bg-white/20 hover:bg-white/30 text-white text-xs font-bold py-1.5 rounded-lg transition-all">Receipt</button>
+                      </div>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div key={student.id} className="rounded-2xl overflow-hidden shadow-md border border-gray-100 bg-white hover:shadow-lg transition-all">
+                    {/* Card Header */}
+                    <div className="p-4 border-b border-gray-50">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center font-black text-primary text-sm">
+                          {student.user?.firstName?.[0]}{student.user?.lastName?.[0]}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-gray-900 text-sm truncate">{student.user?.firstName || ''} {student.user?.lastName || ''} {student.middleName || ''}</p>
+                          <p className="text-gray-400 text-xs font-medium">{student.admissionNumber}</p>
+                        </div>
+                        <span className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase ${
+                          totalBalance <= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                        }`}>
+                          {totalBalance <= 0 ? 'Cleared' : 'Owing'}
+                        </span>
+                      </div>
+                      <p className="text-xs font-semibold text-gray-500 mt-2 ml-[52px]">
+                        {student.classModel ? `${student.classModel.name}${student.classModel.arm || ''}` : 'N/A'}
+                      </p>
+                    </div>
+
+                    {/* Card Body - Financial Info */}
+                    <div className="p-4 space-y-3">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="bg-gray-50 rounded-lg p-2.5 text-center">
+                          <p className="text-[10px] font-bold text-gray-400 uppercase">Prev. Balance</p>
+                          <p className="text-sm font-black text-gray-700">₦{formatNumber(prevBalance)}</p>
+                        </div>
+                        <div className="bg-blue-50 rounded-lg p-2.5 text-center">
+                          <p className="text-[10px] font-bold text-blue-400 uppercase">Expected</p>
+                          <p className="text-sm font-black text-blue-700">₦{formatNumber(currentExpected)}</p>
+                        </div>
+                        <div className="bg-green-50 rounded-lg p-2.5 text-center">
+                          <p className="text-[10px] font-bold text-green-500 uppercase">Paid</p>
+                          <p className="text-sm font-black text-green-700">₦{formatNumber(paid)}</p>
+                        </div>
+                        <div className={`rounded-lg p-2.5 text-center ${totalBalance > 0 ? 'bg-red-50' : 'bg-emerald-50'}`}>
+                          <p className={`text-[10px] font-bold uppercase ${totalBalance > 0 ? 'text-red-400' : 'text-emerald-400'}`}>Balance</p>
+                          <p className={`text-sm font-black ${totalBalance > 0 ? 'text-red-700' : 'text-emerald-700'}`}>₦{formatNumber(totalBalance)}</p>
+                        </div>
+                      </div>
+
+                      {/* Progress Bar */}
+                      <div>
+                        <div className="w-full bg-gray-100 rounded-full h-2">
+                          <div
+                            className={`h-2 rounded-full transition-all ${paymentPercent >= 100 ? 'bg-emerald-500' : paymentPercent >= 50 ? 'bg-blue-500' : 'bg-amber-500'}`}
+                            style={{ width: `${paymentPercent}%` }}
+                          ></div>
+                        </div>
+                        <p className="text-[10px] text-gray-400 font-bold mt-1 text-center">{paymentPercent.toFixed(1)}% paid</p>
+                      </div>
+                    </div>
+
+                    {/* Card Actions */}
+                    <div className="px-4 pb-4 flex flex-wrap gap-2">
+                      {!isViewOnly && (
+                        <button onClick={() => setSelectedStudent(student)} className="flex-1 min-w-[70px] bg-primary/10 text-primary hover:bg-primary hover:text-white text-[10px] font-black uppercase py-2 rounded-lg transition-all tracking-tighter">Pay</button>
+                      )}
+                      <button onClick={() => viewPaymentHistory(student)} className="flex-1 min-w-[70px] bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white text-[10px] font-black uppercase py-2 rounded-lg transition-all tracking-tighter">{isViewOnly ? 'Records' : 'Edit'}</button>
+                      <button onClick={() => { setReceiptStudent(student); setReceiptPayment(null); setReceiptModalOpen(true); }} className="flex-1 min-w-[70px] bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white text-[10px] font-black uppercase py-2 rounded-lg transition-all tracking-tighter">Receipt</button>
+                      {!isViewOnly && (
+                        <button onClick={() => handleEditFee(student)} className="flex-1 min-w-[70px] bg-orange-50 text-orange-600 hover:bg-orange-600 hover:text-white text-[10px] font-black uppercase py-2 rounded-lg transition-all tracking-tighter">Adjust</button>
+                      )}
+                      <a
+                        href={`https://wa.me/${student.parentGuardianPhone?.replace(/\D/g, '') || ''}?text=${encodeURIComponent(`Hello ${student.parentGuardianName}, this is a friendly reminder from ${schoolSettings.schoolName} regarding the outstanding fees for ${student.user?.firstName} (${student.admissionNumber}). The current balance is ₦${formatNumber(student.feeRecords[0]?.balance || 0)}. Please kindly make payments at your earliest convenience. Thank you.`)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-1 min-w-[70px] bg-green-50 text-green-600 hover:bg-green-600 hover:text-white text-[10px] font-black uppercase py-2 rounded-lg transition-all tracking-tighter text-center flex items-center justify-center gap-1"
+                      >
+                        <span>📱</span> WA
+                      </a>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="space-y-6">
+          {/* Period Selectors for Misc Fees */}
+          <div className="bg-white p-4 rounded-xl shadow-md border border-gray-100 flex flex-wrap gap-4 items-end">
+            <div className="flex-1 min-w-[200px]">
+              <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Academic Session</label>
+              <select
+                value={selectedMiscSession || ''}
+                onChange={(e) => setSelectedMiscSession(e.target.value || null)}
+                className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-2.5 text-sm font-bold focus:ring-4 focus:ring-primary/5 outline-none transition-all"
+              >
+                <option value="">All Sessions</option>
+                {(Array.isArray(allSessions) ? allSessions : []).map(session => (
+                  <option key={session.id} value={session.id}>{session.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex-1 min-w-[200px]">
+              <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Term</label>
+              <select
+                value={selectedMiscTerm || ''}
+                onChange={(e) => setSelectedMiscTerm(e.target.value || null)}
+                className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-2.5 text-sm font-bold focus:ring-4 focus:ring-primary/5 outline-none transition-all"
+              >
+                <option value="">All Terms</option>
+                {(Array.isArray(allTerms) ? allTerms : []).map(term => (
+                  <option key={term.id} value={term.id}>{term.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={exportMiscToCSV}
+                className="px-4 py-2.5 bg-indigo-600 text-white rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-indigo-700 transition-all"
+                title="Export to Excel/CSV"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Export
+              </button>
+              <button
+                onClick={() => {
+                  setMiscFeeFormData(prev => ({
+                    ...prev,
+                    sessionId: selectedMiscSession || '',
+                    termId: selectedMiscTerm || ''
+                  }));
+                  setShowMiscFeeModal(true);
+                }}
+                className="px-6 py-2.5 bg-primary text-white rounded-xl font-black text-sm uppercase tracking-widest shadow-lg shadow-primary/20 hover:brightness-95 active:scale-95 transition-all"
+              >
+                + Create Fee Structure
+              </button>
+            </div>
+          </div>
+
+          {/* Misc Fees Summary */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-blue-500">
+              <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Total Expected</p>
+              <p className="text-2xl font-black text-gray-900">
+                ₦{formatNumber(detailedAnalytics.reduce((sum, f) => sum + (f.totalExpected || 0), 0))}
+              </p>
+            </div>
+            <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-green-500">
+              <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Total Received</p>
+              <p className="text-2xl font-black text-green-600">
+                ₦{formatNumber(detailedAnalytics.reduce((sum, f) => sum + (f.totalReceived || 0), 0))}
+              </p>
+            </div>
+            <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-red-500">
+              <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Total Outstanding</p>
+              <p className="text-2xl font-black text-red-600">
+                ₦{formatNumber(detailedAnalytics.reduce((sum, f) => sum + (f.outstanding || 0), 0))}
+              </p>
+            </div>
+          </div>
+
+          {loadingMisc ? (
+            <div className="flex justify-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {(Array.isArray(detailedAnalytics) ? detailedAnalytics : []).map(fee => (
+                <div key={fee.id} className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100">
+                  <div
+                    onClick={() => setExpandedFee(expandedFee === fee.id ? null : fee.id)}
+                    className="p-6 flex justify-between items-center cursor-pointer hover:bg-gray-50 bg-gradient-to-r from-gray-50 to-white"
+                  >
+                    <div>
+                      <h3 className="text-xl font-black text-gray-900">{fee.title}</h3>
+                      <div className="flex gap-4 mt-1">
+                        <span className="text-xs font-bold text-gray-500 uppercase tracking-tighter">
+                          Amount: ₦{formatNumber(fee.amount)}
+                        </span>
+                        <span className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase ${fee.isCompulsory ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
+                          {fee.isCompulsory ? 'Compulsory' : 'Optional'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-8">
+                      <div className="text-right hidden md:block">
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Outstanding</p>
+                        <p className="text-lg font-black text-red-600">₦{formatNumber(fee.outstanding)}</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDownloadDetailedMiscReport(fee);
+                          }}
+                          disabled={downloadingDetailedMisc}
+                          className="p-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-lg transition-colors flex items-center gap-1"
+                          title="Download PDF Report"
+                        >
+                          {downloadingDetailedMisc ? (
+                             <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                          ) : (
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                          )}
+                          <span className="text-[10px] font-black uppercase hidden sm:inline">Report</span>
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            printDetailedMiscReport(fee);
+                          }}
+                          className="p-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg transition-colors"
+                          title="Print Fee Report"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2-2h10a2 2 0 002 2v4" />
+                          </svg>
+                        </button>
+                      </div>
+                      <svg className={`w-6 h-6 transform transition-transform ${expandedFee === fee.id ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                  </div>
+
+                  {expandedFee === fee.id && (
+                    <div className="p-6 bg-gray-50 border-t border-gray-100 space-y-4">
+                      {(Array.isArray(fee.classes) ? fee.classes : []).map(cls => (
+                        <div key={cls.id} className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+                          <button
+                            onClick={() => setExpandedClass(expandedClass === `${fee.id}-${cls.id}` ? null : `${fee.id}-${cls.id}`)}
+                            className="w-full p-4 flex justify-between items-center hover:bg-gray-50 transition-colors"
+                          >
+                            <div className="flex items-center gap-3">
+                              <span className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-black text-xs">
+                                {cls.students.length}
+                              </span>
+                              <span className="font-bold text-gray-800">{cls.name} {cls.arm}</span>
+                            </div>
+                            <div className="flex items-center gap-4">
+                              <div className="text-right text-xs">
+                                <span className="text-gray-400 font-medium">Collection: </span>
+                                <span className="font-bold text-green-600">₦{formatNumber(cls.totalReceived)}</span>
+                              </div>
+                              <svg className={`w-4 h-4 transform transition-transform ${expandedClass === `${fee.id}-${cls.id}` ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                              </svg>
+                            </div>
+                          </button>
+
+                          {expandedClass === `${fee.id}-${cls.id}` && (
+                            <div className="overflow-x-auto">
+                              <table className="min-w-full divide-y divide-gray-100">
+                                <thead className="bg-gray-50">
+                                  <tr>
+                                    <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Student</th>
+                                    <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Paid</th>
+                                    <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Balance</th>
+                                    <th className="px-6 py-3 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Actions</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                  {(Array.isArray(cls.students) ? cls.students : []).map(student => (
+                                    <tr key={student.id} className="hover:bg-gray-50 transition-colors">
+                                      <td className="px-6 py-4">
+                                        <div className="font-bold text-gray-900">{student.name}</div>
+                                        <div className="text-[10px] text-gray-400 font-medium">{student.admissionNumber}</div>
+                                      </td>
+                                      <td className="px-6 py-4 font-bold text-green-600 text-sm">
+                                        ₦{formatNumber(student.totalPaid)}
+                                      </td>
+                                      <td className="px-6 py-4 font-bold text-red-600 text-sm">
+                                        ₦{formatNumber(student.balance)}
+                                      </td>
+                                      <td className="px-6 py-4 text-right">
+                                        <div className="flex justify-end gap-2">
+                                          {!isViewOnly && (
+                                            <button
+                                              onClick={() => {
+                                                setSelectedMiscPayment({ student, fee });
+                                                setMiscFormData({ ...miscFormData, amount: student.balance });
+                                              }}
+                                              className="px-3 py-1 bg-primary text-white text-[10px] font-black uppercase rounded-lg hover:brightness-90"
+                                            >
+                                              Update
+                                            </button>
+                                          )}
+                                          {student.payments.length > 0 && (
+                                            <div className="relative group">
+                                              <button
+                                                className="px-3 py-1 bg-gray-100 text-gray-600 text-[10px] font-black uppercase rounded-lg hover:bg-gray-200 flex items-center gap-1"
+                                              >
+                                                Receipts ({student.payments.length})
+                                                <span>▼</span>
+                                              </button>
+                                              <div className="absolute right-0 mt-1 w-48 bg-white border border-gray-200 rounded-xl shadow-xl z-50 hidden group-hover:block animate-in fade-in slide-in-from-top-1 duration-200">
+                                                <div className="p-2 border-b border-gray-100 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">
+                                                  Select Payment
+                                                </div>
+                                                <div className="max-h-48 overflow-y-auto">
+                                                  {(Array.isArray(student.payments) ? student.payments : []).map((p, idx) => (
+                                                    <div key={p.id} className="w-full hover:bg-primary/5 transition-colors border-b border-gray-50 flex items-center pr-2">
+                                                      <button
+                                                        onClick={() => handleDownloadMiscReceipt(p.id)}
+                                                        className="flex-1 text-left px-4 py-3 flex flex-col gap-0.5"
+                                                      >
+                                                        <span className="text-[10px] font-black text-primary uppercase">Payment #{student.payments.length - idx}</span>
+                                                        <div className="flex justify-between items-center text-xs">
+                                                          <span className="font-bold text-gray-900">₦{formatNumber(p.amount)}</span>
+                                                          <span className="text-gray-400 font-medium">{new Date(p.paymentDate).toLocaleDateString()}</span>
+                                                        </div>
+                                                      </button>
+                                                      <button
+                                                        onClick={() => handlePrintMiscReceipt(p.id)}
+                                                        className="p-2 text-gray-400 hover:text-primary transition-colors"
+                                                        title="Print (Alternative)"
+                                                      >
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                                                        </svg>
+                                                      </button>
+                                                    </div>
+                                                  ))}
+                                                </div>
+                                              </div>
+                                            </div>
+                                          )}
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Render Payment Modal, History Modal etc. */}
+      {selectedStudent && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-75 overflow-y-auto h-full w-full flex justify-center items-end sm:items-center z-50 p-0 pb-24 sm:p-4">
+          <div className="bg-white rounded-t-2xl sm:rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] sm:max-h-[85vh] flex flex-col transform transition-all">
+            <div className="flex justify-between items-center p-4 border-b border-gray-100 shrink-0">
+              <h2 className="text-lg font-black text-gray-900 uppercase tracking-tight">Record Payment</h2>
+              <button
+                onClick={() => setSelectedStudent(null)}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-4 sm:p-6 overflow-y-auto flex-1">
+              <div className="mb-6 p-4 bg-primary/5 rounded-2xl border border-primary/10">
+                <p className="text-[10px] font-black uppercase tracking-widest text-primary/60 mb-1">Student Details</p>
+                <div className="flex items-center gap-3">
+                   <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center font-black text-primary text-lg">
+                    {selectedStudent.user?.firstName?.[0]}{selectedStudent.user?.lastName?.[0]}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-black text-gray-900 text-base truncate leading-tight">
+                      {selectedStudent.user?.firstName || ''} {selectedStudent.user?.lastName || ''}
+                    </p>
+                    <p className="text-gray-400 text-xs font-bold uppercase tracking-tighter">
+                      {selectedStudent.admissionNumber} • {selectedStudent.classModel?.name || 'N/A'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                {/* Term & Session Selection */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Payment Session</label>
+                    <select
+                      value={selectedPaymentSession?.id || ''}
+                      onChange={(e) => {
+                        const sess = allSessions.find(s => s.id === parseInt(e.target.value));
+                        setSelectedPaymentSession(sess);
+                      }}
+                      className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary font-bold text-sm transition-all"
+                    >
+                      {(Array.isArray(allSessions) ? allSessions : []).map(s => (
+                        <option key={s.id} value={s.id}>{s.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Payment Term</label>
+                    <select
+                      value={selectedPaymentTerm?.id || ''}
+                      onChange={(e) => {
+                        const term = allTerms.find(t => t.id === parseInt(e.target.value));
+                        setSelectedPaymentTerm(term);
+                      }}
+                      className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary font-bold text-sm transition-all"
+                    >
+                      {(Array.isArray(allTerms) ? allTerms : []).filter(t => t.academicSessionId === selectedPaymentSession?.id).map(t => (
+                        <option key={t.id} value={t.id}>{t.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Outstanding Balances Display */}
+                {loadingSummary ? (
+                   <div className="p-4 bg-gray-50 rounded-2xl flex items-center justify-center gap-3">
+                     <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                     <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Loading Balances...</span>
+                   </div>
+                ) : studentFeeSummary?.outstandingTerms?.length > 0 && (
+                  <div className="bg-orange-50 border border-orange-100 rounded-2xl p-4">
+                    <h4 className="text-[10px] font-black text-orange-600 uppercase tracking-widest mb-3 flex items-center gap-2">
+                      <span className="flex h-2 w-2 rounded-full bg-orange-500 animate-pulse"></span>
+                      Outstanding Balances
+                    </h4>
+                    <div className="grid grid-cols-1 gap-3 max-h-60 overflow-y-auto pr-1 custom-scrollbar">
+                      {studentFeeSummary.outstandingTerms.map((term, idx) => (
+                        <div 
+                          key={idx} 
+                          className={`p-4 rounded-2xl border-2 transition-all cursor-pointer transform active:scale-95 ${
+                            selectedPaymentTerm?.id === term.termId 
+                              ? 'bg-orange-500 border-orange-600 shadow-xl text-white' 
+                              : 'bg-white border-orange-100 hover:border-orange-300 hover:shadow-md'
+                          }`}
+                          onClick={() => {
+                            const foundTerm = allTerms.find(t => t.id === term.termId);
+                            const foundSession = allSessions.find(s => s.id === term.sessionId);
+                            setSelectedPaymentTerm(foundTerm);
+                            setSelectedPaymentSession(foundSession);
+                          }}
+                        >
+                          <div className="flex justify-between items-start mb-3">
+                             <div className="flex flex-col">
+                                <span className={`text-[9px] font-black uppercase tracking-widest ${selectedPaymentTerm?.id === term.termId ? 'text-white/70' : 'text-gray-400'}`}>
+                                  {term.sessionName}
+                                </span>
+                                <span className="text-base font-black italic tracking-tighter">{term.termName}</span>
+                             </div>
+                             <div className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-tighter ${selectedPaymentTerm?.id === term.termId ? 'bg-white/20 text-white' : 'bg-orange-100 text-orange-700'}`}>
+                                Debt Breakdown
+                             </div>
+                          </div>
+                          
+                          <div className={`grid grid-cols-2 gap-4 pt-3 border-t ${selectedPaymentTerm?.id === term.termId ? 'border-white/20' : 'border-gray-50'}`}>
+                             <div>
+                                <p className={`text-[9px] font-black uppercase tracking-widest mb-0.5 ${selectedPaymentTerm?.id === term.termId ? 'text-white/60' : 'text-gray-400'}`}>Term Outstanding</p>
+                                <p className="text-sm font-black">₦{formatNumber(term.balance)}</p>
+                             </div>
+                             <div className="text-right">
+                                <p className={`text-[9px] font-black uppercase tracking-widest mb-0.5 ${selectedPaymentTerm?.id === term.termId ? 'text-white/60' : 'text-gray-400'}`}>Total (Cumulative)</p>
+                                <p className="text-sm font-black">₦{formatNumber(term.cumulativeBalance)}</p>
+                             </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <div className="flex justify-between items-center mb-1.5 ml-1">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Amount to Pay</label>
+                    <div className="flex flex-col items-end">
+                      <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                        Term Balance: ₦{formatNumber(studentFeeSummary?.outstandingTerms?.find(t => t.termId === selectedPaymentTerm?.id)?.balance || 0)}
+                      </span>
+                      <span className="text-[10px] font-black text-primary uppercase tracking-widest">
+                        Max (Total Debt): ₦{formatNumber(studentFeeSummary?.grandTotal || 0)}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-gray-400">₦</span>
+                    <input
+                      type="number"
+                      value={paymentAmount}
+                      onChange={(e) => setPaymentAmount(e.target.value)}
+                      className="w-full pl-8 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary font-black text-xl text-gray-900 transition-all placeholder:text-gray-200"
+                      placeholder="0.00"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Method</label>
+                    <select
+                      value={paymentMethod}
+                      onChange={(e) => setPaymentMethod(e.target.value)}
+                      className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary font-bold text-sm transition-all"
+                    >
+                      <option value="cash">Cash</option>
+                      <option value="bank_transfer">Bank Transfer</option>
+                      <option value="pos">POS</option>
+                      <option value="cheque">Cheque</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Reference No.</label>
+                    <input
+                      type="text"
+                      value={paymentReference}
+                      onChange={(e) => setPaymentReference(e.target.value)}
+                      className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary font-bold text-sm transition-all"
+                      placeholder="e.g. Teller #"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Notes</label>
+                  <textarea
+                    value={paymentNotes}
+                    onChange={(e) => setPaymentNotes(e.target.value)}
+                    className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary font-medium text-sm transition-all"
+                    rows="2"
+                    placeholder="Add additional details..."
+                  ></textarea>
+                </div>
+              </div>
+            </div>
+            <div className="p-4 bg-gray-50 flex justify-end gap-3 rounded-b-2xl sm:rounded-b-xl shrink-0">
+              <button
+                onClick={() => setSelectedStudent(null)}
+                className="flex-1 sm:flex-none px-4 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-xl font-bold text-sm hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+               {!isViewOnly && (
+                <button
+                  onClick={() => recordPayment(selectedStudent.id)}
+                  disabled={loadingSummary || processingPayment}
+                  className={`flex-1 sm:flex-none px-6 py-2.5 bg-primary text-white rounded-xl font-bold text-sm shadow-lg shadow-primary/20 hover:brightness-95 active:scale-95 transition-all flex items-center justify-center gap-2 ${loadingSummary || processingPayment ? 'opacity-70 cursor-not-allowed' : ''}`}
+                >
+                  {loadingSummary || processingPayment ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      {processingPayment ? 'Recording...' : 'Verifying...'}
+                    </>
+                  ) : (
+                    'Record Payment'
+                  )}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Misc Payment Modal */}
+      {selectedMiscPayment && (
+        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center z-[100] p-4 pb-24 sm:pb-4">
+          <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-md max-h-[90vh] sm:max-h-[85vh] flex flex-col overflow-hidden animate-in zoom-in duration-300">
+            <div className="p-6 bg-gradient-to-br from-primary to-primary/90 text-white shrink-0">
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <h3 className="text-2xl font-black italic tracking-tighter uppercase mb-1">Record Payment</h3>
+                  <p className="text-primary-100 text-xs font-bold uppercase tracking-widest">{selectedMiscPayment.fee.title}</p>
+                </div>
+                <button
+                  onClick={() => setSelectedMiscPayment(null)}
+                  className="p-2 hover:bg-white/10 rounded-full transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div className="bg-white/10 rounded-2xl p-4 border border-white/20">
+                <p className="text-[10px] font-black uppercase tracking-widest text-primary-100 mb-1">Student</p>
+                <p className="font-bold text-lg">{selectedMiscPayment.student.name}</p>
+                <div className="flex justify-between mt-2 pt-2 border-t border-white/10">
+                  <div className="text-xs">
+                    <span className="text-primary-100">Fee Amount:</span>
+                    <span className="font-bold ml-1">₦{formatNumber(selectedMiscPayment.fee.amount || 0)}</span>
+                  </div>
+                  <div className="text-xs">
+                    <span className="text-primary-100">Balance:</span>
+                    <span className="font-bold ml-1">₦{formatNumber(selectedMiscPayment.student.balance || 0)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <form onSubmit={handleMiscPaymentSubmit} className="flex flex-col flex-1 overflow-hidden">
+              <div className="p-6 sm:p-8 space-y-4 overflow-y-auto flex-1">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Payment Amount (₦)</label>
+                  <input
+                    type="number"
+                    required
+                    value={miscFormData.amount}
+                    onChange={(e) => setMiscFormData({ ...miscFormData, amount: e.target.value })}
+
+                    placeholder="0.00"
+                    className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-4 text-xl font-black focus:ring-4 focus:ring-primary/5 focus:border-primary outline-none transition-all"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Method</label>
+                    <select
+                      value={miscFormData.paymentMethod}
+                      onChange={(e) => setMiscFormData({ ...miscFormData, paymentMethod: e.target.value })}
+                      className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-4 py-3 text-sm font-bold focus:ring-4 focus:ring-primary/5 outline-none transition-all"
+                    >
+                      <option value="cash">Cash</option>
+                      <option value="bank">Bank Transfer</option>
+                      <option value="online">Online</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Receipt No.</label>
+                    <input
+                      type="text"
+                      value={miscFormData.receiptNumber}
+                      onChange={(e) => setMiscFormData({ ...miscFormData, receiptNumber: e.target.value })}
+                      placeholder="Optional"
+                      className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-4 py-3 text-sm font-bold focus:ring-4 focus:ring-primary/5 outline-none transition-all"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-4 p-6 sm:p-8 pt-4 border-t border-gray-100 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setSelectedMiscPayment(null)}
+                  className="flex-1 py-4 rounded-2xl font-black text-sm text-gray-500 hover:bg-gray-50 transition-all uppercase tracking-widest"
+                >
+                  Cancel
+                </button>
+                {!isViewOnly && (
+                  <button
+                    type="submit"
+                    disabled={loadingMisc}
+                    className="flex-3 bg-gray-900 text-white py-4 px-8 rounded-2xl font-black text-sm hover:bg-black active:scale-95 transition-all shadow-xl shadow-gray-200 uppercase tracking-widest disabled:opacity-50"
+                  >
+                    {loadingMisc ? 'Recording...' : 'Record Payment'}
+                  </button>
+                )}
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Payment History Modal */}
+      {showPaymentHistory && historyStudent && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[1000] p-2 sm:p-4 overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[95vh] overflow-hidden flex flex-col border border-white/20">
+            <div className="p-4 sm:p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+              <h2 className="text-xl font-black text-gray-900 italic tracking-tighter uppercase">Payment History</h2>
+              <button
+                onClick={() => setShowPaymentHistory(false)}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="p-4 sm:p-6 bg-slate-50 border-b border-gray-100">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+                <div className="col-span-2 lg:col-span-1">
+                  <span className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Student Name</span>
+                  <span className="font-bold text-gray-900 truncate block">{historyStudent.user?.firstName || 'Unknown'} {historyStudent.user?.lastName || ''}</span>
+                </div>
+                <div>
+                  <span className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Admission No</span>
+                  <span className="font-bold text-gray-900">{historyStudent.admissionNumber}</span>
+                </div>
+                <div>
+                  <span className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Total Paid</span>
+                  <span className="font-black text-green-600">
+                    ₦{formatNumber(historyStudent.feeRecords[0]?.paidAmount || 0)}
+                  </span>
+                </div>
+                <div>
+                  <span className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Outstanding</span>
+                  <span className="font-black text-red-600">
+                    ₦{formatNumber(historyStudent.feeRecords[0]?.balance || 0)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 sm:p-6 overflow-y-auto flex-1">
+              <div className="mb-4 flex items-center justify-between">
+                <p className="text-xs sm:text-sm text-gray-500 italic">
+                  📝 Use <strong>Edit</strong> to update payment records.
+                </p>
+              </div>
+              {!Array.isArray(paymentHistory) || paymentHistory.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-gray-500 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200 mx-4">
+                  <div className="text-4xl mb-2">💸</div>
+                  <p className="font-bold text-gray-600">No Payment History Found</p>
+                  <p className="text-sm">No recorded payments match the current filter criteria.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Term</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Method</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ref</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Recorder</th>
+                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {(Array.isArray(paymentHistory) ? paymentHistory : []).map((payment) => (
+                        <tr key={payment.id}>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {new Date(payment.paymentDate).toLocaleDateString()}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-indigo-600 font-bold">
+                            {payment.FeeRecord?.Term?.name || '-'}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-green-600">
+                            ₦{formatNumber(payment.amount)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">
+                            {payment.paymentMethod}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">
+                            {payment.reference || '-'}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {payment.recordedByUser?.firstName} {payment.recordedByUser?.lastName}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium flex justify-end gap-2">
+                            <button
+                              onClick={() => printReceipt(payment, historyStudent)}
+                              className="inline-flex items-center px-3 py-1 bg-indigo-50 text-indigo-700 rounded-lg hover:bg-indigo-100 transition-colors border border-indigo-100"
+                              title="Regenerate payment receipt"
+                            >
+                              <span className="mr-1">📄</span> Receipt
+                            </button>
+                            {!isViewOnly && (
+                               <>
+                                 <button
+                                   onClick={() => {
+                                     console.log('Editing payment:', payment);
+                                     startEditPayment(payment);
+                                   }}
+                                   className="inline-flex items-center px-4 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all shadow-sm font-bold text-xs"
+                                 >
+                                   <span className="mr-1">✏️</span> Edit
+                                 </button>
+                                 <button
+                                   onClick={() => deletePayment(payment.id)}
+                                   className="inline-flex items-center px-4 py-1.5 bg-rose-50 text-rose-600 rounded-lg hover:bg-rose-600 hover:text-white transition-all border border-rose-100 font-bold text-xs"
+                                   title="Delete this payment"
+                                 >
+                                   <span className="mr-1">🗑️</span> Delete
+                                 </button>
+                               </>
+                             )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            <div className="p-6 border-t border-gray-200 bg-gray-50 flex justify-end">
+              <button
+                onClick={() => setShowPaymentHistory(false)}
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Payment Modal */}
+      {editingPayment && (
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md overflow-y-auto h-full w-full flex justify-center items-center z-[2000] p-4">
+          <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-2xl w-full max-w-md border border-white/20 transform transition-all">
+            <h2 className="text-xl font-bold mb-4">Edit Payment</h2>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Amount (₦)</label>
+                <input
+                  type="number"
+                  value={paymentAmount}
+                  onChange={(e) => setPaymentAmount(e.target.value)}
+                  className="w-full p-2 border rounded focus:ring-primary focus:border-primary"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
+                <select
+                  value={paymentMethod}
+                  onChange={(e) => setPaymentMethod(e.target.value)}
+                  className="w-full p-2 border rounded focus:ring-primary focus:border-primary"
+                >
+                  <option value="cash">Cash</option>
+                  <option value="bank_transfer">Bank Transfer</option>
+                  <option value="pos">POS</option>
+                  <option value="cheque">Cheque</option>
+                  <option value="online">Online</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Reference No.</label>
+                <input
+                  type="text"
+                  value={paymentReference}
+                  onChange={(e) => setPaymentReference(e.target.value)}
+                  className="w-full p-2 border rounded focus:ring-primary focus:border-primary"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                <textarea
+                  value={paymentNotes}
+                  onChange={(e) => setPaymentNotes(e.target.value)}
+                  className="w-full p-2 border rounded focus:ring-primary focus:border-primary"
+                  rows="2"
+                ></textarea>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                onClick={() => setEditingPayment(null)}
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
+              >
+                Cancel
+              </button>
+              {!isViewOnly && (
+                <button
+                  onClick={updatePayment}
+                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                >
+                  Update Payment
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Restriction Modal */}
+      {restrictionModalOpen && restrictionStudent && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex justify-center items-center z-[70]">
+          <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
+            <h2 className="text-xl font-bold mb-4 text-red-600">
+              🛑 Examination Card Restriction
+            </h2>
+            <p className="text-gray-600 mb-4">
+              Manage restriction for <strong>{restrictionStudent.user?.firstName || 'Unknown'} {restrictionStudent.user?.lastName || ''}</strong> ({restrictionStudent.admissionNumber}).
+            </p>
+
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 p-3 bg-red-50 rounded-md border border-red-100">
+                <input
+                  type="checkbox"
+                  id="isExamRestricted"
+                  checked={isRestricted}
+                  onChange={(e) => setIsRestricted(e.target.checked)}
+                  className="w-5 h-5 text-red-600 rounded focus:ring-red-500"
+                />
+                <label htmlFor="isExamRestricted" className="font-medium text-red-900 cursor-pointer">
+                  Block Examination Card Access
+                </label>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Reason for Restriction
+                </label>
+                <textarea
+                  value={restrictionReason}
+                  onChange={(e) => setRestrictionReason(e.target.value)}
+                  className="w-full p-2 border rounded focus:ring-red-500 focus:border-red-500"
+                  rows="3"
+                  placeholder="e.g. Outstanding Fees, Disciplinary Action, etc."
+                ></textarea>
+                <p className="text-xs text-gray-500 mt-1">
+                  This reason will be visible to the student when they try to print their card.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                onClick={() => setRestrictionModalOpen(false)}
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
+              >
+                Cancel
+              </button>
+              {!isViewOnly && (
+                <button
+                  onClick={saveRestriction}
+                  className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 font-medium"
+                >
+                  Save Restriction
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Fee Adjustment Modal */}
+      {editingFeeRecord && (
+        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm overflow-y-auto h-full w-full flex justify-center items-end sm:items-center z-[80] p-0 sm:p-4">
+          <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
+            {/* Header */}
+            <div className="p-5 border-b border-gray-100 flex justify-between items-center shrink-0">
+              <div>
+                <h2 className="text-lg font-black text-gray-900 uppercase tracking-tight flex items-center gap-2">
+                  <span className="text-orange-500">⚙️</span> Adjust Term Fee
+                </h2>
+                <p className="text-xs text-gray-400 font-bold mt-0.5">
+                  {editingFeeRecord.student.user?.firstName} {editingFeeRecord.student.user?.lastName} • {editingFeeRecord.student.admissionNumber}
+                </p>
+              </div>
+              <button onClick={() => setEditingFeeRecord(null)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="p-5 overflow-y-auto flex-1 space-y-5">
+              {/* Current Breakdown - Read Only */}
+              <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Current Fee Breakdown</h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Previous Balance (Arrears):</span>
+                    <span className="font-bold text-gray-700">₦{formatNumber(editingFeeRecord.record?.openingBalance || 0)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Current Term Fee:</span>
+                    <span className="font-bold text-gray-700">₦{formatNumber(editingFeeRecord.record?.expectedAmount || 0)}</span>
+                  </div>
+                  <div className="flex justify-between border-t pt-2 border-slate-200">
+                    <span className="text-gray-600 font-semibold">Total Due:</span>
+                    <span className="font-black text-gray-900">₦{formatNumber((editingFeeRecord.record?.openingBalance || 0) + (editingFeeRecord.record?.expectedAmount || 0))}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-green-600 font-semibold">Total Paid:</span>
+                    <span className="font-black text-green-600">₦{formatNumber(editingFeeRecord.record?.paidAmount || 0)}</span>
+                  </div>
+                  <div className="flex justify-between border-t pt-2 border-slate-200">
+                    <span className="text-gray-600 font-bold">Current Balance:</span>
+                    <span className={`font-black ${(editingFeeRecord.record?.balance || 0) > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                      ₦{formatNumber(editingFeeRecord.record?.balance || 0)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Adjust Term Fee */}
+              <div>
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">
+                  New Term Fee Amount (₦)
+                </label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-gray-400">₦</span>
+                  <input
+                    type="number"
+                    value={adjustedExpected}
+                    onChange={(e) => setAdjustedExpected(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 bg-white border-2 border-orange-200 rounded-xl focus:ring-4 focus:ring-orange-100 focus:border-orange-400 font-black text-xl transition-all"
+                    placeholder="0.00"
+                  />
+                </div>
+              </div>
+
+              {/* Live Preview */}
+              {(() => {
+                const newExpected = parseFloat(adjustedExpected) || 0;
+                const opening = editingFeeRecord.record?.openingBalance || 0;
+                const paid = editingFeeRecord.record?.paidAmount || 0;
+                const newBalance = opening + newExpected - paid;
+                const oldBalance = editingFeeRecord.record?.balance || 0;
+                const diff = newBalance - oldBalance;
+
+                return (
+                  <div className={`rounded-xl p-4 border-2 transition-all ${
+                    diff === 0 ? 'bg-gray-50 border-gray-100' : diff < 0 ? 'bg-emerald-50 border-emerald-200' : 'bg-orange-50 border-orange-200'
+                  }`}>
+                    <h4 className="text-[10px] font-black uppercase tracking-widest mb-3 text-gray-500">Preview After Adjustment</h4>
+                    <div className="grid grid-cols-3 gap-3 text-center">
+                      <div>
+                        <p className="text-[9px] font-black text-gray-400 uppercase mb-1">Old Fee</p>
+                        <p className="text-sm font-black text-gray-600">₦{formatNumber(editingFeeRecord.record?.expectedAmount || 0)}</p>
+                      </div>
+                      <div>
+                        <p className="text-[9px] font-black text-gray-400 uppercase mb-1">New Fee</p>
+                        <p className="text-sm font-black text-orange-600">₦{formatNumber(newExpected)}</p>
+                      </div>
+                      <div>
+                        <p className="text-[9px] font-black text-gray-400 uppercase mb-1">New Balance</p>
+                        <p className={`text-sm font-black ${newBalance > 0 ? 'text-red-600' : 'text-emerald-600'}`}>₦{formatNumber(newBalance)}</p>
+                      </div>
+                    </div>
+                    {diff !== 0 && (
+                      <p className={`text-center text-xs font-bold mt-3 pt-2 border-t ${diff < 0 ? 'text-emerald-600 border-emerald-200' : 'text-orange-600 border-orange-200'}`}>
+                        Balance will {diff < 0 ? 'decrease' : 'increase'} by ₦{formatNumber(Math.abs(diff))}
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {/* Guidance for payment corrections */}
+              <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 flex gap-3 items-start">
+                <svg className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div>
+                  <p className="text-xs font-bold text-blue-800">Need to correct a payment amount?</p>
+                  <p className="text-[11px] text-blue-600 mt-0.5">
+                    Use <strong>Payment History → Edit</strong> on the specific payment entry. This keeps your records accurate and maintains an audit trail.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between shrink-0">
+              {!isViewOnly && (
+                <button
+                  onClick={() => handleResetLedger(editingFeeRecord.student.id)}
+                  className="px-4 py-2.5 bg-rose-50 text-rose-600 text-[10px] font-black uppercase rounded-xl border border-rose-100 hover:bg-rose-600 hover:text-white transition-all shadow-sm shadow-rose-100"
+                >
+                  Reset Student Ledger
+                </button>
+              )}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setEditingFeeRecord(null)}
+                  className="px-5 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-xl font-bold text-sm hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                {!isViewOnly && (
+                  <button
+                    onClick={saveFeeRecord}
+                    disabled={loading}
+                    className="px-6 py-2.5 bg-orange-500 text-white rounded-xl font-bold text-sm shadow-lg shadow-orange-200 hover:bg-orange-600 active:scale-95 transition-all flex items-center gap-2"
+                  >
+                    {loading ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        Saving...
+                      </>
+                    ) : (
+                      'Update Fee Amount'
+                    )}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Receipt Modal */}
+      {receiptModalOpen && receiptStudent && (
+        <PrintReceiptModal
+          isOpen={receiptModalOpen}
+          onClose={() => {
+            setReceiptModalOpen(false);
+            setReceiptPayment(null);
+            setReceiptStudent(null);
+          }}
+          student={receiptStudent}
+          currentPayment={receiptPayment}
+          currentTerm={currentTerm}
+          currentSession={currentSession}
+          allTerms={allTerms}
+          allSessions={allSessions}
+        />
+      )}
+
+      {/* Scholarship Print Modal */}
+      {scholarshipModalOpen && scholarshipStudent && (
+        <PrintScholarshipModal
+          isOpen={scholarshipModalOpen}
+          onClose={() => {
+            setScholarshipModalOpen(false);
+            setScholarshipStudent(null);
+          }}
+          student={scholarshipStudent}
+          currentTerm={currentTerm}
+          currentSession={currentSession}
+        />
+      )}
+
+      {/* Create Misc Fee Modal */}
+      {showMiscFeeModal && (
+        <div className="fixed inset-0 bg-gray-900 bg-opacity-60 backdrop-blur-sm overflow-y-auto h-full w-full flex justify-center items-center z-[100] p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl transform transition-all animate-in fade-in zoom-in duration-200">
+            <div className="flex justify-between items-center p-6 border-b border-gray-100">
+              <div>
+                <h2 className="text-xl font-black text-gray-900 uppercase tracking-tight">Create Fee Structure</h2>
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">Configure new custom charge</p>
+              </div>
+              <button
+                onClick={() => setShowMiscFeeModal(false)}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateMiscFee} className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div className="md:col-span-2">
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Fee Title</label>
+                  <input
+                    type="text"
+                    required
+                    value={miscFeeFormData.title}
+                    onChange={(e) => setMiscFeeFormData({ ...miscFeeFormData, title: e.target.value })}
+                    className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm font-bold focus:ring-4 focus:ring-primary/5 outline-none transition-all"
+                    placeholder="e.g., Computer Lab Maintenance, Anniversary Cloth"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Amount (₦)</label>
+                  <input
+                    type="number"
+                    required
+                    value={miscFeeFormData.amount}
+                    onChange={(e) => setMiscFeeFormData({ ...miscFeeFormData, amount: e.target.value })}
+                    className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm font-bold focus:ring-4 focus:ring-primary/5 outline-none transition-all font-mono"
+                    placeholder="0.00"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Fee Type</label>
+                  <div className="flex gap-4 items-center h-[52px]">
+                    <label className="inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={miscFeeFormData.isCompulsory}
+                        onChange={(e) => setMiscFeeFormData({ ...miscFeeFormData, isCompulsory: e.target.checked })}
+                        className="sr-only peer"
+                      />
+                      <div className="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                      <span className="ms-3 text-xs font-bold text-gray-700 uppercase tracking-tighter">Compulsory Fee</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Description (Optional)</label>
+                  <textarea
+                    value={miscFeeFormData.description}
+                    onChange={(e) => setMiscFeeFormData({ ...miscFeeFormData, description: e.target.value })}
+                    className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm font-bold focus:ring-4 focus:ring-primary/5 outline-none transition-all resize-none"
+                    rows="2"
+                    placeholder="Briefly describe what this fee covers..."
+                  ></textarea>
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 ml-1">Applicable Classes</label>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 bg-gray-50 p-4 rounded-2xl border border-gray-100 max-h-60 overflow-y-auto">
+                    {(Array.isArray(classes) ? classes : []).map(cls => (
+                      <div
+                        key={cls.id}
+                        onClick={() => handleMiscClassToggle(cls.id)}
+                        className={`flex items-center gap-2 p-3 rounded-xl border cursor-pointer transition-all ${miscFeeFormData.classIds.includes(cls.id.toString())
+                            ? 'bg-primary border-primary text-white shadow-md shadow-primary/20 scale-[1.02]'
+                            : 'bg-white border-gray-100 text-gray-600 hover:border-primary/30'
+                          }`}
+                      >
+                        <div className={`w-4 h-4 rounded flex items-center justify-center border ${miscFeeFormData.classIds.includes(cls.id.toString()) ? 'bg-white border-white' : 'border-gray-300'}`}>
+                          {miscFeeFormData.classIds.includes(cls.id.toString()) && (
+                            <svg className="w-3 h-3 text-primary" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                          )}
+                        </div>
+                        <span className="text-[11px] font-black uppercase tracking-tighter">{cls.name} {cls.arm}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 mt-8">
+                <button
+                  type="button"
+                  onClick={() => setShowMiscFeeModal(false)}
+                  className="px-6 py-3 bg-gray-100 text-gray-900 rounded-xl font-black text-sm uppercase tracking-widest hover:bg-gray-200 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={miscFeeLoading}
+                  className="px-8 py-3 bg-primary text-white rounded-xl font-black text-sm uppercase tracking-widest shadow-lg shadow-primary/20 hover:brightness-95 active:scale-95 transition-all disabled:opacity-50"
+                >
+                  {miscFeeLoading ? 'Processing...' : 'Create Basic Fee'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+

@@ -1,0 +1,1680 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import {
+  FiBriefcase, FiUsers, FiUserCheck, FiShield, FiPlus,
+  FiTrash2, FiActivity, FiSearch, FiKey, FiGlobe, FiAlertCircle,
+  FiPrinter, FiUnlock, FiFacebook, FiInstagram, FiMessageCircle, FiLink,
+  FiPower, FiEdit2, FiArrowUpCircle, FiImage
+} from 'react-icons/fi';
+import { toast } from '../../utils/toast';
+import { apiCall } from '../../api';
+import { formatNumber } from '../../utils/formatters';
+import LicenseManagement from './LicenseManagement';
+import ShowcaseSchoolsManagement from '../../components/ShowcaseSchoolsManagement';
+import AdvertsManagement from '../../components/AdvertsManagement';
+
+const SuperAdminDashboard = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [stats, setStats] = useState(null);
+  const [schools, setSchools] = useState([]);
+  const [audits, setAudits] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('overview');
+  const [showModal, setShowModal] = useState(false);
+  const [newSchool, setNewSchool] = useState({
+    name: '',
+    slug: '',
+    email: '',
+    phone: '',
+    address: '',
+    customDomain: ''
+  });
+  const [globalSettings, setGlobalSettings] = useState({
+    facebookUrl: '',
+    instagramUrl: '',
+    whatsappUrl: '',
+    websiteUrl: '',
+    contactPhone: '',
+    contactEmail: '',
+    latestAppVersion: '',
+    apkDownloadUrl: '',
+    geminiApiKey: '',
+    groqApiKey: '',
+    whatsappProvider: 'twilio',
+    whatsappPhoneNumber: '',
+    twilioAccountSid: '',
+    twilioAuthToken: '',
+    metaAccessToken: '',
+    metaPhoneNumberId: '',
+    metaBusinessAccountId: '',
+    metaVerifyToken: ''
+  });
+  const [updatingSettings, setUpdatingSettings] = useState(false);
+
+  // Sync activeTab with URL hash
+  useEffect(() => {
+    const hash = location.hash.replace('#', '');
+    if (hash && ['schools', 'platform', 'audits', 'showcase', 'adverts', 'academic'].includes(hash)) {
+      setActiveTab(hash);
+    } else {
+      setActiveTab('overview');
+    }
+  }, [location.hash]);
+
+  const [academicIntel, setAcademicIntel] = useState([]);
+  const [fetchingIntel, setFetchingIntel] = useState(false);
+
+  const fetchAcademicIntel = async () => {
+    try {
+      setFetchingIntel(true);
+      const res = await apiCall('/api/superadmin/academic-intelligence');
+      if (res.data) setAcademicIntel(res.data);
+    } catch (error) {
+      toast.error('Failed to fetch platform intelligence');
+    } finally {
+      setFetchingIntel(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'academic') fetchAcademicIntel();
+  }, [activeTab]);
+
+  // Initial Load Data
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        const t = Date.now();
+        
+        // Fetch data in parallel for much faster load times
+        const [statsRes, schoolsRes, auditsRes, settingsRes] = await Promise.all([
+          apiCall(`/api/superadmin/stats?t=${t}`),
+          apiCall(`/api/superadmin/schools?t=${t}`),
+          apiCall(`/api/superadmin/audit?limit=50&t=${t}`),
+          apiCall(`/api/superadmin/global-settings?t=${t}`)
+        ]);
+
+        if (!isMounted) return;
+
+        setStats(statsRes.data || null);
+        setSchools(Array.isArray(schoolsRes.data) ? schoolsRes.data : []);
+        setAudits(Array.isArray(auditsRes.data?.logs) ? auditsRes.data.logs : []);
+        if (settingsRes.data) {
+          setGlobalSettings(settingsRes.data);
+        }
+      } catch (error) {
+        if (isMounted) {
+          toast.error('Failed to fetch global data');
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadData();
+    return () => { isMounted = false; };
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const t = Date.now();
+      
+      // Fetch data in parallel for much faster load times
+      const [statsRes, schoolsRes, auditsRes, settingsRes] = await Promise.all([
+        apiCall(`/api/superadmin/stats?t=${t}`),
+        apiCall(`/api/superadmin/schools?t=${t}`),
+        apiCall(`/api/superadmin/audit?limit=50&t=${t}`),
+        apiCall(`/api/superadmin/global-settings?t=${t}`)
+      ]);
+
+      setStats(statsRes.data);
+      if (schoolsRes.ok || schoolsRes.data) {
+        setSchools(Array.isArray(schoolsRes.data) ? schoolsRes.data : []);
+      }
+      if (auditsRes.ok || auditsRes.data) {
+        setAudits(Array.isArray(auditsRes.data?.logs) ? auditsRes.data.logs : []);
+      }
+      if (settingsRes.data) {
+        setGlobalSettings(settingsRes.data);
+      }
+    } catch (error) {
+      toast.error('Failed to fetch global data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleNameChange = (e) => {
+    const name = e.target.value;
+    const slug = name.toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, '')     // Remove non-word chars
+      .replace(/\s+/g, '-')         // Replace spaces with dash
+      .replace(/--+/g, '-')         // Replace multiple dashes
+      .replace(/^-+/, '')           // Trim dash from start
+      .replace(/-+$/, '');          // Trim dash from end
+
+    setNewSchool({ ...newSchool, name, slug });
+  };
+
+  const [creating, setCreating] = useState(false);
+  const handleCreateSchool = async (e) => {
+    e.preventDefault();
+    console.log('Attempting to create school:', newSchool);
+    try {
+      setCreating(true);
+      const res = await apiCall('/api/superadmin/schools', {
+        method: 'POST',
+        body: JSON.stringify(newSchool)
+      });
+      console.log('Create School Response:', res.data);
+      const creds = res.data.credentials;
+      setResetCreds({
+        ...creds,
+        schoolName: newSchool.name,
+        isNewRegistration: true
+      });
+      setShowCredsModal(true);
+      setShowModal(false);
+      setNewSchool({ name: '', slug: '', email: '', phone: '', address: '', customDomain: '' });
+
+      // Removed reload to keep modal visible
+      fetchData();
+    } catch (error) {
+      console.error('Create School Crash:', error);
+      toast.error(error.response?.data?.error || 'Failed to create school');
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleDeleteSchool = async (id, name, slug) => {
+    const confirmation = window.prompt(`Are you absolutely sure you want to delete ${name}? This will wipe ALL data for this school.\n\nType the school slug "${slug}" to confirm:`);
+    
+    if (confirmation !== slug) {
+      if (confirmation !== null) toast.error('Incorrect slug. Deletion cancelled.');
+      return;
+    }
+
+    try {
+      await apiCall(`/api/superadmin/schools/${id}`, { method: 'DELETE' });
+      toast.success('School deleted');
+      fetchData();
+    } catch (error) {
+      toast.error('Failed to delete school');
+    }
+  };
+
+  const [showLicenseModal, setShowLicenseModal] = useState(false);
+  const [selectedSchoolForLicense, setSelectedSchoolForLicense] = useState(null);
+  const [licenseData, setLicenseData] = useState({
+    packageType: 'basic',
+    maxStudents: 500
+  });
+
+  const [generatedKey, setGeneratedKey] = useState(null);
+  const [generatingLicense, setGeneratingLicense] = useState(false);
+  const handleIssueLicenseSubmit = async (e) => {
+    e.preventDefault();
+    console.log('Generating license for:', selectedSchoolForLicense?.name);
+    try {
+      setGeneratingLicense(true);
+      const payload = {
+        schoolName: selectedSchoolForLicense.name,
+        contactEmail: selectedSchoolForLicense.email || '',
+        contactPhone: selectedSchoolForLicense.phone || '',
+        packageType: licenseData.packageType,
+        maxStudents: parseInt(licenseData.maxStudents)
+      };
+
+      const res = await apiCall(`/api/license/generate/${selectedSchoolForLicense.id}`, { method: 'POST', body: JSON.stringify(payload) });
+      const key = res.data.licenseKey;
+      console.log('License generated:', key);
+      setGeneratedKey(key);
+      toast.success('License generated successfully!');
+
+      try {
+        await navigator.clipboard.writeText(key);
+        toast.info('License Key copied to clipboard');
+      } catch (err) {
+        console.warn('Clipboard access denied');
+      }
+      fetchData();
+    } catch (error) {
+      console.error('License Generation Error:', error);
+      toast.error(error.response?.data?.error || 'Failed to generate license');
+    } finally {
+      setGeneratingLicense(false);
+    }
+  };
+
+  const [showCredsModal, setShowCredsModal] = useState(false);
+  const [resetCreds, setResetCreds] = useState(null);
+  const [reseting, setReseting] = useState(false);
+
+  const handleImpersonate = async (schoolId) => {
+    try {
+      const confirm = window.confirm("You are about to log in as the administrator of this school. Your current super-admin session will be replaced. Proceed?");
+      if (!confirm) return;
+
+      const res = await apiCall(`/api/superadmin/impersonate/${schoolId}`, { method: 'POST' });
+      const { token, user } = res.data;
+
+      // Targeted session rebuild instead of wiping EVERYTHING
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('schoolSlug');
+      localStorage.removeItem('originalAdminToken'); // Clear stale ghost-login state to prevent false impersonation banner
+      
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
+
+      const slug = user.school?.slug || user.schoolSlug;
+      if (slug) {
+        localStorage.setItem('schoolSlug', slug);
+      }
+
+      // Pre-unlock the dashboard and redirect directly to it
+      sessionStorage.setItem('dashboardUnlocked', 'true');
+      toast.success(`Redirecting to ${user.school?.name || 'School'} Admin Portal...`);
+
+      setTimeout(() => {
+        window.location.href = '/dashboard';
+      }, 500);
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Impersonation failed');
+    }
+  };
+
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingSchool, setEditingSchool] = useState(null);
+  const [updatingSchool, setUpdatingSchool] = useState(false);
+
+  const handleUpdateSchool = async (e) => {
+    e.preventDefault();
+    try {
+      setUpdatingSchool(true);
+      await apiCall(`/api/superadmin/schools/${editingSchool.id}`, {
+        method: 'PUT',
+        body: JSON.stringify(editingSchool)
+      });
+      toast.success('School updated successfully!');
+      setShowEditModal(false);
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to update school');
+    } finally {
+      setUpdatingSchool(false);
+    }
+  };
+
+  const handleResetAdminCreds = async (id, name) => {
+    const manualPassword = window.prompt(`Enter a new manual password for ${name} (minimum 6 characters), or leave blank to randomly generate one:`);
+
+    // If user cancelled the prompt, stop
+    if (manualPassword === null) return;
+
+    if (manualPassword.trim() !== "" && manualPassword.trim().length < 6) {
+      toast.error("Manual password must be at least 6 characters");
+      return;
+    }
+
+    if (!window.confirm(`Are you sure you want to reset the admin password for ${name}?`)) return;
+
+    try {
+      setReseting(true);
+      const res = await apiCall(`/api/superadmin/schools/${id}/reset-admin`, {
+        method: 'POST',
+        body: manualPassword.trim() !== "" ? JSON.stringify({ manualPassword: manualPassword.trim() }) : "{}"
+      });
+      setResetCreds({ ...res.data.credentials, schoolName: name });
+      setShowCredsModal(true);
+      toast.success('Admin credentials reset');
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to reset credentials');
+    } finally {
+      setReseting(false);
+    }
+  };
+
+  const handleToggleActivation = async (id, name, currentStatus) => {
+    const action = currentStatus ? 'deactivate' : 'activate';
+    if (!window.confirm(`Are you sure you want to ${action} ${name}?`)) return;
+
+    try {
+      const res = await apiCall(`/api/superadmin/schools/${id}/toggle-activation`, { method: 'POST' });
+      toast.success(res.data.message);
+      setSchools(prev => prev.map(s => s.id === id ? { ...s, isActivated: res.data.isActivated } : s));
+    } catch (error) {
+      toast.error('Failed to update school status');
+    }
+  };
+
+  const handleUpdateGlobalSettings = async (e) => {
+    e.preventDefault();
+    try {
+      setUpdatingSettings(true);
+      await apiCall('/api/superadmin/global-settings', {
+        method: 'POST',
+        body: JSON.stringify(globalSettings)
+      });
+      toast.success('Platform settings updated successfully!');
+    } catch (error) {
+      toast.error('Failed to update settings');
+    } finally {
+      setUpdatingSettings(false);
+    }
+  };
+
+  const handlePrintCreds = () => {
+    window.print();
+  };
+
+  if (loading && !stats) return (
+    <div className="flex items-center justify-center min-h-[400px]">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+    </div>
+  );
+
+  return (
+    <div className="p-6 max-w-7xl mx-auto bg-gray-50/50 min-h-screen">
+      {/* Header */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-8 gap-6">
+        <div>
+          <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Super Admin Dashboard</h1>
+          <p className="mt-1 text-gray-500">Global system oversight and multi-tenant management</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={() => navigate('/dashboard/license-management')}
+            className="flex-1 sm:flex-none inline-flex items-center justify-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg shadow-sm transition-all duration-200"
+          >
+            <FiKey className="mr-2" /> License <span className="hidden sm:inline">Management</span>
+          </button>
+          <button
+            onClick={async () => {
+              if (!window.confirm('Trigger manual offsite backup to S3?')) return;
+              try {
+                const res = await apiCall('/api/system/backup', { method: 'POST' });
+                toast.success('Backup initiated successfully');
+              } catch (e) {
+                toast.error('Backup failed: Verify S3 configuration');
+              }
+            }}
+            className="flex-1 sm:flex-none inline-flex items-center justify-center px-4 py-2 bg-amber-50 text-amber-700 border border-amber-200 font-semibold rounded-lg shadow-sm hover:bg-amber-100 transition-all"
+          >
+            <FiArrowUpCircle className="mr-2" /> Backup
+          </button>
+          {schools.find(s => s.slug === 'edutech') && (
+            <button
+              onClick={() => handleImpersonate(schools.find(s => s.slug === 'edutech').id)}
+              className="flex-1 sm:flex-none inline-flex items-center justify-center px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg shadow-sm transition-all duration-200 transform hover:scale-[1.02]"
+              title="Edit the Super Admin Public Website Content"
+            >
+              <FiEdit2 className="mr-2" /> <span className="whitespace-nowrap">Edit Website</span>
+            </button>
+          )}
+          <button
+            onClick={() => setShowModal(true)}
+            className="flex-1 sm:flex-none inline-flex items-center justify-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg shadow-sm transition-all duration-200 transform hover:scale-[1.02]"
+            id="add-school-btn"
+          >
+            <FiPlus className="mr-2" /> <span className="whitespace-nowrap">Add New School</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-10">
+        <StatCard icon={<FiGlobe className="text-blue-600" />} label="Schools" value={stats?.schools} bgColor="bg-blue-100" />
+        <StatCard icon={<FiUsers className="text-indigo-600" />} label="Total Users" value={stats?.users} bgColor="bg-indigo-100" />
+        <StatCard icon={<FiUserCheck className="text-emerald-600" />} label="Students" value={stats?.students} bgColor="bg-emerald-100" />
+        <StatCard icon={<FiShield className="text-amber-600" />} label="Audits" value={stats?.audits} bgColor="bg-amber-100" />
+      </div>
+
+      {/* Tabs */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="flex border-b border-gray-100 bg-gray-50/50 overflow-x-auto no-scrollbar whitespace-nowrap">
+          <TabButton active={activeTab === 'overview'} onClick={() => navigate('/dashboard/superadmin')} icon={<FiActivity />} label="Overview" />
+          <TabButton active={activeTab === 'schools'} onClick={() => navigate('/dashboard/superadmin#schools')} icon={<FiBriefcase />} label="Schools" />
+          <TabButton active={activeTab === 'academic'} onClick={() => navigate('/dashboard/superadmin#academic')} icon={<FiActivity />} label="Academic Intel" />
+          <TabButton active={activeTab === 'showcase'} onClick={() => navigate('/dashboard/superadmin#showcase')} icon={<FiPlus />} label="Use Case Schools" />
+          <TabButton active={activeTab === 'adverts'} onClick={() => navigate('/dashboard/superadmin#adverts')} icon={<FiImage />} label="Advertisement" />
+          <TabButton active={activeTab === 'platform'} onClick={() => navigate('/dashboard/superadmin#platform')} icon={<FiGlobe />} label="Platform" />
+          <TabButton active={activeTab === 'audits'} onClick={() => navigate('/dashboard/superadmin#audits')} icon={<FiShield />} label="Global Log" />
+        </div>
+
+        <div className="p-6">
+          {activeTab === 'overview' && (
+            <div className="space-y-8 animate-in fade-in duration-500">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Recent Schools Section */}
+                <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-bold text-gray-800 flex items-center"><FiGlobe className="mr-2" /> Recent Schools</h3>
+                    <button onClick={() => setActiveTab('schools')} className="text-xs font-semibold text-indigo-600 hover:text-indigo-800">View All</button>
+                  </div>
+                  <div className="space-y-3">
+                    {(Array.isArray(schools) ? schools : []).slice(0, 5).map(s => (
+                      <div key={s.id} className="flex items-center justify-between p-3 rounded-lg bg-gray-50 border border-gray-100">
+                        <div>
+                          <p className="font-semibold text-gray-800">{s.name}</p>
+                          <p className="text-xs text-gray-500">{s.slug}.school.com</p>
+                        </div>
+                        <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${s.isActivated ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+                          {s.isActivated ? 'Activated' : 'Inactive'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* System Activity Section */}
+                <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-bold text-gray-800 flex items-center"><FiShield className="mr-2" /> Global Activity</h3>
+                    <button onClick={() => setActiveTab('audits')} className="text-xs font-semibold text-indigo-600 hover:text-indigo-800">View All</button>
+                  </div>
+                  <div className="space-y-4">
+                    {(Array.isArray(audits) ? audits : []).map(log => (
+                      <div key={log.id} className="flex gap-4 items-start border-l-2 border-indigo-100 pl-4 py-1">
+                        <div className="min-w-[80px]">
+                          <p className="text-[10px] font-bold text-gray-400">{new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-800">
+                            {log.user?.firstName || 'System'} <span className="text-indigo-500 font-bold">{log.action}</span> {log.resource.toLowerCase().replace('_', ' ')}
+                          </p>
+                          <p className="text-[10px] text-gray-400">School: {log.school?.name || 'Global'}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Growth Analysis Section */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Most Active */}
+                <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                  <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center">
+                    <FiActivity className="mr-2 text-indigo-500" /> High User Activity
+                  </h4>
+                  <div className="space-y-3">
+                    {stats?.growthInsights?.mostActive?.map((s, idx) => (
+                      <div key={s.id} className="flex items-center justify-between group">
+                        <div className="flex items-center">
+                          <span className="w-6 text-xs text-gray-300 font-bold">{idx + 1}</span>
+                          <span className="text-sm font-medium text-gray-700 truncate max-w-[150px]">{s.name}</span>
+                        </div>
+                        <span className="text-xs font-bold bg-indigo-50 text-indigo-600 px-2 py-1 rounded-md group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                          {s._count.users} Users
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Quota Alarms */}
+                <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                  <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center">
+                    <FiAlertCircle className="mr-2 text-amber-500" /> Approaching Quota
+                  </h4>
+                  <div className="space-y-3">
+                    {Array.isArray(stats?.growthInsights?.approachingQuota) && stats.growthInsights.approachingQuota.length > 0 ? (
+                      stats.growthInsights.approachingQuota.map(s => (
+                        <div key={s.id} className="space-y-1">
+                          <div className="flex justify-between text-xs font-semibold">
+                            <span className="text-gray-700 truncate">{s.name}</span>
+                            <span className="text-amber-600">{s.usage}%</span>
+                          </div>
+                          <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                            <div className="bg-amber-500 h-full transition-all" style={{ width: `${s.usage}%` }}></div>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-xs text-gray-400 italic py-4 text-center">All schools well within capacity</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Expiry Alerts */}
+                <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                  <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center">
+                    <FiKey className="mr-2 text-rose-500" /> Expiring Soon
+                  </h4>
+                  <div className="space-y-3">
+                    {Array.isArray(stats?.growthInsights?.expiringSoon) && stats.growthInsights.expiringSoon.length > 0 ? (
+                      stats.growthInsights.expiringSoon.map(s => (
+                        <div key={s.id} className="flex items-center justify-between p-2 bg-rose-50 rounded-lg border border-rose-100 group hover:bg-rose-600 transition-colors cursor-pointer">
+                          <div className="max-w-[140px]">
+                            <p className="text-sm font-bold text-rose-700 group-hover:text-white truncate">{s.name}</p>
+                            <p className="text-[10px] text-rose-500 group-hover:text-rose-200">Expires: {new Date(s.expiresAt).toLocaleDateString()}</p>
+                          </div>
+                          <FiAlertCircle className="text-rose-400 group-hover:text-white" />
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-xs text-gray-400 italic py-4 text-center">No licenses expiring in next 30 days</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'schools' && (
+            <div className="animate-in slide-in-from-bottom-5 duration-500">
+              {/* Mobile Card View */}
+              <div className="grid grid-cols-1 gap-4 md:hidden">
+                {(Array.isArray(schools) ? schools : []).map(s => (
+                  <div key={s.id} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center min-w-0">
+                        <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold shrink-0 mr-3">
+                          {s.name.charAt(0)}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-bold text-gray-900 truncate">{s.name}</p>
+                          <p className="text-[10px] text-gray-500 font-medium truncate italic">{s.slug}.school.com</p>
+                        </div>
+                      </div>
+                      <div className={`shrink-0 px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${s.isActivated ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-rose-50 text-rose-600 border border-rose-100'}`}>
+                        {s.isActivated ? 'Active' : 'Locked'}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 bg-gray-50 p-3 rounded-xl border border-gray-200">
+                      <div className="text-center border-r border-gray-200">
+                        <p className="text-sm font-black text-gray-900">{s._count.students}</p>
+                        <p className="text-[9px] text-gray-400 font-bold uppercase tracking-tighter">Students</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-sm font-black text-gray-900">{s._count.teachers}</p>
+                        <p className="text-[9px] text-gray-400 font-bold uppercase tracking-tighter">Staff</p>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2 pt-1">
+                      <button
+                        onClick={() => { setEditingSchool(s); setShowEditModal(true); }}
+                        className="flex-1 min-w-[40px] p-2.5 flex items-center justify-center text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-xl border border-blue-100 shadow-sm transition-all"
+                        title="Edit Details"
+                      >
+                        <FiEdit2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => { setSelectedSchoolForLicense(s); setShowLicenseModal(true); setGeneratedKey(null); }}
+                        className="flex-1 min-w-[40px] p-2.5 flex items-center justify-center text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-xl border border-indigo-100 shadow-sm transition-all"
+                        title="License"
+                      >
+                        <FiKey className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => {
+                          setResetCreds({ schoolName: s.name, schoolSlug: s.slug, username: s.adminUsername || 'admin', password: '— (Set at Creation)', isReprint: true });
+                          setShowCredsModal(true);
+                        }}
+                        className="flex-1 min-w-[40px] p-2.5 flex items-center justify-center text-blue-700 bg-blue-50/50 hover:bg-blue-100 rounded-xl border border-blue-100 shadow-sm transition-all"
+                        title="Print"
+                      >
+                        <FiPrinter className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleImpersonate(s.id)}
+                        className="flex-1 min-w-[40px] p-2.5 flex items-center justify-center text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-xl border border-emerald-100 shadow-sm transition-all"
+                        title="Login (Impersonate)"
+                      >
+                        <FiUserCheck className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleResetAdminCreds(s.id, s.name)}
+                        className={`flex-1 min-w-[40px] p-2.5 flex items-center justify-center text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-xl border border-amber-100 shadow-sm transition-all ${reseting ? 'opacity-50' : ''}`}
+                        disabled={reseting}
+                        title="Password Reset"
+                      >
+                        <FiUnlock className={`w-4 h-4 ${reseting ? 'animate-pulse' : ''}`} />
+                      </button>
+                      <button
+                        onClick={() => handleToggleActivation(s.id, s.name, s.isActivated)}
+                        className={`flex-1 min-w-[40px] p-2.5 flex items-center justify-center rounded-xl border transition-all shadow-sm ${s.isActivated ? 'text-rose-600 bg-rose-50 border-rose-100' : 'text-emerald-600 bg-emerald-50 border-emerald-100'}`}
+                        title={s.isActivated ? "Lock" : "Unlock"}
+                      >
+                        <FiPower className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteSchool(s.id, s.name, s.slug)}
+                        className="flex-1 min-w-[40px] p-2.5 flex items-center justify-center text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-xl border border-rose-100 shadow-sm transition-all"
+                        title="Delete"
+                      >
+                        <FiTrash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop Table View */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-gray-50 border-b border-gray-100">
+                      <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider sticky left-0 bg-gray-50 z-10 shadow-sm sm:shadow-none">School Name</th>
+                      <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">License Status</th>
+                      <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Usage Stats</th>
+                      <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 bg-white">
+                    {(Array.isArray(schools) ? schools : []).map(s => (
+                      <tr key={s.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="p-4 sticky left-0 bg-white z-10 shadow-sm sm:shadow-none min-w-[200px]">
+                          <div className="flex items-center">
+                            <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold mr-3 shadow-sm shrink-0">
+                              {s.name.charAt(0)}
+                            </div>
+                            <div className="truncate">
+                              <p className="font-bold text-gray-800 truncate">{s.name}</p>
+                              <p className="text-xs text-gray-400 font-medium truncate">{s.email || 'No email'}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          {s.isActivated ? (
+                            <div className="flex flex-col gap-1">
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 w-fit">
+                                Pro - {s.packageType}
+                              </span>
+                              <p className="text-[10px] text-gray-400 font-bold tracking-tight">KEY: {s.licenseKey?.slice(0, 8)}...</p>
+                            </div>
+                          ) : (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-100 text-rose-800">
+                              Unlicensed
+                            </span>
+                          )}
+                        </td>
+                        <td className="p-4">
+                          <div className="flex gap-4">
+                            <div className="text-center">
+                              <p className="text-xs font-bold text-gray-800">{s._count.students}</p>
+                              <p className="text-[10px] text-gray-400 font-bold uppercase">Students</p>
+                            </div>
+                            <div className="text-center">
+                              <p className="text-xs font-bold text-gray-800">{s._count.teachers}</p>
+                              <p className="text-[10px] text-gray-400 font-bold uppercase">Staff</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => { setEditingSchool(s); setShowEditModal(true); }}
+                              title="Edit Details"
+                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors border border-blue-100"
+                            >
+                              <FiEdit2 className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => { setSelectedSchoolForLicense(s); setShowLicenseModal(true); setGeneratedKey(null); }}
+                              title="Issue License"
+                              className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors border border-indigo-100"
+                            >
+                              <FiKey className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                setResetCreds({ schoolName: s.name, schoolSlug: s.slug, username: s.adminUsername || 'admin', password: '— (Set at Creation)', isReprint: true });
+                                setShowCredsModal(true);
+                              }}
+                              title="Print Creds"
+                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors border border-blue-100"
+                            >
+                              <FiPrinter className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleImpersonate(s.id)}
+                              title="Troubleshooting Login (Impersonate)"
+                              className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors border border-emerald-100"
+                            >
+                              <FiUserCheck className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleResetAdminCreds(s.id, s.name)}
+                              title="Reset Admin Password"
+                              className={`p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors border border-amber-100 ${reseting ? 'opacity-50' : ''}`}
+                              disabled={reseting}
+                            >
+                              <FiUnlock className={`w-4 h-4 ${reseting ? 'animate-pulse' : ''}`} />
+                            </button>
+                            <button
+                              onClick={() => handleToggleActivation(s.id, s.name, s.isActivated)}
+                              title={s.isActivated ? "Deactivate" : "Activate"}
+                              className={`p-2 rounded-lg transition-colors border ${s.isActivated ? 'text-rose-600 hover:bg-rose-50 border-rose-100' : 'text-emerald-600 hover:bg-emerald-50 border-emerald-100'}`}
+                            >
+                              <FiPower className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteSchool(s.id, s.name, s.slug)}
+                              className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors border border-rose-100"
+                              title="Delete School"
+                            >
+                              <FiTrash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'platform' && (
+            <div className="max-w-2xl mx-auto animate-in slide-in-from-left-5 duration-500">
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 p-6 text-white text-center">
+                  <FiGlobe className="w-12 h-12 mx-auto mb-3 opacity-80" />
+                  <h3 className="text-xl font-bold">EduTechAI Global Infrastructure</h3>
+                  <p className="text-indigo-100 text-sm">Manage the primary contact gateways for the platform</p>
+                </div>
+
+                <form onSubmit={handleUpdateGlobalSettings} className="p-8 space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                        <FiFacebook className="text-blue-600" /> Facebook Profile URL
+                      </label>
+                      <input
+                        type="url"
+                        value={globalSettings.facebookUrl || ''}
+                        onChange={e => setGlobalSettings({ ...globalSettings, facebookUrl: e.target.value })}
+                        placeholder="https://facebook.com/your-username"
+                        className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-indigo-600 transition-all text-sm"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                        <FiInstagram className="text-pink-600" /> Instagram Profile URL
+                      </label>
+                      <input
+                        type="url"
+                        value={globalSettings.instagramUrl || ''}
+                        onChange={e => setGlobalSettings({ ...globalSettings, instagramUrl: e.target.value })}
+                        placeholder="https://instagram.com/your-username"
+                        className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-indigo-600 transition-all text-sm"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                        <FiMessageCircle className="text-green-600" /> WhatsApp Link
+                      </label>
+                      <input
+                        type="url"
+                        value={globalSettings.whatsappUrl || ''}
+                        onChange={e => setGlobalSettings({ ...globalSettings, whatsappUrl: e.target.value })}
+                        placeholder="https://wa.me/2348033448456"
+                        className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-indigo-600 transition-all text-sm"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                        <FiGlobe className="text-indigo-600" /> Platform Website
+                      </label>
+                      <input
+                        type="url"
+                        value={globalSettings.websiteUrl || ''}
+                        onChange={e => setGlobalSettings({ ...globalSettings, websiteUrl: e.target.value })}
+                        placeholder="https://your-platform.com"
+                        className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-indigo-600 transition-all text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="pt-6 border-t border-gray-100">
+                    <h4 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
+                      <FiShield className="text-indigo-600" /> Platform Revenue Config (Income Keys)
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Platform Paystack Secret Key</label>
+                        <input
+                          type="password"
+                          value={globalSettings.platformPaystackKey || ''}
+                          onChange={e => setGlobalSettings({ ...globalSettings, platformPaystackKey: e.target.value })}
+                          placeholder="sk_live_..."
+                          className="w-full px-4 py-3 rounded-xl bg-gray-900 text-indigo-400 font-mono border-none focus:ring-2 focus:ring-indigo-600 text-xs"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Platform Flutterwave Secret Key</label>
+                        <input
+                          type="password"
+                          value={globalSettings.platformFlutterwaveKey || ''}
+                          onChange={e => setGlobalSettings({ ...globalSettings, platformFlutterwaveKey: e.target.value })}
+                          placeholder="FLWSECK_..."
+                          className="w-full px-4 py-3 rounded-xl bg-gray-900 text-indigo-400 font-mono border-none focus:ring-2 focus:ring-indigo-600 text-xs"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-6 border-t border-gray-100">
+                    <h4 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
+                      <FiBriefcase className="text-indigo-600" /> SaaS Subscription Pricing (Annual)
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="space-y-2 p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100">
+                        <label className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest">Basic Plan</label>
+                        <input
+                          type="number"
+                          value={globalSettings.basicPrice || 50000}
+                          onChange={e => setGlobalSettings({ ...globalSettings, basicPrice: e.target.value })}
+                          className="w-full px-2 py-1 bg-transparent border-b-2 border-indigo-200 focus:border-indigo-600 outline-none font-black text-xl text-gray-900"
+                        />
+                      </div>
+                      <div className="space-y-2 p-4 bg-purple-50/50 rounded-2xl border border-purple-100">
+                        <label className="text-[10px] font-bold text-purple-600 uppercase tracking-widest">Standard Plan</label>
+                        <input
+                          type="number"
+                          value={globalSettings.standardPrice || 120000}
+                          onChange={e => setGlobalSettings({ ...globalSettings, standardPrice: e.target.value })}
+                          className="w-full px-2 py-1 bg-transparent border-b-2 border-purple-200 focus:border-purple-600 outline-none font-black text-xl text-gray-900"
+                        />
+                      </div>
+                      <div className="space-y-2 p-4 bg-blue-50/50 rounded-2xl border border-blue-100">
+                        <label className="text-[10px] font-bold text-blue-600 uppercase tracking-widest">Premium Plan</label>
+                        <input
+                          type="number"
+                          value={globalSettings.premiumPrice || 250000}
+                          onChange={e => setGlobalSettings({ ...globalSettings, premiumPrice: e.target.value })}
+                          className="w-full px-2 py-1 bg-transparent border-b-2 border-blue-200 focus:border-blue-600 outline-none font-black text-xl text-gray-900"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="pt-6 border-t border-gray-100">
+                    <h4 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
+                      <FiArrowUpCircle className="text-indigo-600" /> Automated Offsite Backups (AWS S3)
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">AWS Access Key</label>
+                        <input
+                          type="text"
+                          value={globalSettings.s3AccessKey || ''}
+                          onChange={e => setGlobalSettings({ ...globalSettings, s3AccessKey: e.target.value })}
+                          className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-indigo-600 text-sm"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">AWS Secret Key</label>
+                        <input
+                          type="password"
+                          value={globalSettings.s3SecretKey || ''}
+                          onChange={e => setGlobalSettings({ ...globalSettings, s3SecretKey: e.target.value })}
+                          className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-indigo-600 text-sm"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">S3 Bucket Name</label>
+                        <input
+                          type="text"
+                          value={globalSettings.s3BucketName || ''}
+                          onChange={e => setGlobalSettings({ ...globalSettings, s3BucketName: e.target.value })}
+                          className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-indigo-600 text-sm"
+                        />
+                      </div>
+                      <div className="flex items-center gap-4 pt-6">
+                        <label className="flex items-center gap-3 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={globalSettings.enableAutoBackup || false}
+                            onChange={e => setGlobalSettings({ ...globalSettings, enableAutoBackup: e.target.checked })}
+                            className="w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                          />
+                          <span className="text-sm font-bold text-gray-700 uppercase tracking-tight">Enable Daily Auto-Backups</span>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Android App Management Section */}
+                  <div className="pt-6 border-t border-gray-100">
+                    <h4 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
+                      <FiArrowUpCircle className="text-indigo-600" /> Android App Management (Direct APK)
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Latest App Version (e.g., 1.0.1)</label>
+                        <input
+                          type="text"
+                          value={globalSettings.latestAppVersion || ''}
+                          onChange={e => setGlobalSettings({ ...globalSettings, latestAppVersion: e.target.value })}
+                          placeholder="1.0.0"
+                          className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-indigo-600 text-sm"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">APK Download URL (Drive/Dropbox)</label>
+                        <input
+                          type="url"
+                          value={globalSettings.apkDownloadUrl || ''}
+                          onChange={e => setGlobalSettings({ ...globalSettings, apkDownloadUrl: e.target.value })}
+                          placeholder="https://drive.google.com/..."
+                          className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-indigo-600 text-sm"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* WhatsApp Platform Fallback Section */}
+                  <div className="pt-6 border-t border-gray-100">
+                    <h4 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
+                       WhatsApp Platform Fallback (Centralized API)
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="col-span-2 space-y-2">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Global Provider</label>
+                        <select
+                          value={globalSettings.whatsappProvider || 'twilio'}
+                          onChange={e => setGlobalSettings({ ...globalSettings, whatsappProvider: e.target.value })}
+                          className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-indigo-600 text-sm"
+                        >
+                          <option value="twilio">Twilio (Central Account)</option>
+                          <option value="meta">Meta WhatsApp Cloud API (Central Account)</option>
+                        </select>
+                        <p className="text-[10px] text-gray-400 italic">Schools without individual keys will use this configuration.</p>
+                      </div>
+
+                      {globalSettings.whatsappProvider === 'meta' ? (
+                        <>
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Platform Meta Access Token</label>
+                            <input
+                              type="password"
+                              value={globalSettings.metaAccessToken || ''}
+                              onChange={e => setGlobalSettings({ ...globalSettings, metaAccessToken: e.target.value })}
+                              placeholder="Permanent Page Access Token"
+                              className="w-full px-4 py-3 rounded-xl bg-gray-900 text-indigo-400 font-mono border-none focus:ring-2 focus:ring-indigo-600 text-xs"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Platform Phone Number ID</label>
+                            <input
+                              type="text"
+                              value={globalSettings.metaPhoneNumberId || ''}
+                              onChange={e => setGlobalSettings({ ...globalSettings, metaPhoneNumberId: e.target.value })}
+                              className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-indigo-600 text-sm"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Platform Business Account ID</label>
+                            <input
+                              type="text"
+                              value={globalSettings.metaBusinessAccountId || ''}
+                              onChange={e => setGlobalSettings({ ...globalSettings, metaBusinessAccountId: e.target.value })}
+                              className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-indigo-600 text-sm"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Platform Verify Token</label>
+                            <input
+                              type="text"
+                              value={globalSettings.metaVerifyToken || ''}
+                              onChange={e => setGlobalSettings({ ...globalSettings, metaVerifyToken: e.target.value })}
+                              className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-indigo-600 text-sm"
+                            />
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Platform Twilio Account SID</label>
+                            <input
+                              type="text"
+                              value={globalSettings.twilioAccountSid || ''}
+                              onChange={e => setGlobalSettings({ ...globalSettings, twilioAccountSid: e.target.value })}
+                              className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-indigo-600 text-sm"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Platform Twilio Auth Token</label>
+                            <input
+                              type="password"
+                              value={globalSettings.twilioAuthToken || ''}
+                              onChange={e => setGlobalSettings({ ...globalSettings, twilioAuthToken: e.target.value })}
+                              className="w-full px-4 py-3 rounded-xl bg-gray-900 text-indigo-400 font-mono border-none focus:ring-2 focus:ring-indigo-600 text-xs"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Platform Twilio/WhatsApp Phone</label>
+                            <input
+                              type="text"
+                              value={globalSettings.whatsappPhoneNumber || ''}
+                              onChange={e => setGlobalSettings({ ...globalSettings, whatsappPhoneNumber: e.target.value })}
+                              placeholder="+1234567890"
+                              className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-indigo-600 text-sm"
+                            />
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="pt-6 border-t border-gray-100 flex justify-center">
+                    <button
+                      type="submit"
+                      disabled={updatingSettings}
+                      className={`px-12 py-3 bg-gray-900 text-white rounded-xl font-bold hover:bg-black transition-all shadow-xl shadow-gray-200 flex items-center gap-3 ${updatingSettings ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                      {updatingSettings ? (
+                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      ) : (
+                        <FiGlobe />
+                      )}
+                      Sync Global Platform Links
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              <div className="mt-8 bg-amber-50 rounded-2xl p-6 border border-amber-100 flex gap-4">
+                <FiAlertCircle className="text-amber-600 w-6 h-6 flex-shrink-0" />
+                <div className="text-sm">
+                  <p className="font-bold text-amber-800 mb-1">Impact Analysis</p>
+                  <p className="text-amber-700 opacity-80 leading-relaxed">
+                    Updating these links affects the **Primary Login Gateway**. Changes are reflected immediately for all users system-wide. Ensure links are full absolute URLs starting with **https://**.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'academic' && (
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-5 duration-700">
+               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="md:col-span-2 bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
+                    <h4 className="text-xl font-black text-gray-900 mb-6 flex items-center gap-2 italic uppercase">
+                      <FiActivity className="text-indigo-600" /> Platform-Wide Performance Index
+                    </h4>
+                    {fetchingIntel ? (
+                      <div className="py-20 text-center animate-pulse text-indigo-400 font-bold uppercase tracking-widest">Gathering global academic data...</div>
+                    ) : academicIntel.length === 0 ? (
+                      <div className="py-20 text-center text-gray-400 italic">No academic data points recorded across the platform yet.</div>
+                    ) : (
+                      <div className="space-y-6">
+                        {academicIntel.map(school => (
+                          <div key={school.schoolId} className="group transition-all">
+                             <div className="flex justify-between items-center mb-2">
+                                <span className="text-sm font-black text-gray-800 uppercase tracking-tight">{school.schoolName}</span>
+                                <span className="text-xs font-black text-indigo-600">{school.averagePerformance}% AVG</span>
+                             </div>
+                             <div className="relative h-3 bg-gray-100 rounded-full overflow-hidden shadow-inner">
+                                <div 
+                                  className={`absolute inset-y-0 left-0 rounded-full transition-all duration-1000 ${
+                                    school.averagePerformance >= 70 ? 'bg-gradient-to-r from-emerald-500 to-teal-400' :
+                                    school.averagePerformance >= 50 ? 'bg-gradient-to-r from-indigo-500 to-blue-400' :
+                                    'bg-gradient-to-r from-rose-500 to-orange-400'
+                                  }`}
+                                  style={{ width: `${school.averagePerformance}%` }}
+                                >
+                                   <div className="absolute inset-0 bg-white/20 animate-pulse"></div>
+                                </div>
+                             </div>
+                             <div className="flex justify-between mt-1">
+                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{school.totalDataPoints} DATA POINTS</span>
+                                <div className="flex items-center gap-1.5">
+                                   <div className={`w-1.5 h-1.5 rounded-full ${school.atRiskCount > 5 ? 'bg-rose-500 animate-pulse' : 'bg-emerald-400'}`}></div>
+                                   <span className="text-[10px] font-black uppercase text-gray-500">{school.atRiskCount} AT-RISK STUDENTS</span>
+                                </div>
+                             </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="bg-gradient-to-br from-slate-900 to-indigo-950 rounded-3xl p-8 text-white shadow-2xl">
+                     <h4 className="text-lg font-black italic uppercase tracking-tighter mb-6 flex items-center gap-2">
+                        <FiAlertCircle className="text-rose-400" /> Risk Radar Summary
+                     </h4>
+                     <div className="space-y-8">
+                        <div>
+                           <p className="text-xs font-bold text-indigo-300 uppercase tracking-widest mb-1">Most Struggling School</p>
+                           {academicIntel.length > 0 ? (
+                             <>
+                                <p className="text-xl font-black text-rose-400 uppercase tracking-tighter">{academicIntel[academicIntel.length-1].schoolName}</p>
+                                <p className="text-sm font-bold text-indigo-200">{academicIntel[academicIntel.length-1].atRiskCount} students flagged as critical risk</p>
+                             </>
+                           ) : <p className="text-indigo-600 italic">No data</p>}
+                        </div>
+
+                        <div>
+                           <p className="text-xs font-bold text-indigo-300 uppercase tracking-widest mb-1">Elite Performing Branch</p>
+                           {academicIntel.length > 0 ? (
+                             <>
+                                <p className="text-xl font-black text-emerald-400 uppercase tracking-tighter">{academicIntel[0].schoolName}</p>
+                                <p className="text-sm font-bold text-indigo-200">Maintaining {academicIntel[0].averagePerformance}% academic excellence</p>
+                             </>
+                           ) : <p className="text-indigo-600 italic">No data</p>}
+                        </div>
+
+                        <div className="pt-6 border-t border-white/10">
+                           <p className="text-[10px] text-indigo-400 font-bold leading-relaxed uppercase">
+                              Academic intelligence is calculated based on real-time term results synced from all branches. 
+                              Red signals indicate schools where interference may be needed to maintain platform standards.
+                           </p>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+            </div>
+          )}
+
+          {activeTab === 'audits' && (
+            <div className="animate-in slide-in-from-right-5 duration-500">
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">System-Wide Activity Log</h3>
+                  <p className="text-xs text-gray-500">Real-time chronicle of all administrative actions across the platform</p>
+                </div>
+                <button
+                  onClick={fetchData}
+                  className="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-all text-gray-600"
+                  title="Refresh Logs"
+                >
+                  <FiActivity className={loading ? 'animate-pulse' : ''} />
+                </button>
+              </div>
+
+              <div className="bg-white rounded-xl border border-gray-100 overflow-hidden shadow-sm">
+                <table className="w-full text-left text-sm">
+                  <thead>
+                    <tr className="bg-gray-50/80 border-b border-gray-100 uppercase text-[10px] font-bold text-gray-500 tracking-widest">
+                      <th className="px-6 py-4">Timestamp</th>
+                      <th className="px-6 py-4">Actor</th>
+                      <th className="px-6 py-4">School</th>
+                      <th className="px-6 py-4">Action Type</th>
+                      <th className="px-6 py-4">Resource</th>
+                      <th className="px-6 py-4 text-right">IP Address</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {audits && audits.length > 0 ? (
+                      audits?.map((log) => (
+                        <tr key={log.id} className="hover:bg-indigo-50/30 transition-colors">
+                          <td className="px-6 py-4">
+                            <div className="flex flex-col">
+                              <span className="font-bold text-gray-700">{new Date(log.createdAt).toLocaleDateString()}</span>
+                              <span className="text-[10px] text-gray-400 font-medium lowercase">{new Date(log.createdAt).toLocaleTimeString()}</span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 rounded-full bg-gray-100 flex-shrink-0 flex items-center justify-center text-[10px] font-black text-gray-600 border border-gray-200 overflow-hidden">
+                                {log.user?.photoUrl ? (
+                                  <img
+                                    src={log.user.photoUrl.startsWith('data:') || log.user.photoUrl.startsWith('http') ? log.user.photoUrl : `${API_BASE_URL}${log.user.photoUrl}`}
+                                    alt=""
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <span>{log.user?.firstName?.[0] || 'S'}</span>
+                                )}
+                              </div>
+                              <div>
+                                <p className="font-bold text-gray-800">{log.user ? `${log.user.firstName} ${log.user.lastName}` : 'System'}</p>
+                                <p className="text-[10px] text-gray-400 font-bold uppercase">{log.user?.role || 'Service'}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-600 border border-indigo-100">
+                              {log.school?.name || 'Central Platform'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className={`px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-tighter ${log.action === 'CREATE' ? 'bg-emerald-100 text-emerald-700' :
+                              log.action === 'DELETE' ? 'bg-rose-100 text-rose-700' :
+                                'bg-amber-100 text-amber-700'
+                              }`}>
+                              {log.action}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <code className="text-[11px] font-bold text-gray-500">{log.resource}</code>
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <span className="text-[10px] font-mono text-gray-400">{log.ipAddress || '—'}</span>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan="6" className="px-6 py-20 text-center">
+                          <FiShield className="w-12 h-12 mx-auto text-gray-200 mb-3" />
+                          <p className="text-gray-400 font-bold uppercase tracking-widest text-xs">No activity records found</p>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+          
+          {activeTab === 'showcase' && (
+            <ShowcaseSchoolsManagement />
+          )}
+
+          {activeTab === 'adverts' && (
+            <AdvertsManagement />
+          )}
+        </div>
+      </div>
+
+      {/* Issuing License Modal */}
+      {showLicenseModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="bg-amber-600 p-6 text-white">
+              <h3 className="text-xl font-bold flex items-center"><FiKey className="mr-2" /> Issue School License</h3>
+              <p className="text-amber-100 text-xs">Generating key for: {selectedSchoolForLicense?.name}</p>
+            </div>
+            {generatedKey ? (
+              <div className="p-6 space-y-4">
+                <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-100">
+                  <p className="text-xs font-bold text-emerald-600 uppercase tracking-widest mb-2">LICENSE KEY GENERATED</p>
+                  <div className="flex gap-2">
+                    <input
+                      readOnly
+                      value={generatedKey}
+                      className="flex-1 bg-white border border-emerald-200 rounded-lg px-3 py-2 font-mono text-sm font-bold text-gray-800"
+                      onClick={(e) => e.target.select()}
+                    />
+                  </div>
+                  <p className="text-[10px] text-emerald-500 mt-2 font-medium flex items-center gap-1">
+                    <FiAlertCircle size={10} /> Double-click the box above to select the full key for manual copy.
+                  </p>
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(generatedKey);
+                      toast.success('Key copied!');
+                    }}
+                    className="flex-1 py-2 px-4 rounded-lg bg-emerald-600 text-white font-bold text-sm"
+                  >
+                    Copy to Clipboard
+                  </button>
+                  <button
+                    onClick={() => setShowLicenseModal(false)}
+                    className="flex-1 py-2 px-4 rounded-lg bg-gray-100 text-gray-600 font-bold text-sm"
+                  >
+                    Done
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={handleIssueLicenseSubmit} className="p-6 space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Package Type</label>
+                  <select
+                    value={licenseData.packageType}
+                    onChange={e => setLicenseData({ ...licenseData, packageType: e.target.value })}
+                    className="w-full px-4 py-2 rounded-lg bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-indigo-600"
+                  >
+                    <option value="basic">Basic (Small Schools)</option>
+                    <option value="standard">Standard (Growth)</option>
+                    <option value="premium">Premium (Unlimited)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Max Student Quota</label>
+                  <input
+                    type="number"
+                    value={licenseData.maxStudents}
+                    onChange={e => setLicenseData({ ...licenseData, maxStudents: e.target.value })}
+                    className="w-full px-4 py-2 rounded-lg bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-indigo-600"
+                  />
+                  <p className="text-[10px] text-gray-400 mt-1 italic">*Use -1 for unlimited students</p>
+                </div>
+                <div className="pt-4 flex gap-3">
+                  <button type="button" disabled={generatingLicense} onClick={() => setShowLicenseModal(false)} className="flex-1 py-2 px-4 rounded-lg bg-gray-100 text-gray-600 font-bold text-sm">Cancel</button>
+                  <button
+                    type="submit"
+                    disabled={generatingLicense}
+                    className={`flex-1 py-2 px-4 rounded-lg bg-amber-600 text-white font-bold text-sm shadow-lg shadow-amber-200 ${generatingLicense ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    {generatingLicense ? 'Generating...' : 'Generate Key'}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Create School Modal */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="bg-indigo-600 p-6 text-white">
+              <h3 className="text-2xl font-bold flex items-center"><FiGlobe className="mr-3" /> Register New School</h3>
+              <p className="text-indigo-100 text-sm opacity-80">Initialize a new multi-tenant environment</p>
+            </div>
+            <form onSubmit={handleCreateSchool} className="p-8 space-y-5">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2">
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Official School Name</label>
+                  <input required value={newSchool.name} onChange={handleNameChange} className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-indigo-600 transition-all font-medium" placeholder="E.g. Royal Academy" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Unique Slug</label>
+                  <div className="flex">
+                    <input required value={newSchool.slug} onChange={e => setNewSchool({ ...newSchool, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') })} className="w-full px-4 py-3 rounded-l-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-indigo-600 transition-all font-mono" placeholder="royal-academy" />
+                    <span className="px-3 py-3 bg-gray-200 rounded-r-xl border border-l-0 border-gray-200 text-xs font-bold text-gray-500 flex items-center">.app</span>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Contact Email</label>
+                  <input type="email" value={newSchool.email} onChange={e => setNewSchool({ ...newSchool, email: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-indigo-600 transition-all" placeholder="admin@royal.com" />
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Custom Domain</label>
+                  <input type="text" value={newSchool.customDomain || ''} onChange={e => setNewSchool({ ...newSchool, customDomain: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-indigo-600 transition-all font-mono text-sm" placeholder="e.g., myschool.com" />
+                </div>
+              </div>
+              <div className="pt-4 flex gap-3">
+                <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-3 px-6 rounded-xl border border-gray-200 text-gray-600 font-bold hover:bg-gray-50 transition-colors">Cancel</button>
+                <button
+                  type="submit"
+                  disabled={creating}
+                  className={`flex-1 py-3 px-6 rounded-xl bg-indigo-600 text-white font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all ${creating ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  {creating ? 'Launching...' : 'Launch School'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Credentials Viewing/Printing Modal */}
+      {showCredsModal && resetCreds && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 print:p-0 print:bg-white print:block print:absolute print:top-0 print:left-0 print:right-0 print:bottom-0">
+          
+          {/* Main Card Container */}
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden print:shadow-none print:w-full print:max-w-none print:rounded-none print:h-screen print:flex print:flex-col relative">
+            
+            {/* Watermark for Print */}
+            <div className="hidden print:flex absolute inset-0 items-center justify-center opacity-[0.03] pointer-events-none z-0">
+              <FiUnlock size={400} />
+            </div>
+
+            {/* Header section */}
+            <div className={`p-6 text-white relative z-10 print:bg-white print:text-gray-900 print:border-b-4 print:border-indigo-900 print:p-10 ${resetCreds.isNewRegistration ? 'bg-indigo-600' : 'bg-amber-600'}`}>
+              <div className="hidden print:flex justify-between items-start mb-6">
+                 <div>
+                   <h1 className="text-4xl font-black tracking-tighter text-indigo-900 uppercase">EduTechAI</h1>
+                   <p className="text-sm font-bold text-gray-500 uppercase tracking-widest mt-1">Super Admin Issuance</p>
+                 </div>
+                 <div className="text-right">
+                   <p className="text-sm font-bold text-gray-400">Date Issued:</p>
+                   <p className="text-lg font-black text-gray-800">{new Date().toLocaleDateString()}</p>
+                 </div>
+              </div>
+
+              <h3 className="text-xl print:text-3xl font-black flex items-center print:uppercase print:tracking-tight print:mb-2">
+                <FiUnlock className="mr-2 print:hidden" />
+                {resetCreds.isNewRegistration ? 'School Registration Protocol' : resetCreds.isReprint ? 'School Access Details' : 'Temporary Access Protocol'}
+              </h3>
+              <p className="text-indigo-100 text-xs text-opacity-80 print:text-gray-600 print:text-lg print:font-medium">
+                {resetCreds.isNewRegistration ? 'Welcome to the platform!' : 'Official access credentials for:'} <span className="print:font-black print:text-indigo-900">{resetCreds.schoolName}</span>
+              </p>
+            </div>
+
+            <div className="p-8 space-y-6 print:p-12 print:flex-1 relative z-10">
+              
+              <div className="space-y-4 print:space-y-6">
+                
+                {/* URLs Row for Print */}
+                <div className="print:flex print:gap-6 print:space-y-0 space-y-4">
+                  <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 print:bg-gray-50 print:border-gray-200 print:flex-1 print:p-6 print:rounded-2xl">
+                    <p className="text-[10px] print:text-xs font-bold text-gray-400 uppercase tracking-widest mb-1 print:mb-2">General Portal URL</p>
+                    <p className="text-sm print:text-base font-mono font-bold text-indigo-600 break-all">{window.location.origin}/dashboard</p>
+                  </div>
+                  <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 print:bg-gray-50 print:border-gray-200 print:flex-1 print:p-6 print:rounded-2xl">
+                    <p className="text-[10px] print:text-xs font-bold text-gray-400 uppercase tracking-widest mb-1 print:mb-2">Direct School Login URL</p>
+                    <p className="text-sm print:text-base font-mono font-bold text-indigo-600 break-all">{window.location.origin}/s/{resetCreds.schoolSlug}</p>
+                  </div>
+                </div>
+
+                {/* Credentials Row for Print */}
+                <div className="print:flex print:gap-6 print:space-y-0 space-y-4 mt-6 print:mt-10">
+                  <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 print:bg-indigo-50 print:border-indigo-200 print:flex-1 print:p-8 print:rounded-3xl">
+                    <p className="text-[10px] print:text-sm font-bold text-gray-400 print:text-indigo-400 uppercase tracking-widest mb-1 print:mb-3">Administrator Username</p>
+                    <p className="text-lg print:text-2xl font-mono font-black text-gray-800 print:text-indigo-900">{resetCreds.username}</p>
+                  </div>
+                  <div className="p-4 bg-amber-50 rounded-xl border border-amber-100 print:bg-rose-50 print:border-rose-200 print:flex-1 print:p-8 print:rounded-3xl">
+                    <p className="text-[10px] print:text-sm font-bold text-amber-500 print:text-rose-400 uppercase tracking-widest mb-1 print:mb-3">
+                      {resetCreds.isReprint ? 'Password Status' : 'Temporary Password'}
+                    </p>
+                    <p className={`${resetCreds.isReprint ? 'text-lg' : 'text-2xl'} print:text-3xl font-mono font-black text-amber-700 print:text-rose-700`}>
+                      {resetCreds.password}
+                    </p>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Web-only Warning */}
+              <div className="bg-rose-50 p-4 rounded-lg flex items-start gap-3 print:hidden mt-6">
+                <FiAlertCircle className="text-rose-600 mt-1 flex-shrink-0" />
+                <p className="text-[11px] text-rose-700 leading-relaxed font-bold">
+                  SECURITY WARNING: This password will expire immediately after the first login.
+                  The administrator will be forced to set a secret permanent password.
+                </p>
+              </div>
+
+              {/* Print-only Warning / Instructions */}
+              <div className="hidden print:block mt-16 p-8 border-2 border-dashed border-gray-300 bg-gray-50 rounded-3xl">
+                <h4 className="text-lg font-black text-gray-900 uppercase tracking-widest mb-4 flex items-center gap-3">
+                  <FiAlertCircle className="text-gray-400" size={24} />
+                  Important Security Instructions
+                </h4>
+                <ul className="space-y-3 text-sm text-gray-700 font-medium list-disc list-inside">
+                  <li>Please keep this document secure and destroy it after first use.</li>
+                  <li>This temporary password will <strong className="text-rose-600 font-black">expire immediately</strong> upon your first successful login.</li>
+                  <li>You will be required to set a new, highly secure permanent password.</li>
+                  <li>Do not share your administrator credentials with any unauthorized personnel.</li>
+                </ul>
+              </div>
+
+              {/* Web-only buttons */}
+              <div className="flex gap-3 print:hidden mt-6">
+                <button
+                  onClick={() => setShowCredsModal(false)}
+                  className="flex-1 py-3 px-6 rounded-xl border border-gray-200 text-gray-600 font-bold hover:bg-gray-50 transition-colors"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={handlePrintCreds}
+                  className="flex-1 py-3 px-6 rounded-xl bg-gray-900 text-white font-bold hover:bg-black shadow-lg flex items-center justify-center gap-2"
+                >
+                  <FiPrinter /> Print Official Slip
+                </button>
+              </div>
+
+            </div>
+            
+            {/* Print Footer */}
+            <div className="hidden print:block text-center py-6 bg-gray-900 text-white mt-auto">
+              <p className="text-xs font-bold uppercase tracking-[0.3em]">Confidential & Official Document</p>
+              <p className="text-[9px] text-gray-400 mt-2">EduTechAI School Management System &copy; {new Date().getFullYear()}</p>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      <style dangerouslySetInnerHTML={{
+        __html: `
+        @media print {
+          body * { visibility: hidden; }
+          .print\\:block, .print\\:block * { visibility: visible; }
+          .fixed.inset-0.z-\\[60\\] { 
+            position: absolute; 
+            left: 0; 
+            top: 0; 
+            width: 100%; 
+            height: auto;
+            visibility: visible !important;
+            background: white !important;
+          }
+          .bg-white { visibility: visible !important; }
+          .p-8, .p-10 { visibility: visible !important; }
+          .space-y-6, .space-y-4 { visibility: visible !important; }
+          div, p { visibility: visible !important; }
+        }
+      `}} />
+
+      {/* Edit School Modal */}
+      {showEditModal && editingSchool && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="bg-blue-600 p-6 text-white">
+              <h3 className="text-xl font-bold flex items-center"><FiEdit2 className="mr-2" /> Edit School Details</h3>
+              <p className="text-blue-100 text-xs text-opacity-80">Update mapping and contact information for {editingSchool.name}</p>
+            </div>
+
+            <form onSubmit={handleUpdateSchool} className="p-8 space-y-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">School Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={editingSchool.name}
+                    onChange={e => setEditingSchool({ ...editingSchool, name: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-blue-600 transition-all text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">URL Slug (Domain)</label>
+                  <input
+                    type="text"
+                    required
+                    value={editingSchool.slug}
+                    onChange={e => setEditingSchool({ ...editingSchool, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') })}
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-blue-600 transition-all font-mono text-sm"
+                  />
+                  <p className="text-[10px] text-gray-400 mt-1 font-medium">Warning: Primary access key</p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Contact Email</label>
+                  <input
+                    type="email"
+                    value={editingSchool.email || ''}
+                    onChange={e => setEditingSchool({ ...editingSchool, email: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-blue-600 transition-all text-sm"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                    <FiGlobe className="text-blue-500" /> Custom Domain
+                  </label>
+                  <input
+                    type="text"
+                    value={editingSchool.customDomain || ''}
+                    onChange={e => setEditingSchool({ ...editingSchool, customDomain: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-blue-600 transition-all font-mono text-sm"
+                    placeholder="e.g., myschool.com"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Phone Number</label>
+                  <input
+                    type="text"
+                    value={editingSchool.phone || ''}
+                    onChange={e => setEditingSchool({ ...editingSchool, phone: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-blue-600 transition-all text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Address</label>
+                  <input
+                    type="text"
+                    value={editingSchool.address || ''}
+                    onChange={e => setEditingSchool({ ...editingSchool, address: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-blue-600 transition-all text-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-4 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  className="flex-1 py-3 px-6 rounded-xl border border-gray-200 text-gray-600 font-bold hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={updatingSchool}
+                  className={`flex-1 py-3 px-6 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all ${updatingSchool ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  {updatingSchool ? 'Saving...' : 'Update Records'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const StatCard = ({ icon, label, value, bgColor }) => (
+  <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex items-center gap-5 transition-all duration-300 hover:shadow-md hover:-translate-y-1">
+    <div className={`p-4 rounded-2xl ${bgColor}`}>
+      {React.cloneElement(icon, { size: 28 })}
+    </div>
+    <div>
+      <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{label}</p>
+      <h4 className="text-3xl font-extrabold text-gray-900">{formatNumber(value)}</h4>
+    </div>
+  </div>
+);
+
+const TabButton = ({ active, onClick, icon, label }) => (
+  <button
+    onClick={onClick}
+    className={`flex items-center px-4 sm:px-8 py-4 text-xs sm:text-sm font-bold transition-all border-b-2 ${active ? 'text-indigo-600 border-indigo-600 bg-white' : 'text-gray-400 border-transparent hover:text-gray-500'
+      }`}
+  >
+    <span className="mr-2">{icon}</span>
+    {label}
+  </button>
+);
+
+export default SuperAdminDashboard;

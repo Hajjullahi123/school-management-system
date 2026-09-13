@@ -1,0 +1,59 @@
+# syntax = docker/dockerfile:1
+
+# Adjust NODE_VERSION as desired
+ARG NODE_VERSION=22.19.0
+FROM node:${NODE_VERSION}-slim AS base
+
+LABEL fly_launch_runtime="Node.js"
+LABEL build_version="2026.06.27.1"
+
+# Node.js app lives here
+WORKDIR /app
+
+# Install runtime dependencies including openssl and Puppeteer (Chromium) requirements
+RUN apt-get update -qq && \
+    apt-get install -y --no-install-recommends \
+    openssl ca-certificates \
+    libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 \
+    libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 \
+    libgbm1 libasound2 libpango-1.0-0 libcairo2 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set production environment
+ENV NODE_ENV="production"
+ENV PUPPETEER_CACHE_DIR="/app/.puppeteer-cache"
+
+
+# Throw-away build stage to reduce size of final image
+FROM base AS build
+
+# Install packages needed to build node modules
+RUN apt-get update -qq && \
+    apt-get install --no-install-recommends -y build-essential node-gyp pkg-config python-is-python3 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install node modules
+COPY package-lock.json package.json ./
+RUN npm ci --include=dev
+
+# Copy application code
+COPY . .
+
+# Build application and remove frontend build-only node_modules to drastically reduce image size
+RUN npm run build && \
+    rm -rf client/node_modules personal-website/node_modules /root/.npm /root/.cache
+
+# Remove development dependencies
+RUN npm prune --omit=dev && \
+    npm prune --prefix server --omit=dev
+
+
+# Final stage for app image
+FROM base
+
+# Copy built application
+COPY --from=build /app /app
+
+# Start the server by default, this can be overwritten at runtime
+EXPOSE 3000
+CMD [ "npm", "run", "start" ]

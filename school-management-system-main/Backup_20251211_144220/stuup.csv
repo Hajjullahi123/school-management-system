@@ -1,0 +1,6 @@
+firstName,lastName,classId,dateOfBirth,gender,email,parentGuardianName,parentGuardianPhone,parentEmail,bloodGroup,genotype,stateOfOrigin,nationality,address,disability
+John,Doe,1,15/01/2010,Male,john@example.com,Mr. Doe,8012345678,parent@example.com,O+,AA,Lagos,Nigerian,123 Street,None
+Jane,Smith,1,20/03/2010,Female,jane@example.com,Mrs. Smith,8087654321,parent2@example.com,A+,AS,Abuja,Nigerian,456 Avenue,None
+Hauwau,Shamsuddin,1,21/03/2010,Female,hauwa@example.com,Shmsu,8087654321,parent3@example.com,A+,SS,Borno,Nigerian,Dan Bare,None
+Sadik,Auwal,2,31/12/2020,Male,sadikauwal@gmail.com,Auwal,8087654441,,B+,AB,Bauchi,Nigerian,Wudil,Epilepsy
+Zainab,Muhammad,3,23/04/2023,Female,zm@gmail.com,Muhammad,7044332233,"parent4@gmail,com",A+,AS,Kebbi,Nigerian,B/Kebbi,Senility'
