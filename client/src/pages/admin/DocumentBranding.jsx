@@ -287,8 +287,8 @@ const DocumentBranding = () => {
                   </div>
                 </div>
 
-                <div className="mt-8 flex gap-2">
-                   {['classic', 'modern', 'minimal'].map(l => (
+                <div className="mt-8 flex flex-wrap gap-2">
+                   {['classic', 'modern', 'minimal', 'early_years'].map(l => (
                      <button 
                        key={l}
                        onClick={() => setSettings(prev => ({ ...prev, reportLayout: l }))}
@@ -298,7 +298,7 @@ const DocumentBranding = () => {
                          : 'bg-white text-gray-500 hover:bg-gray-50'
                        }`}
                      >
-                       {l}
+                       {l === 'early_years' ? 'Early Years Progress' : l}
                      </button>
                    ))}
                 </div>
