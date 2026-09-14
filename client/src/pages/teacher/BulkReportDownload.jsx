@@ -445,24 +445,24 @@ const BulkReportDownload = () => {
                                       </div>
 
                                       {/* Center School Details */}
-                                      <div className="text-center space-y-1">
-                                        <h1 className="text-xl font-black uppercase tracking-wider leading-tight" style={{ color: currentReportColor }}>
+                                      <div className="flex flex-col items-center justify-center text-center space-y-1 w-full mx-auto">
+                                        <h1 className="text-xl font-black uppercase tracking-wider leading-tight text-center mx-auto" style={{ color: currentReportColor }}>
                                           {ss?.name || ss?.schoolName || 'AL-BAYYINAH BASIC / TAHFEEDH SCHOOL'}
                                         </h1>
                                         {ss?.motto && (
-                                          <p className="text-[11px] font-black italic text-gray-800 uppercase tracking-wide">
+                                          <p className="text-[11px] font-black italic text-gray-800 uppercase tracking-wide text-center mx-auto">
                                             "{ss.motto}"
                                           </p>
                                         )}
-                                        <p className="text-[10px] font-bold text-gray-700 leading-tight">
+                                        <p className="text-[10px] font-bold text-gray-700 leading-tight text-center mx-auto">
                                           {ss?.address || 'Kano, Nigeria'}
                                         </p>
                                         {(ss?.phone || ss?.email) && (
-                                          <p className="text-[9px] font-bold text-gray-600">
+                                          <p className="text-[10px] font-bold text-gray-600 text-center mx-auto">
                                             {ss?.phone ? `TEL: ${ss.phone}` : ''} {ss?.phone && ss?.email ? ' | ' : ''} {ss?.email ? `EMAIL: ${ss.email}` : ''}
                                           </p>
                                         )}
-                                        <div className="pt-1">
+                                        <div className="pt-1 text-center mx-auto">
                                           <h2 className="text-xs font-black uppercase tracking-widest text-white py-1 px-3 inline-block rounded shadow-sm" style={{ backgroundColor: currentReportColor }}>
                                             EARLY YEARS PROGRESS REPORT
                                           </h2>
@@ -586,9 +586,6 @@ const BulkReportDownload = () => {
                                   <div className="bg-white border-4 border-black p-4 space-y-3 print:p-3 print:space-y-2 print:break-before-page">
                                     <div className="text-center border-b-2 border-black pb-1">
                                       <h2 className="text-base font-black uppercase tracking-wider text-black">EARLY YEARS PROGRESS REPORT</h2>
-                                      <p className="text-[10px] font-bold text-gray-700">
-                                        Student: {getStudentDisplayName(data.student)} &bull; Class: {data.student?.class} &bull; Term: {data.term?.name}
-                                      </p>
                                     </div>
     
                                     <div className="border-2 border-black overflow-hidden">
@@ -668,7 +665,7 @@ const BulkReportDownload = () => {
                                       </div>
                                     </div>
     
-                                    <div className="grid grid-cols-3 gap-4 pt-4 text-center text-[10px] font-black uppercase text-black">
+                                    <div className="grid grid-cols-2 max-w-xl mx-auto gap-12 pt-4 text-center text-[10px] font-black uppercase text-black">
                                       <div className="space-y-1">
                                         <p>CLASS TEACHER</p>
                                         <div className="border-b-2 border-black h-6 flex items-center justify-center">
@@ -685,11 +682,6 @@ const BulkReportDownload = () => {
                                             <img src={data.term.principalSignatureUrl.startsWith('data:') || data.term.principalSignatureUrl.startsWith('http') ? data.term.principalSignatureUrl : `${API_BASE_URL}${data.term.principalSignatureUrl}`} alt="Principal Signature" className="h-full w-auto mix-blend-multiply" />
                                           )}
                                         </div>
-                                        <p className="text-[8px] font-normal">Date: ______________</p>
-                                      </div>
-                                      <div className="space-y-1">
-                                        <p>PARENT / GUARDIAN</p>
-                                        <div className="border-b-2 border-black h-6" />
                                         <p className="text-[8px] font-normal">Date: ______________</p>
                                       </div>
                                     </div>
@@ -724,29 +716,29 @@ const BulkReportDownload = () => {
                                     </div>
 
                                     {/* Center School Details */}
-                                    <div className="text-center space-y-1">
-                                      <h1 className="text-2xl font-black uppercase tracking-wider leading-tight" style={{ color: currentReportColor }}>
-                                        {ss?.name || ss?.schoolName || schoolSettings?.schoolName || 'AL-BAYYINAH BASIC / TAHFEEDH SCHOOL'}
-                                      </h1>
-                                      {ss?.motto && (
-                                        <p className="text-xs font-black italic text-gray-800 uppercase tracking-wide">
-                                          "{ss.motto}"
-                                        </p>
-                                      )}
-                                      <p className="text-[11px] font-bold text-gray-700 leading-tight">
-                                        {ss?.address || schoolSettings?.address || 'Kano, Nigeria'}
-                                      </p>
-                                      {(ss?.phone || ss?.email || schoolSettings?.phone || schoolSettings?.email) && (
-                                        <p className="text-[10px] font-bold text-gray-600">
-                                          {(ss?.phone || schoolSettings?.phone) ? `TEL: ${ss?.phone || schoolSettings?.phone}` : ''} {(ss?.phone || schoolSettings?.phone) && (ss?.email || schoolSettings?.email) ? ' | ' : ''} {(ss?.email || schoolSettings?.email) ? `EMAIL: ${ss?.email || schoolSettings?.email}` : ''}
-                                        </p>
-                                      )}
-                                      <div className="pt-1">
-                                        <h2 className="text-xs font-black uppercase tracking-widest text-white py-1 px-4 inline-block rounded shadow-sm" style={{ backgroundColor: currentReportColor }}>
-                                          EARLY YEARS PROGRESS REPORT
-                                        </h2>
-                                      </div>
-                                    </div>
+                                     <div className="flex flex-col items-center justify-center text-center space-y-1 w-full mx-auto">
+                                       <h1 className="text-2xl font-black uppercase tracking-wider leading-tight text-center mx-auto" style={{ color: currentReportColor }}>
+                                         {ss?.name || ss?.schoolName || schoolSettings?.schoolName || 'AL-BAYYINAH BASIC / TAHFEEDH SCHOOL'}
+                                       </h1>
+                                       {ss?.motto && (
+                                         <p className="text-xs font-black italic text-gray-800 uppercase tracking-wide text-center mx-auto">
+                                           "{ss.motto}"
+                                         </p>
+                                       )}
+                                       <p className="text-[11px] font-bold text-gray-700 leading-tight text-center mx-auto">
+                                         {ss?.address || schoolSettings?.address || 'Kano, Nigeria'}
+                                       </p>
+                                       {(ss?.phone || ss?.email || schoolSettings?.phone || schoolSettings?.email) && (
+                                         <p className="text-[10px] font-bold text-gray-600 text-center mx-auto">
+                                           {(ss?.phone || schoolSettings?.phone) ? `TEL: ${ss?.phone || schoolSettings?.phone}` : ''} {(ss?.phone || schoolSettings?.phone) && (ss?.email || schoolSettings?.email) ? ' | ' : ''} {(ss?.email || schoolSettings?.email) ? `EMAIL: ${ss?.email || schoolSettings?.email}` : ''}
+                                         </p>
+                                       )}
+                                       <div className="pt-1 text-center mx-auto">
+                                         <h2 className="text-xs font-black uppercase tracking-widest text-white py-1 px-4 inline-block rounded shadow-sm" style={{ backgroundColor: currentReportColor }}>
+                                           EARLY YEARS PROGRESS REPORT
+                                         </h2>
+                                       </div>
+                                     </div>
 
                                     {/* Student Photo */}
                                     <div className="w-24 h-28 flex-shrink-0 flex items-center justify-center">
@@ -865,9 +857,6 @@ const BulkReportDownload = () => {
                                 <div className="bg-white border-4 border-black p-6 space-y-4 print:p-4 print:space-y-3 print:break-before-page">
                                   <div className="text-center border-b-2 border-black pb-2">
                                     <h2 className="text-lg font-black uppercase tracking-wider text-black">EARLY YEARS PROGRESS REPORT</h2>
-                                    <p className="text-xs font-bold text-gray-700">
-                                      Student: {getStudentDisplayName(data.student)} &bull; Class: {data.student?.class} &bull; Term: {data.term?.name}
-                                    </p>
                                   </div>
   
                                   {((data.earlyYearsDomains || []).filter(d => !(d.name || '').startsWith('01') && !(d.name || '').startsWith('02')).length > 0
@@ -940,9 +929,6 @@ const BulkReportDownload = () => {
                                 <div className="bg-white border-4 border-black p-6 space-y-4 print:p-4 print:space-y-3 print:break-before-page">
                                   <div className="text-center border-b-2 border-black pb-2">
                                     <h2 className="text-lg font-black uppercase tracking-wider text-black">COMMENTS & DEVELOPMENT PLAN</h2>
-                                    <p className="text-xs font-bold text-gray-700">
-                                      Student: {getStudentDisplayName(data.student)} &bull; Session: {data.term?.session} &bull; Term: {data.term?.name}
-                                    </p>
                                   </div>
   
                                   <div className="space-y-1">
@@ -993,7 +979,7 @@ const BulkReportDownload = () => {
                                     </div>
                                   </div>
   
-                                  <div className="grid grid-cols-3 gap-6 pt-6 text-center text-xs font-black uppercase text-black">
+                                  <div className="grid grid-cols-2 max-w-xl mx-auto gap-12 pt-6 text-center text-xs font-black uppercase text-black">
                                     <div className="space-y-2">
                                       <p>CLASS TEACHER</p>
                                       <div className="border-b-2 border-black h-8 flex items-center justify-center">
@@ -1010,11 +996,6 @@ const BulkReportDownload = () => {
                                           <img src={data.term.principalSignatureUrl.startsWith('data:') || data.term.principalSignatureUrl.startsWith('http') ? data.term.principalSignatureUrl : `${API_BASE_URL}${data.term.principalSignatureUrl}`} alt="Principal Signature" className="h-full w-auto mix-blend-multiply" />
                                         )}
                                       </div>
-                                      <p className="text-[10px] font-normal">Date: ______________</p>
-                                    </div>
-                                    <div className="space-y-2">
-                                      <p>PARENT / GUARDIAN</p>
-                                      <div className="border-b-2 border-black h-8" />
                                       <p className="text-[10px] font-normal">Date: ______________</p>
                                     </div>
                                   </div>

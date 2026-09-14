@@ -861,9 +861,6 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
                 <Page size="A4" style={[styles.page, { padding: 20 }]}>
                   <View style={{ textAlign: 'center', marginBottom: 8 }}>
                     <Text style={{ fontSize: 12, fontWeight: 'bold', textTransform: 'uppercase' }}>EARLY YEARS PROGRESS REPORT</Text>
-                    <Text style={{ fontSize: 8, color: '#374151', marginTop: 2 }}>
-                      Student: {studentName}  •  Class: {className}  •  Term: {(term.name || 'Second Term').toUpperCase()}
-                    </Text>
                   </View>
 
                   {/* PROGRESS AT A GLANCE TABLE */}
@@ -944,19 +941,14 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
                   </View>
 
                   {/* Signatures */}
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 10, marginBottom: 10 }}>
-                    <View style={{ width: '30%', alignItems: 'center' }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-around', width: '70%', alignSelf: 'center', marginTop: 10, marginBottom: 10 }}>
+                    <View style={{ width: '40%', alignItems: 'center' }}>
                       <Text style={{ fontSize: 7.5, fontWeight: 'bold', textTransform: 'uppercase', marginBottom: 15 }}>CLASS TEACHER</Text>
                       <View style={{ width: '100%', borderBottomWidth: 1, borderColor: '#000000', marginBottom: 4 }} />
                       <Text style={{ fontSize: 7 }}>Date: ______________</Text>
                     </View>
-                    <View style={{ width: '30%', alignItems: 'center' }}>
+                    <View style={{ width: '40%', alignItems: 'center' }}>
                       <Text style={{ fontSize: 7.5, fontWeight: 'bold', textTransform: 'uppercase', marginBottom: 15 }}>HEAD TEACHER</Text>
-                      <View style={{ width: '100%', borderBottomWidth: 1, borderColor: '#000000', marginBottom: 4 }} />
-                      <Text style={{ fontSize: 7 }}>Date: ______________</Text>
-                    </View>
-                    <View style={{ width: '30%', alignItems: 'center' }}>
-                      <Text style={{ fontSize: 7.5, fontWeight: 'bold', textTransform: 'uppercase', marginBottom: 15 }}>PARENT / GUARDIAN</Text>
                       <View style={{ width: '100%', borderBottomWidth: 1, borderColor: '#000000', marginBottom: 4 }} />
                       <Text style={{ fontSize: 7 }}>Date: ______________</Text>
                     </View>
@@ -1128,9 +1120,6 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
                 <Page size="A4" style={[styles.page, { padding: 25 }]}>
                   <View style={{ textAlign: 'center', marginBottom: 8 }}>
                     <Text style={{ fontSize: 12, fontWeight: 'bold', textTransform: 'uppercase' }}>EARLY YEARS PROGRESS REPORT</Text>
-                    <Text style={{ fontSize: 8, color: '#374151', marginTop: 2 }}>
-                      Student: {studentName}  •  Class: {className}  •  Term: {(term.name || 'Second Term').toUpperCase()}
-                    </Text>
                   </View>
 
                   {/* Page 2 Domains */}
@@ -1188,9 +1177,6 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
                 <Page size="A4" style={[styles.page, { padding: 25 }]}>
                   <View style={{ textAlign: 'center', marginBottom: 10 }}>
                     <Text style={{ fontSize: 13, fontWeight: 'bold', textTransform: 'uppercase' }}>COMMENTS & DEVELOPMENT PLAN</Text>
-                    <Text style={{ fontSize: 8, color: '#374151', marginTop: 2 }}>
-                      Student: {studentName}  •  Session: {(term.session || '2025/2026').toUpperCase()}  •  Term: {(term.name || 'Second Term').toUpperCase()}
-                    </Text>
                   </View>
 
                   {/* TEACHER'S OVERALL COMMENT */}
@@ -1252,19 +1238,14 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
                   </View>
 
                   {/* Signatures */}
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 15, marginBottom: 15 }}>
-                    <View style={{ width: '30%', alignItems: 'center' }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-around', width: '70%', alignSelf: 'center', marginTop: 15, marginBottom: 15 }}>
+                    <View style={{ width: '40%', alignItems: 'center' }}>
                       <Text style={{ fontSize: 8, fontWeight: 'bold', textTransform: 'uppercase', marginBottom: 20 }}>CLASS TEACHER</Text>
                       <View style={{ width: '100%', borderBottomWidth: 1, borderColor: '#000000', marginBottom: 4 }} />
                       <Text style={{ fontSize: 7.5 }}>Date: ______________</Text>
                     </View>
-                    <View style={{ width: '30%', alignItems: 'center' }}>
+                    <View style={{ width: '40%', alignItems: 'center' }}>
                       <Text style={{ fontSize: 8, fontWeight: 'bold', textTransform: 'uppercase', marginBottom: 20 }}>HEAD TEACHER</Text>
-                      <View style={{ width: '100%', borderBottomWidth: 1, borderColor: '#000000', marginBottom: 4 }} />
-                      <Text style={{ fontSize: 7.5 }}>Date: ______________</Text>
-                    </View>
-                    <View style={{ width: '30%', alignItems: 'center' }}>
-                      <Text style={{ fontSize: 8, fontWeight: 'bold', textTransform: 'uppercase', marginBottom: 20 }}>PARENT / GUARDIAN</Text>
                       <View style={{ width: '100%', borderBottomWidth: 1, borderColor: '#000000', marginBottom: 4 }} />
                       <Text style={{ fontSize: 7.5 }}>Date: ______________</Text>
                     </View>
