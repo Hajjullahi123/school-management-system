@@ -501,6 +501,60 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
       });
     }
 
+    // Fetch previous term ratings for Early Years comparison
+    let previousRatings = [];
+    try {
+      const allTermsInSession = await prisma.term.findMany({
+        where: { academicSessionId: term.academicSessionId, schoolId: req.schoolId },
+        orderBy: { startDate: 'asc' }
+      });
+      const currentTermIndex = allTermsInSession.findIndex(t => t.id === parseInt(termId));
+      if (currentTermIndex > 0) {
+        const prevTerm = allTermsInSession[currentTermIndex - 1];
+        const prevReportExtra = await prisma.reportExtra.findFirst({
+          where: {
+            studentId: parseInt(studentId),
+            academicSessionId: term.academicSessionId,
+            termId: prevTerm.id,
+            schoolId: req.schoolId
+          }
+        });
+        if (prevReportExtra && prevReportExtra.psychomotorRatings) {
+          const parsedPrev = JSON.parse(prevReportExtra.psychomotorRatings);
+          previousRatings = Array.isArray(parsedPrev) ? parsedPrev : [];
+        }
+      }
+    } catch (e) {
+      console.error('Error fetching previous term ratings:', e);
+      previousRatings = [];
+    }
+
+    const formatEarlyYearsCode = (scoreOrRating) => {
+      if (scoreOrRating === null || scoreOrRating === undefined) return '—';
+      if (typeof scoreOrRating === 'string') {
+        const s = scoreOrRating.trim().toUpperCase();
+        if (['A', 'P', 'W', 'NA'].includes(s)) return s;
+      }
+      const num = parseInt(scoreOrRating);
+      if (isNaN(num)) return '—';
+      if (num >= 5) return 'A';
+      if (num === 4) return 'P';
+      if (num === 3 || num === 2) return 'W';
+      if (num <= 1) return 'NA';
+      return 'A';
+    };
+
+    const calculateEarlyYearsProgress = (currCode, prevCode) => {
+      if (!prevCode || prevCode === '—') return 'New';
+      if (currCode === prevCode) return 'Maintained';
+      const rankMap = { 'A': 4, 'P': 3, 'W': 2, 'NA': 1, '—': 0 };
+      const currRank = rankMap[currCode] || 0;
+      const prevRank = rankMap[prevCode] || 0;
+      if (currRank > prevRank) return 'Improved';
+      if (currRank < prevRank) return 'Needs Attention';
+      return 'Maintained';
+    };
+
     const reportData = {
       student: {
         id: student.id,
@@ -640,13 +694,39 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
         code: d.code,
         skills: (d.skills || []).map(s => {
           const rating = ratings.find(r => r.skillId === s.id || r.domainId === s.id || r.name === s.name || r.name === `${d.name} - ${s.name}`);
+          const prevRating = previousRatings.find(r => r.skillId === s.id || r.domainId === s.id || r.name === s.name || r.name === `${d.name} - ${s.name}`);
+
+          const currScore = rating && rating.score !== null && rating.score !== undefined ? rating.score : 5;
+          const prevScore = prevRating && prevRating.score !== null && prevRating.score !== undefined ? prevRating.score : null;
+
+          const currCode = formatEarlyYearsCode(currScore);
+          const prevCode = prevScore !== null ? formatEarlyYearsCode(prevScore) : '—';
+          const progress = calculateEarlyYearsProgress(currCode, prevCode);
+
           return {
             id: s.id,
             name: s.name,
-            score: rating && rating.score !== null && rating.score !== undefined ? rating.score : 4
+            score: currScore,
+            current: currCode,
+            previous: prevCode,
+            progress: progress
           };
         })
       })),
+      progressAtAGlance: reportExtras?.progressAtAGlance ? (typeof reportExtras.progressAtAGlance === 'string' ? JSON.parse(reportExtras.progressAtAGlance) : reportExtras.progressAtAGlance) : [
+        { area: 'Literacy', goingWell: 'Sound recognition, rhymes and reading direction.', nextFocus: 'Continue vocabulary and sentence development.' },
+        { area: 'Numeracy', goingWell: 'Counting, number recognition and basic concepts.', nextFocus: 'Reinforce number concepts through daily practice.' },
+        { area: 'Physical', goingWell: 'Fine-motor control, organised play and safety.', nextFocus: 'Maintain regular pencil, crayon and scissors activities.' },
+        { area: 'Social / Emotional', goingWell: 'Self-control, confidence and participation.', nextFocus: 'Continue positive reinforcement and independence.' }
+      ],
+      developmentPlan: reportExtras?.developmentPlan ? (typeof reportExtras.developmentPlan === 'string' ? JSON.parse(reportExtras.developmentPlan) : reportExtras.developmentPlan) : {
+        teacherComment: reportExtras?.formMasterRemark || 'The student is an energetic and engaged learner who has made clear progress during the term. She demonstrates strong performance in areas of interest and is developing confidence across literacy, numeracy and classroom activities.',
+        literacyComment: 'Recognises letter sounds confidently and is developing ability to use complete sentences and appropriate vocabulary.',
+        numeracyComment: 'Demonstrates strong understanding of basic numeracy concepts and applies counting and number skills confidently.',
+        atSchoolNextStep: 'Continue guided literacy and numeracy practice; reinforce independent classroom routines.',
+        atHomeNextStep: 'Read together, practise sounds and counting, and use everyday objects for sorting and number games.',
+        headTeacherComment: reportExtras?.principalRemark || 'Has shown encouraging progress this term. Should continue to practise consistently and maintain a positive attitude toward learning.'
+      },
       aiNarrative: reportExtras?.aiNarrative || null,
       reportSettings: {
         showPositionOnReport: schoolSettings.showPositionOnReport && (student.classModel?.showPositionOnReport !== false),
