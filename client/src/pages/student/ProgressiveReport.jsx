@@ -428,7 +428,7 @@ const ProgressiveReport = () => {
                         <p className="text-xs font-black italic text-gray-800 mb-1 uppercase tracking-normal w-full text-center">{ss?.motto || 'Knowledge for Prosperity'}</p>
                         <p className="text-[9px] font-black text-gray-600 max-w-[500px] leading-tight text-center">{ss?.address || 'School Address'} | TEL: {ss?.phone} | Email: {ss?.email}</p>
                         <div className="mt-1 inline-block bg-black text-white px-6 py-0.5 rounded-full font-bold uppercase tracking-widest text-lg shadow-sm" style={{ backgroundColor: '#000000' }}>
-                          PROGRESSIVE REPORT
+                          {layout === 'early_years' ? 'EARLY YEARS PROGRESSIVE REPORT' : 'PROGRESSIVE REPORT'}
                         </div>
                       </div>
                       {(() => {
@@ -441,7 +441,35 @@ const ProgressiveReport = () => {
                       })()}
                     </div>
 
-                    {rs.reportLayout === 'modern' ? (
+                    {layout === 'early_years' ? (
+                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-0 border-2 border-black mb-3 divide-y divide-black lg:divide-y-0 lg:divide-x bg-gray-50/50 text-sm">
+                        <div className="col-span-2 lg:col-span-2 p-2 border-b lg:border-b-0 border-black flex flex-col justify-center">
+                          <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-0.5">Name of Student</p>
+                          <p className="font-black text-black text-sm uppercase">{data.student.name}</p>
+                        </div>
+                        <div className="p-2 border-b lg:border-b-0 border-r border-black flex flex-col justify-center">
+                          <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-0.5">Admission Number</p>
+                          <p className="font-bold text-sm">{data.student.admissionNumber}</p>
+                        </div>
+                        <div className="p-2 border-b lg:border-b-0 border-black flex flex-col justify-center">
+                          <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-0.5">Class</p>
+                          <p className="font-bold text-sm">{data.student.class}</p>
+                        </div>
+
+                        <div className="p-2 border-r border-black flex flex-col justify-center bg-white">
+                          <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-0.5">Term & Session</p>
+                          <p className="font-bold text-sm">{data.term.name} ({data.term.session})</p>
+                        </div>
+                        <div className="p-2 border-r border-black flex flex-col justify-center bg-white">
+                          <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-0.5">Evaluation Framework</p>
+                          <p className="font-bold text-sm text-emerald-800" style={{ color: reportColor }}>EYFS Observational</p>
+                        </div>
+                        <div className="col-span-2 p-2 border-black flex flex-col justify-center bg-white">
+                          <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-0.5">Rating System</p>
+                          <p className="font-bold text-xs text-gray-700">A (Achieved) • P (Progressing) • W (Working Towards) • NA (Not Assessed)</p>
+                        </div>
+                      </div>
+                    ) : rs.reportLayout === 'modern' ? (
                       <div className="grid grid-cols-2 gap-2 text-[10px] uppercase font-bold mb-3">
                          <div className="bg-gray-50/50 p-1.5 rounded-xl border border-gray-100">
                            <p className="text-[8px] text-gray-400 mb-0.5 uppercase">Full Name</p>
@@ -503,37 +531,123 @@ const ProgressiveReport = () => {
                     )}
 
                     <div className="flex-1">
-                      <table className="w-full border-collapse border-2 border-black mb-3 text-xs bg-white">
-                        <thead>
-                          <tr className="bg-black text-white uppercase text-[10px] tracking-wider" style={{ backgroundColor: '#000000' }}>
-                            <th className="border border-black p-1 text-left w-1/4">Subjects</th>
-                            <th className="border border-black p-0.5 text-center font-normal px-1">Ass. 1<br /><span className="text-[8px] opacity-75">({weights.assignment1})</span></th>
-                            <th className="border border-black p-0.5 text-center font-normal px-1">Ass. 2<br /><span className="text-[8px] opacity-75">({weights.assignment2})</span></th>
-                            <th className="border border-black p-0.5 text-center font-normal px-1">Test 1<br /><span className="text-[8px] opacity-75">({weights.test1})</span></th>
-                            <th className="border border-black p-0.5 text-center font-normal px-1">Test 2<br /><span className="text-[8px] opacity-75">({weights.test2})</span></th>
-                            <th className="border border-black p-1 text-center bg-black/20 font-bold w-16">Total<br /><span className="text-[8px] opacity-75">({weights.assignment1 + weights.assignment2 + weights.test1 + weights.test2})</span></th>
-                            <th className="border border-black p-1 text-center w-20 tracking-tighter">Avg</th>
-                            {showPosition && <th className="border border-black p-1 text-center font-bold">Pos</th>}
-                          </tr>
-                        </thead>
-                        <tbody>
+                      {layout === 'early_years' ? (
+                        <div className="space-y-2">
+                          <div className="bg-black text-white text-[9px] uppercase font-bold p-1.5 rounded flex justify-between items-center tracking-wider">
+                            <span>Early Years Mid-Term Developmental Milestone Check</span>
+                            <span className="text-[8px] opacity-90">A = Achieved | P = Progressing | W = Working Towards | NA = Not Assessed</span>
+                          </div>
+
                           {(() => {
-                            const subs = data.subjects || [];
-                            return subs.map((sub, i) => (
-                              <tr key={i} className="hover:bg-gray-50 border-b border-gray-300 h-5">
-                                <td className="border-x border-black p-1 font-bold text-gray-800 uppercase text-[10px]">{sub.subject?.name || ''}</td>
-                                <td className="border-x border-gray-400 p-1 text-center">{sub.isEmpty ? '-' : (sub.assignment1Score ?? '-')}</td>
-                                <td className="border-x border-gray-400 p-1 text-center">{sub.isEmpty ? '-' : (sub.assignment2Score ?? '-')}</td>
-                                <td className="border-x border-gray-400 p-1 text-center">{sub.isEmpty ? '-' : (sub.test1Score ?? '-')}</td>
-                                <td className="border-x border-gray-400 p-1 text-center">{sub.isEmpty ? '-' : (sub.test2Score ?? '-')}</td>
-                                <td className="border-x border-black p-1 text-center font-black bg-gray-100 text-sm text-emerald-800" style={{ color: sub.isEmpty ? '#9ca3af' : reportColor }}>{sub.isEmpty ? '-' : (sub.totalScore ?? '-')}</td>
-                                <td className="border-x border-gray-400 p-1 text-center italic text-gray-600">{sub.isEmpty ? '-' : (sub.averageInClass !== null && sub.averageInClass !== undefined ? sub.averageInClass.toFixed(1) : '-')}</td>
-                                {showPosition && <td className="border-x border-black p-1 text-center font-black text-emerald-800 bg-emerald-50/50">{sub.isEmpty ? '-' : getSuffix(sub.position)}</td>}
-                              </tr>
-                            ));
+                            const parseRatingCode = (val) => {
+                              if (!val) return 'NA';
+                              if (typeof val === 'string') {
+                                const s = val.trim().toUpperCase();
+                                if (['A', 'P', 'W', 'NA'].includes(s)) return s;
+                              }
+                              const num = parseInt(val);
+                              if (isNaN(num)) return 'NA';
+                              if (num >= 5) return 'A';
+                              if (num === 4) return 'P';
+                              if (num === 3 || num === 2) return 'W';
+                              return 'NA';
+                            };
+
+                            const domainsToRender = (data.earlyYearsDomains && data.earlyYearsDomains.length > 0)
+                              ? data.earlyYearsDomains
+                              : [
+                                  {
+                                    name: 'Personal, Social & Emotional Development',
+                                    skills: [{ name: 'Self-Confidence & Independence' }, { name: 'Managing Feelings & Behavior' }, { name: 'Making Relationships' }]
+                                  },
+                                  {
+                                    name: 'Communication, Language & Literacy',
+                                    skills: [{ name: 'Listening & Attention' }, { name: 'Speaking & Phonics' }, { name: 'Reading & Early Writing' }]
+                                  },
+                                  {
+                                    name: 'Mathematics & Problem Solving',
+                                    skills: [{ name: 'Numbers & Counting' }, { name: 'Shapes, Space & Measure' }]
+                                  },
+                                  {
+                                    name: 'Physical & Creative Development',
+                                    skills: [{ name: 'Gross & Fine Motor Skills' }, { name: 'Exploring Media & Design' }]
+                                  }
+                                ];
+
+                            const ratingsList = data.psychomotorRatings || [];
+
+                            const getSkillRating = (domainName, skillName) => {
+                              const found = ratingsList.find(r => 
+                                (r.domain === domainName || r.domainName === domainName) && 
+                                (r.skill === skillName || r.skillName === skillName)
+                              );
+                              return parseRatingCode(found?.rating || found?.score);
+                            };
+
+                            return (
+                              <div className="grid grid-cols-2 gap-2 text-[10px]">
+                                {domainsToRender.map((domain, dIdx) => (
+                                  <div key={dIdx} className="border border-black rounded overflow-hidden bg-white">
+                                    <div className="bg-gray-100 border-b border-black px-2 py-1 font-black uppercase text-[9px] text-gray-900 tracking-wider">
+                                      {domain.name}
+                                    </div>
+                                    <div className="p-1.5 space-y-1">
+                                      {(domain.skills || []).map((skill, sIdx) => {
+                                        const ratingCode = getSkillRating(domain.name, skill.name);
+                                        let badgeBg = 'bg-gray-100 text-gray-600 border-gray-300';
+                                        if (ratingCode === 'A') badgeBg = 'bg-emerald-600 text-white border-emerald-700';
+                                        else if (ratingCode === 'P') badgeBg = 'bg-blue-600 text-white border-blue-700';
+                                        else if (ratingCode === 'W') badgeBg = 'bg-amber-500 text-white border-amber-600';
+
+                                        return (
+                                          <div key={sIdx} className="flex justify-between items-center border-b border-gray-100 last:border-0 pb-0.5">
+                                            <span className="font-semibold text-gray-800 truncate pr-1">{skill.name}</span>
+                                            <span className={`px-2 py-0.5 text-[9px] font-black rounded border ${badgeBg}`}>
+                                              {ratingCode}
+                                            </span>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            );
                           })()}
-                        </tbody>
-                      </table>
+                        </div>
+                      ) : (
+                        <table className="w-full border-collapse border-2 border-black mb-3 text-xs bg-white">
+                          <thead>
+                            <tr className="bg-black text-white uppercase text-[10px] tracking-wider" style={{ backgroundColor: '#000000' }}>
+                              <th className="border border-black p-1 text-left w-1/4">Subjects</th>
+                              <th className="border border-black p-0.5 text-center font-normal px-1">Ass. 1<br /><span className="text-[8px] opacity-75">({weights.assignment1})</span></th>
+                              <th className="border border-black p-0.5 text-center font-normal px-1">Ass. 2<br /><span className="text-[8px] opacity-75">({weights.assignment2})</span></th>
+                              <th className="border border-black p-0.5 text-center font-normal px-1">Test 1<br /><span className="text-[8px] opacity-75">({weights.test1})</span></th>
+                              <th className="border border-black p-0.5 text-center font-normal px-1">Test 2<br /><span className="text-[8px] opacity-75">({weights.test2})</span></th>
+                              <th className="border border-black p-1 text-center bg-black/20 font-bold w-16">Total<br /><span className="text-[8px] opacity-75">({weights.assignment1 + weights.assignment2 + weights.test1 + weights.test2})</span></th>
+                              <th className="border border-black p-1 text-center w-20 tracking-tighter">Avg</th>
+                              {showPosition && <th className="border border-black p-1 text-center font-bold">Pos</th>}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {(() => {
+                              const subs = data.subjects || [];
+                              return subs.map((sub, i) => (
+                                <tr key={i} className="hover:bg-gray-50 border-b border-gray-300 h-5">
+                                  <td className="border-x border-black p-1 font-bold text-gray-800 uppercase text-[10px]">{sub.subject?.name || ''}</td>
+                                  <td className="border-x border-gray-400 p-1 text-center">{sub.isEmpty ? '-' : (sub.assignment1Score ?? '-')}</td>
+                                  <td className="border-x border-gray-400 p-1 text-center">{sub.isEmpty ? '-' : (sub.assignment2Score ?? '-')}</td>
+                                  <td className="border-x border-gray-400 p-1 text-center">{sub.isEmpty ? '-' : (sub.test1Score ?? '-')}</td>
+                                  <td className="border-x border-gray-400 p-1 text-center">{sub.isEmpty ? '-' : (sub.test2Score ?? '-')}</td>
+                                  <td className="border-x border-black p-1 text-center font-black bg-gray-100 text-sm text-emerald-800" style={{ color: sub.isEmpty ? '#9ca3af' : reportColor }}>{sub.isEmpty ? '-' : (sub.totalScore ?? '-')}</td>
+                                  <td className="border-x border-gray-400 p-1 text-center italic text-gray-600">{sub.isEmpty ? '-' : (sub.averageInClass !== null && sub.averageInClass !== undefined ? sub.averageInClass.toFixed(1) : '-')}</td>
+                                  {showPosition && <td className="border-x border-black p-1 text-center font-black text-emerald-800 bg-emerald-50/50">{sub.isEmpty ? '-' : getSuffix(sub.position)}</td>}
+                                </tr>
+                              ));
+                            })()}
+                          </tbody>
+                        </table>
+                      )}
                     </div>
 
                     <div className="grid grid-cols-2 gap-6 mt-auto">

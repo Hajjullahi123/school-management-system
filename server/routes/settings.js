@@ -222,7 +222,7 @@ router.put('/', authenticate, async (req, res) => {
     staffExpectedArrivalTime, enableStaffAttendanceReport, staffClockInDeadline,
     staffClockInMode, authorizedIP,
     weekendDays,
-    reportFontFamily, reportColorScheme, showPositionOnReport, showFeesOnReport, showAttendanceOnReport, reportLayout,
+    reportFontFamily, reportColorScheme, showPositionOnReport, showFeesOnReport, showAttendanceOnReport, reportLayout, earlyYearsPageFormat,
     certFontFamily, certBorderType, certPrimaryColor, certSecondaryColor,
     testimFontFamily, testimBorderType, testimPrimaryColor, testimSecondaryColor,
     websiteTheme, aboutUsText, testimonialsText, foundedYear, tuitionEstimatorConfig
@@ -358,6 +358,7 @@ router.put('/', authenticate, async (req, res) => {
     if (showFeesOnReport !== undefined) updateData.showFeesOnReport = !!showFeesOnReport;
     if (showAttendanceOnReport !== undefined) updateData.showAttendanceOnReport = !!showAttendanceOnReport;
     if (reportLayout !== undefined) updateData.reportLayout = reportLayout;
+    if (earlyYearsPageFormat !== undefined) updateData.earlyYearsPageFormat = earlyYearsPageFormat;
 
     // Document Customization (Certificates)
     if (certFontFamily !== undefined) updateData.certFontFamily = certFontFamily;

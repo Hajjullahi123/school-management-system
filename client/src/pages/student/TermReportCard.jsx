@@ -651,8 +651,269 @@ const TermReportCard = () => {
                 </div>
 
                 <div className="relative z-10 space-y-2 print:space-y-1">
-                  {layout === 'early_years' ? (
-                    <div className="space-y-6">
+                  {layout === 'early_years' ? (() => {
+                    const earlyYearsPageFormat = data.reportSettings?.earlyYearsPageFormat || '3-page';
+                    const allDomains = data.earlyYearsDomains || [];
+
+                    if (earlyYearsPageFormat === '2-page') {
+                      return (
+                        <div className="space-y-6">
+                          {/* PAGE 1 */}
+                          <div className="bg-white border-4 border-black p-4 space-y-2 print:p-3 print:space-y-1">
+                            {/* Header */}
+                            <div className="text-center space-y-1">
+                              <h1 className="text-2xl font-black uppercase tracking-wider text-black">
+                                {schoolSettings?.schoolName || 'AL-BAYYINAH BASIC / TAHFEEDH SCHOOL'}
+                              </h1>
+                              <p className="text-xs font-bold text-gray-700">
+                                {schoolSettings?.address || 'Kano, Nigeria'} {schoolSettings?.phone ? `• ${schoolSettings.phone}` : ''} {schoolSettings?.email ? `• ${schoolSettings.email}` : ''}
+                              </p>
+                              <h2 className="text-lg font-black uppercase tracking-wider border-y-2 border-black py-1 mt-2 text-black">
+                                EARLY YEARS PROGRESS REPORT
+                              </h2>
+                            </div>
+
+                            {/* Student Details Table */}
+                            <table className="w-full border-2 border-black border-collapse text-xs font-bold uppercase">
+                              <tbody>
+                                <tr className="border-b border-black">
+                                  <td className="border-r border-black p-1.5 w-[15%] bg-gray-100 font-black">STUDENT</td>
+                                  <td className="border-r border-black p-1.5 w-[45%] font-black text-black">{getStudentDisplayName(data.student)}</td>
+                                  <td className="border-r border-black p-1.5 w-[15%] bg-gray-100 font-black">CLASS</td>
+                                  <td className="p-1.5 w-[25%] font-black text-black">{data.student?.class}</td>
+                                </tr>
+                                <tr className="border-b border-black">
+                                  <td className="border-r border-black p-1.5 bg-gray-100 font-black">DATE OF BIRTH</td>
+                                  <td className="border-r border-black p-1.5 font-bold">{formatDateVerbose(data.student?.dateOfBirth)}</td>
+                                  <td className="border-r border-black p-1.5 bg-gray-100 font-black">SESSION</td>
+                                  <td className="p-1.5 font-bold">{data.term?.session}</td>
+                                </tr>
+                                <tr>
+                                  <td className="border-r border-black p-1.5 bg-gray-100 font-black">TERM</td>
+                                  <td className="border-r border-black p-1.5 font-bold">{data.term?.name}</td>
+                                  <td className="border-r border-black p-1.5 bg-gray-100 font-black">REPORT STATUS</td>
+                                  <td className="p-1.5 font-black text-emerald-800">Published</td>
+                                </tr>
+                              </tbody>
+                            </table>
+
+                            {/* Attendance Summary */}
+                            <div className="border-2 border-black">
+                              <div className="grid grid-cols-4 divide-x-2 divide-black text-center p-2">
+                                <div>
+                                  <div className="text-xl font-black text-black">{data.attendance ? (data.attendance.present ?? 0) : 0}</div>
+                                  <div className="text-[10px] font-black uppercase text-gray-700">DAYS PRESENT</div>
+                                </div>
+                                <div>
+                                  <div className="text-xl font-black text-black">{data.attendance ? (data.attendance.absent ?? 0) : 0}</div>
+                                  <div className="text-[10px] font-black uppercase text-gray-700">DAYS ABSENT</div>
+                                </div>
+                                <div>
+                                  <div className="text-xl font-black text-black">{data.attendance ? `${data.attendance.percentage}%` : '0%'}</div>
+                                  <div className="text-[10px] font-black uppercase text-gray-700">ATTENDANCE</div>
+                                </div>
+                                <div>
+                                  <div className="text-xl font-black text-black">—</div>
+                                  <div className="text-[10px] font-black uppercase text-gray-700">NEXT TERM</div>
+                                </div>
+                              </div>
+                            </div>
+                            <p className="text-xs font-black text-black">
+                              Next term begins: <span className="underline">{data.term?.nextTermBegins ? formatDateVerbose(data.term.nextTermBegins) : '4 May 2026'}</span>
+                            </p>
+
+                            {/* Assessment Key Banner */}
+                            <div>
+                              <p className="text-xs font-black uppercase mb-1 text-black">ASSESSMENT KEY</p>
+                              <div className="grid grid-cols-4 border-2 border-black divide-x-2 divide-black bg-gray-50 text-center p-2 text-xs">
+                                <div>
+                                  <span className="font-black text-sm block text-black">A</span>
+                                  <span className="text-[10px] font-bold text-gray-700">Excellent</span>
+                                </div>
+                                <div>
+                                  <span className="font-black text-sm block text-black">P</span>
+                                  <span className="text-[10px] font-bold text-gray-700">Perfected</span>
+                                </div>
+                                <div>
+                                  <span className="font-black text-sm block text-black">W</span>
+                                  <span className="text-[10px] font-bold text-gray-700">Working on It</span>
+                                </div>
+                                <div>
+                                  <span className="font-black text-sm block text-black">NA</span>
+                                  <span className="text-[10px] font-bold text-gray-700">Not Applicable</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Page 1 Domains (ALL Domains for 2-page) */}
+                            {allDomains.map((domain, dIdx) => (
+                              <div key={dIdx} className="border-2 border-black overflow-hidden">
+                                <div className="bg-gray-200 px-3 py-1 font-black text-[11px] uppercase border-b-2 border-black text-black">
+                                  {domain.name}
+                                </div>
+                                <table className="w-full border-collapse text-xs">
+                                  <thead>
+                                    <tr className="bg-gray-100 border-b border-black text-[10px] font-black uppercase text-black">
+                                      <th className="p-1 text-left border-r border-black">Learning outcome / skill</th>
+                                      <th className="p-1 text-center w-16 border-r border-black">Current</th>
+                                      <th className="p-1 text-center w-16 border-r border-black">Previous</th>
+                                      <th className="p-1 text-center w-24">Progress</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {(domain.skills || []).map((skill, sIdx) => (
+                                      <tr key={sIdx} className="border-b border-gray-200 last:border-b-0 h-5 font-medium text-black text-[11px]">
+                                        <td className="p-1 border-r border-black font-bold">{skill.name}</td>
+                                        <td className="p-1 text-center font-black border-r border-black">{skill.current || 'A'}</td>
+                                        <td className="p-1 text-center border-r border-black">{skill.previous || 'A'}</td>
+                                        <td className="p-1 text-center font-bold">{skill.progress || 'Maintained'}</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            ))}
+                            <div className="flex justify-between text-[10px] text-gray-500 font-bold border-t pt-2">
+                              <span>Early Years Assessment & Progress Report</span>
+                              <span>Confidential School Record</span>
+                              <span>Page 1 of 2</span>
+                            </div>
+                          </div>
+
+                          {/* PAGE 2 */}
+                          <div className="bg-white border-4 border-black p-4 space-y-3 print:p-3 print:space-y-2 print:break-before-page">
+                            <div className="text-center border-b-2 border-black pb-2">
+                              <h2 className="text-lg font-black uppercase tracking-wider text-black">EARLY YEARS PROGRESS REPORT</h2>
+                              <p className="text-xs font-bold text-gray-700">
+                                Student: {getStudentDisplayName(data.student)} &bull; Class: {data.student?.class} &bull; Term: {data.term?.name}
+                              </p>
+                            </div>
+
+                            {/* PROGRESS AT A GLANCE TABLE */}
+                            <div className="border-2 border-black overflow-hidden">
+                              <div className="bg-black text-white px-3 py-1 font-black text-xs uppercase tracking-wider">
+                                PROGRESS AT A GLANCE
+                              </div>
+                              <table className="w-full border-collapse text-xs">
+                                <thead>
+                                  <tr className="bg-gray-100 border-b border-black font-black uppercase text-black text-[11px]">
+                                    <th className="p-1.5 text-left w-1/4 border-r border-black">AREA</th>
+                                    <th className="p-1.5 text-left w-3/8 border-r border-black">WHAT IS GOING WELL</th>
+                                    <th className="p-1.5 text-left w-3/8">NEXT FOCUS</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {(data.progressAtAGlance || [
+                                    { area: 'Literacy', goingWell: 'Sound recognition, rhymes and reading direction.', nextFocus: 'Continue vocabulary and sentence development.' },
+                                    { area: 'Numeracy', goingWell: 'Counting, number recognition and basic concepts.', nextFocus: 'Reinforce number concepts through daily practice.' },
+                                    { area: 'Physical', goingWell: 'Fine-motor control, organised play and safety.', nextFocus: 'Maintain regular pencil, crayon and scissors activities.' },
+                                    { area: 'Social / Emotional', goingWell: 'Self-control, confidence and participation.', nextFocus: 'Continue positive reinforcement and independence.' }
+                                  ]).map((row, rIdx) => (
+                                    <tr key={rIdx} className="border-b border-black last:border-b-0 font-medium text-black">
+                                      <td className="p-1.5 border-r border-black font-black">{row.area}</td>
+                                      <td className="p-1.5 border-r border-black">{row.goingWell}</td>
+                                      <td className="p-1.5">{row.nextFocus}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+
+                            {/* TEACHER'S OVERALL COMMENT */}
+                            <div className="space-y-1">
+                              <p className="text-xs font-black uppercase text-black">TEACHER'S OVERALL COMMENT</p>
+                              <div className="border-2 border-black p-3 text-xs italic font-medium leading-relaxed bg-gray-50 text-black">
+                                "{data.developmentPlan?.teacherComment || 'The student is an energetic and engaged learner who has made clear progress during the term. She demonstrates strong performance in areas of interest and is developing confidence across literacy, numeracy and classroom activities.'}"
+                              </div>
+                            </div>
+
+                            {/* SUBJECT / DEVELOPMENT COMMENTS */}
+                            <div className="space-y-1">
+                              <p className="text-xs font-black uppercase text-black">SUBJECT / DEVELOPMENT COMMENTS</p>
+                              <table className="w-full border-2 border-black border-collapse text-xs">
+                                <tbody>
+                                  <tr className="border-b border-black">
+                                    <td className="p-2 w-1/4 font-black border-r border-black bg-gray-100 uppercase text-black">LITERACY</td>
+                                    <td className="p-2 italic text-black">{data.developmentPlan?.literacyComment || 'Recognises letter sounds confidently and is developing ability to use complete sentences and appropriate vocabulary.'}</td>
+                                  </tr>
+                                  <tr>
+                                    <td className="p-2 w-1/4 font-black border-r border-black bg-gray-100 uppercase text-black">NUMERACY</td>
+                                    <td className="p-2 italic text-black">{data.developmentPlan?.numeracyComment || 'Demonstrates strong understanding of basic numeracy concepts and applies counting and number skills confidently.'}</td>
+                                  </tr>
+                                </tbody>
+                              </table>
+                            </div>
+
+                            {/* RECOMMENDED NEXT STEPS */}
+                            <div className="space-y-1">
+                              <p className="text-xs font-black uppercase text-black">RECOMMENDED NEXT STEPS</p>
+                              <table className="w-full border-2 border-black border-collapse text-xs">
+                                <thead>
+                                  <tr className="bg-gray-100 border-b border-black font-black uppercase text-black text-[11px]">
+                                    <th className="p-2 text-left w-1/2 border-r border-black">At School</th>
+                                    <th className="p-2 text-left w-1/2">At Home</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  <tr>
+                                    <td className="p-2 border-r border-black text-black">{data.developmentPlan?.atSchoolNextStep || 'Continue guided literacy and numeracy practice; reinforce independent classroom routines.'}</td>
+                                    <td className="p-2 text-black">{data.developmentPlan?.atHomeNextStep || 'Read together, practise sounds and counting, and use everyday objects for sorting and number games.'}</td>
+                                  </tr>
+                                </tbody>
+                              </table>
+                            </div>
+
+                            {/* HEAD TEACHER'S COMMENT */}
+                            <div className="space-y-1">
+                              <p className="text-xs font-black uppercase text-black">HEAD TEACHER'S COMMENT</p>
+                              <div className="border-2 border-black p-3 text-xs italic font-medium leading-relaxed bg-gray-50 text-black">
+                                "{data.developmentPlan?.headTeacherComment || 'Has shown encouraging progress this term. Should continue to practise consistently and maintain a positive attitude toward learning.'}"
+                              </div>
+                            </div>
+
+                            {/* Signatures */}
+                            <div className="grid grid-cols-3 gap-6 pt-6 text-center text-xs font-black uppercase text-black">
+                              <div className="space-y-2">
+                                <p>CLASS TEACHER</p>
+                                <div className="border-b-2 border-black h-8 flex items-center justify-center">
+                                  {data.student?.formMasterSignatureUrl && (
+                                    <img src={data.student.formMasterSignatureUrl.startsWith('data:') || data.student.formMasterSignatureUrl.startsWith('http') ? data.student.formMasterSignatureUrl : `${API_BASE_URL}${data.student.formMasterSignatureUrl}`} alt="Teacher Signature" className="h-full w-auto mix-blend-multiply" />
+                                  )}
+                                </div>
+                                <p className="text-[10px] font-normal">Date: ______________</p>
+                              </div>
+                              <div className="space-y-2">
+                                <p>HEAD TEACHER</p>
+                                <div className="border-b-2 border-black h-8 flex items-center justify-center">
+                                  {data.term?.principalSignatureUrl && (
+                                    <img src={data.term.principalSignatureUrl.startsWith('data:') || data.term.principalSignatureUrl.startsWith('http') ? data.term.principalSignatureUrl : `${API_BASE_URL}${data.term.principalSignatureUrl}`} alt="Principal Signature" className="h-full w-auto mix-blend-multiply" />
+                                  )}
+                                </div>
+                                <p className="text-[10px] font-normal">Date: ______________</p>
+                              </div>
+                              <div className="space-y-2">
+                                <p>PARENT / GUARDIAN</p>
+                                <div className="border-b-2 border-black h-8" />
+                                <p className="text-[10px] font-normal">Date: ______________</p>
+                              </div>
+                            </div>
+
+                            <p className="text-[10px] text-gray-500 pt-4 border-t border-gray-200">
+                              Report integrity: Published reports should be locked against unauthorised changes. Assessment templates and rating schemes should be configurable by school administrators.
+                            </p>
+
+                            <div className="flex justify-between text-[10px] text-gray-500 font-bold border-t pt-2">
+                              <span>Early Years Assessment & Progress Report</span>
+                              <span>Confidential School Record</span>
+                              <span>Page 2 of 2</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div className="space-y-6">
                       {/* PAGE 1 */}
                       <div className="bg-white border-4 border-black p-6 space-y-4 print:p-4 print:space-y-3">
                         {/* Header */}
@@ -951,7 +1212,8 @@ const TermReportCard = () => {
                         </div>
                       </div>
                     </div>
-                  ) : (
+                    );
+                  })() : (
                     <>
                   {/* HEAD SECTION */}
                   <div className="grid grid-cols-[96px_1fr_96px] items-start gap-4 mb-2">

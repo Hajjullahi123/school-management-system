@@ -28,7 +28,8 @@ const AcademicSetup = () => {
     test2Weight: 10,
     examWeight: 70,
     weekendDays: '',
-    showAttendanceOnReport: true
+    showAttendanceOnReport: true,
+    earlyYearsPageFormat: '3-page'
   });
   const [savingWeights, setSavingWeights] = useState(false);
 
@@ -60,7 +61,8 @@ const AcademicSetup = () => {
             test2Weight: settingsData.test2Weight ?? 10,
             examWeight: settingsData.examWeight ?? 70,
             weekendDays: settingsData.weekendDays ?? '',
-            showAttendanceOnReport: settingsData.showAttendanceOnReport ?? true
+            showAttendanceOnReport: settingsData.showAttendanceOnReport ?? true,
+            earlyYearsPageFormat: settingsData.earlyYearsPageFormat ?? '3-page'
           });
         }
       } catch (error) {
@@ -210,7 +212,8 @@ const AcademicSetup = () => {
         test2Weight: data.test2Weight ?? 10,
         examWeight: data.examWeight ?? 70,
         weekendDays: data.weekendDays ?? '',
-        showAttendanceOnReport: data.showAttendanceOnReport ?? true
+        showAttendanceOnReport: data.showAttendanceOnReport ?? true,
+        earlyYearsPageFormat: data.earlyYearsPageFormat ?? '3-page'
       });
     } catch (error) {
       console.error('Error fetching weights:', error);
@@ -278,7 +281,8 @@ const AcademicSetup = () => {
     setSavingWeights(true);
     try {
       const response = await api.put('/api/settings', {
-        showAttendanceOnReport: schoolSettings.showAttendanceOnReport
+        showAttendanceOnReport: schoolSettings.showAttendanceOnReport,
+        earlyYearsPageFormat: schoolSettings.earlyYearsPageFormat
       });
       if (response.ok) {
         toast.success('Report customization updated successfully');
@@ -863,6 +867,19 @@ const AcademicSetup = () => {
                       />
                       <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                     </label>
+                  </div>
+
+                  <div className="mt-6">
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Early Years Page Format</label>
+                    <p className="text-xs text-gray-500 mb-2">Choose between a compact 2-page report (single-sheet front/back print) or the standard 3-page spacious layout for Early Years classes.</p>
+                    <select
+                      value={schoolSettings.earlyYearsPageFormat}
+                      onChange={(e) => setSchoolSettings({ ...schoolSettings, earlyYearsPageFormat: e.target.value })}
+                      className="w-full border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary"
+                    >
+                      <option value="3-page">3-Page Spacious (Default)</option>
+                      <option value="2-page">2-Page Compact (Single Sheet)</option>
+                    </select>
                   </div>
 
                   <div className="pt-6 border-t border-gray-50 flex justify-end">

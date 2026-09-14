@@ -157,6 +157,7 @@ model School {
   showAttendanceOnReport      Boolean                   @default(true)
   showPassFailStats           Boolean                   @default(true)
   reportLayout                String?                   @default("classic")
+  earlyYearsPageFormat        String?                   @default("3-page")
   certFontFamily              String?                   @default("serif")
   certBorderType              String?                   @default("ornate")
   certPrimaryColor            String?                   @default("")

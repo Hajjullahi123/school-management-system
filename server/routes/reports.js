@@ -144,7 +144,8 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
         showFeesOnReport: true,
         reportLayout: true,
         reportColorScheme: true,
-        reportFontFamily: true
+        reportFontFamily: true,
+        earlyYearsPageFormat: true
       }
     });
 
@@ -734,7 +735,8 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
         showAttendanceOnReport: schoolSettings.showAttendanceOnReport && (student.classModel?.showAttendanceOnReport !== false),
         reportLayout: (student.classModel?.reportLayout && student.classModel.reportLayout.trim() !== '') ? student.classModel.reportLayout : (schoolSettings.reportLayout || 'classic'),
         reportColorScheme: schoolSettings.reportColorScheme,
-        reportFontFamily: schoolSettings.reportFontFamily
+        reportFontFamily: schoolSettings.reportFontFamily,
+        earlyYearsPageFormat: schoolSettings.earlyYearsPageFormat || '3-page'
       }
     };
 
@@ -2636,8 +2638,41 @@ router.get('/progressive-enhanced/:studentId/:termId', authenticate, async (req,
       return age;
     };
 
+    // Fetch early years domains and student reportExtra for Early Years progressive reports
+    const earlyYearsDomains = await prisma.earlyYearsDomain.findMany({
+      where: { schoolId: req.schoolId, isActive: true },
+      include: {
+        skills: {
+          where: { isActive: true },
+          orderBy: { sortOrder: 'asc' }
+        }
+      },
+      orderBy: { sortOrder: 'asc' }
+    });
+
+    const reportExtra = await prisma.reportExtra.findFirst({
+      where: {
+        studentId: parseInt(studentId),
+        academicSessionId: term.academicSessionId,
+        termId: parseInt(termId),
+        schoolId: req.schoolId
+      }
+    });
+
+    let psychomotorRatings = [];
+    if (reportExtra && reportExtra.psychomotorRatings) {
+      try {
+        const parsed = JSON.parse(reportExtra.psychomotorRatings);
+        psychomotorRatings = Array.isArray(parsed) ? parsed : [];
+      } catch (e) {
+        psychomotorRatings = [];
+      }
+    }
+
     res.json({
       schoolSettings,
+      earlyYearsDomains,
+      psychomotorRatings,
       student: {
         id: student.id,
         name: (() => { const fName = student.user?.firstName || ''; const lName = student.user?.lastName || ''; const mName = student.middleName || ''; const legacyName = student.name || ''; if (fName || lName) return `${fName} ${lName} ${mName}`.replace(/\s+/g, ' ').trim(); return legacyName || mName || `Student (${student.admissionNumber || student.id})`; })(),
@@ -2778,6 +2813,26 @@ router.get('/bulk-progressive/:classId/:termId', authenticate, authorize(['admin
       include: { subject: true }
     });
 
+    const earlyYearsDomains = await prisma.earlyYearsDomain.findMany({
+      where: { schoolId: req.schoolId, isActive: true },
+      include: {
+        skills: {
+          where: { isActive: true },
+          orderBy: { sortOrder: 'asc' }
+        }
+      },
+      orderBy: { sortOrder: 'asc' }
+    });
+
+    const reportExtras = await prisma.reportExtra.findMany({
+      where: {
+        studentId: { in: allStudentsInClass.map(s => s.id) },
+        academicSessionId: term.academicSessionId,
+        termId: parseInt(termId),
+        schoolId: req.schoolId
+      }
+    });
+
     const totalSubjectsCount = classSubjects.length || 1;
 
     // Fetch all results for the class in this term
@@ -2895,8 +2950,21 @@ router.get('/bulk-progressive/:classId/:termId', authenticate, authorize(['admin
       const currentStudentOverallPosition = overallPositionsMap[student.id] || 'N/A';
       const caAverage = caSumTotal / totalSubjectsCount;
 
+      const sReportExtra = reportExtras.find(re => re.studentId === student.id);
+      let psychomotorRatings = [];
+      if (sReportExtra && sReportExtra.psychomotorRatings) {
+        try {
+          const parsed = JSON.parse(sReportExtra.psychomotorRatings);
+          psychomotorRatings = Array.isArray(parsed) ? parsed : [];
+        } catch (e) {
+          psychomotorRatings = [];
+        }
+      }
+
       reports.push({
         schoolSettings,
+        earlyYearsDomains,
+        psychomotorRatings,
         student: {
           id: student.id,
           name: (() => { const fName = student.user?.firstName || ''; const lName = student.user?.lastName || ''; const mName = student.middleName || ''; const legacyName = student.name || ''; if (fName || lName) return `${fName} ${lName} ${mName}`.replace(/\s+/g, ' ').trim(); return legacyName || mName || `Student (${student.admissionNumber || student.id})`; })(),
