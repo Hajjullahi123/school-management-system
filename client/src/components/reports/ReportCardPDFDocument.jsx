@@ -714,16 +714,47 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
                 {/* PAGE 1: HEADER, STUDENT INFO, ATTENDANCE, KEY, ALL DOMAINS */}
                 <Page size="A4" style={[styles.page, { padding: 20 }]}>
                   {/* Header */}
-                  <View style={{ textAlign: 'center', marginBottom: 10 }}>
-                    <Text style={{ fontSize: 16, fontWeight: 'bold', textTransform: 'uppercase' }}>
-                      {schoolSettings.schoolName || 'AL-BAYYINAH BASIC / TAHFEEDH SCHOOL'}
-                    </Text>
-                    <Text style={{ fontSize: 8, color: '#4b5563', marginTop: 2 }}>
-                      {schoolSettings.address || 'Kano, Nigeria'} {schoolSettings.phone ? `• ${schoolSettings.phone}` : ''} {schoolSettings.email ? `• ${schoolSettings.email}` : ''}
-                    </Text>
-                    <Text style={{ fontSize: 13, fontWeight: 'bold', textTransform: 'uppercase', marginTop: 6, paddingVertical: 3, borderBottomWidth: 1, borderColor: '#000000' }}>
-                      EARLY YEARS PROGRESS REPORT
-                    </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, paddingBottom: 6, borderBottomWidth: 1, borderColor: '#000000' }}>
+                    {/* Logo */}
+                    <View style={{ width: 60, height: 60, justifyContent: 'center', alignItems: 'center' }}>
+                      {logoUrl ? (
+                        <Image src={logoUrl} style={{ width: 55, height: 55, objectFit: 'contain' }} />
+                      ) : (
+                        <Text style={{ fontSize: 7, color: '#9ca3af', textAlign: 'center' }}>NO LOGO</Text>
+                      )}
+                    </View>
+
+                    {/* Center Info */}
+                    <View style={{ flex: 1, textAlign: 'center', paddingHorizontal: 6 }}>
+                      <Text style={{ fontSize: 13, fontWeight: 'bold', textTransform: 'uppercase', color: primaryColor }}>
+                        {schoolSettings.name || schoolSettings.schoolName || 'AL-BAYYINAH BASIC / TAHFEEDH SCHOOL'}
+                      </Text>
+                      {schoolSettings.motto && (
+                        <Text style={{ fontSize: 7, fontStyle: 'italic', marginTop: 1, textTransform: 'uppercase', color: '#374151' }}>
+                          "{schoolSettings.motto}"
+                        </Text>
+                      )}
+                      <Text style={{ fontSize: 7, color: '#4b5563', marginTop: 1 }}>
+                        {schoolSettings.address || 'Kano, Nigeria'}
+                      </Text>
+                      {(schoolSettings.phone || schoolSettings.email) && (
+                        <Text style={{ fontSize: 7, color: '#4b5563', marginTop: 1 }}>
+                          {schoolSettings.phone ? `TEL: ${schoolSettings.phone}` : ''} {schoolSettings.phone && schoolSettings.email ? ' • ' : ''} {schoolSettings.email ? `EMAIL: ${schoolSettings.email}` : ''}
+                        </Text>
+                      )}
+                      <Text style={{ fontSize: 9, fontWeight: 'bold', textTransform: 'uppercase', marginTop: 4, backgroundColor: primaryColor, color: '#FFFFFF', paddingVertical: 2, paddingHorizontal: 8, borderRadius: 2, alignSelf: 'center' }}>
+                        EARLY YEARS PROGRESS REPORT
+                      </Text>
+                    </View>
+
+                    {/* Photo */}
+                    <View style={{ width: 55, height: 65, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#000000' }}>
+                      {photoUrl ? (
+                        <Image src={photoUrl} style={{ width: 53, height: 63, objectFit: 'cover' }} />
+                      ) : (
+                        <Text style={{ fontSize: 7, color: '#9ca3af', textAlign: 'center' }}>PHOTO</Text>
+                      )}
+                    </View>
                   </View>
 
                   {/* Student Info Table */}
@@ -797,7 +828,7 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
                   {/* All Domains */}
                   {domains.map((domain, dIdx) => (
                     <View key={dIdx} style={{ marginBottom: 4 }}>
-                      <Text style={{ fontSize: 8, fontWeight: 'bold', backgroundColor: '#F3F4F6', padding: 3, borderWidth: 1, borderColor: '#000000', textTransform: 'uppercase' }}>
+                      <Text style={{ fontSize: 8, fontWeight: 'bold', backgroundColor: primaryColor, color: '#FFFFFF', padding: 3, borderWidth: 1, borderColor: '#000000', textTransform: 'uppercase' }}>
                         {domain.name}
                       </Text>
                       <View style={{ borderWidth: 1, borderTopWidth: 0, borderColor: '#000000' }}>

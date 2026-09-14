@@ -420,92 +420,90 @@ const BulkReportDownload = () => {
 
                         <div className="relative z-10 space-y-3 print:space-y-2">
                           {layout === 'early_years' ? (() => {
-                            const ss = data.schoolSettings || schoolSettings;
                             const earlyYearsPageFormat = data.reportSettings?.earlyYearsPageFormat || '3-page';
                             const allDomains = data.earlyYearsDomains || [];
-
-                            const logoUrlRaw = ss?.logoUrl || schoolSettings?.logoUrl;
-                            const logoUri = logoUrlRaw
-                              ? (logoUrlRaw.startsWith('http') || logoUrlRaw.startsWith('data:') ? logoUrlRaw : `${API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL}${logoUrlRaw.startsWith('/') ? logoUrlRaw : '/' + logoUrlRaw}`)
-                              : null;
-
-                            const photoUrlRaw = data.student?.user?.photoUrl || data.student?.photoUrl;
-                            const photoUri = photoUrlRaw
-                              ? (photoUrlRaw.startsWith('http') || photoUrlRaw.startsWith('data:') ? photoUrlRaw : `${API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL}${photoUrlRaw.startsWith('/') ? photoUrlRaw : '/' + photoUrlRaw}`)
-                              : null;
-
-                            const renderEarlyYearsHeader = () => (
-                              <div className="grid grid-cols-[80px_1fr_80px] items-center gap-3 mb-2 pb-2 border-b-2" style={{ borderColor: reportColor }}>
-                                <div className="w-20 h-20 flex-shrink-0 flex items-center justify-center">
-                                  {logoUri ? (
-                                    <img src={logoUri} alt="School Logo" className="max-w-full max-h-full object-contain" />
-                                  ) : (
-                                    <div className="w-16 h-16 bg-gray-100 flex items-center justify-center rounded-full text-[9px] font-bold text-gray-400 border border-gray-300">No Logo</div>
-                                  )}
-                                </div>
-
-                                <div className="text-center flex flex-col items-center justify-center">
-                                  <h1 className="text-xl font-black uppercase mb-0.5 tracking-wider leading-none" style={{ color: reportColor }}>
-                                    {ss?.name || schoolSettings?.name || schoolSettings?.schoolName || 'School Name'}
-                                  </h1>
-                                  {(ss?.motto || schoolSettings?.motto) && (
-                                    <p className="text-[10px] font-black italic text-gray-700 mb-0.5 uppercase tracking-normal">
-                                      "{ss?.motto || schoolSettings?.motto}"
-                                    </p>
-                                  )}
-                                  <p className="text-[9px] font-bold text-gray-600 max-w-[480px] leading-tight">
-                                    {ss?.address || schoolSettings?.address || 'School Address'}
-                                  </p>
-                                  <p className="text-[9px] font-semibold text-gray-500">
-                                    {(ss?.phone || schoolSettings?.phone) ? `TEL: ${ss?.phone || schoolSettings?.phone}` : ''} {(ss?.phone || schoolSettings?.phone) && (ss?.email || schoolSettings?.email) ? '|' : ''} {(ss?.email || schoolSettings?.email) ? `EMAIL: ${ss?.email || schoolSettings?.email}` : ''}
-                                  </p>
-                                  <div className="mt-1.5 inline-block text-white px-5 py-0.5 rounded-full font-black uppercase tracking-widest text-xs shadow-sm" style={{ backgroundColor: reportColor }}>
-                                    EARLY YEARS PROGRESS REPORT
-                                  </div>
-                                </div>
-
-                                <div className="w-20 h-24 flex-shrink-0 flex items-center justify-center">
-                                  {photoUri ? (
-                                    <img src={photoUri} alt="Student Photo" className="w-full h-full object-cover border-2 rounded shadow-sm" style={{ borderColor: reportColor }} />
-                                  ) : (
-                                    <div className="w-20 h-24 bg-gray-100 flex items-center justify-center border-2 border-dashed border-gray-300 rounded text-[9px] text-gray-400">Photo</div>
-                                  )}
-                                </div>
-                              </div>
-                            );
+                            const ss = data.schoolSettings || schoolSettings;
+                            const logoUrl = ss?.logoUrl;
+                            const logoUri = logoUrl ? (logoUrl.startsWith('data:') || logoUrl.startsWith('http') ? logoUrl : `${API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL}${logoUrl.startsWith('/') ? logoUrl : '/' + logoUrl}`) : null;
+                            const studentPhoto = data.student?.user?.photoUrl || data.student?.photoUrl;
+                            const photoUri = studentPhoto ? (studentPhoto.startsWith('data:') || studentPhoto.startsWith('http') ? studentPhoto : `${API_BASE_URL}${studentPhoto}`) : null;
+                            const currentReportColor = reportColor || ss?.reportColorScheme || ss?.primaryColor || '#065f46';
                             
                             if (earlyYearsPageFormat === '2-page') {
                               return (
                                 <div className="space-y-6">
                                   {/* PAGE 1 COMPACT */}
-                                  <div className="bg-white border-4 p-4 space-y-2 print:p-3 print:space-y-1" style={{ borderColor: reportColor }}>
-                                    {renderEarlyYearsHeader()}
+                                  <div className="bg-white border-4 p-4 space-y-2 print:p-3 print:space-y-1" style={{ borderColor: currentReportColor }}>
+                                    <div className="grid grid-cols-[96px_1fr_96px] items-center gap-4 mb-2 pb-2 border-b-2 border-black">
+                                      {/* Logo */}
+                                      <div className="w-24 h-24 flex-shrink-0 flex items-center justify-center">
+                                        {logoUri ? (
+                                          <img src={logoUri} alt="School Logo" className="w-full h-full object-contain" />
+                                        ) : (
+                                          <div className="w-20 h-20 bg-gray-100 border border-gray-300 rounded flex items-center justify-center text-[10px] text-gray-400 font-bold uppercase text-center p-1">No Logo</div>
+                                        )}
+                                      </div>
+
+                                      {/* Center School Details */}
+                                      <div className="text-center space-y-1">
+                                        <h1 className="text-xl font-black uppercase tracking-wider leading-tight" style={{ color: currentReportColor }}>
+                                          {ss?.name || ss?.schoolName || 'AL-BAYYINAH BASIC / TAHFEEDH SCHOOL'}
+                                        </h1>
+                                        {ss?.motto && (
+                                          <p className="text-[11px] font-black italic text-gray-800 uppercase tracking-wide">
+                                            "{ss.motto}"
+                                          </p>
+                                        )}
+                                        <p className="text-[10px] font-bold text-gray-700 leading-tight">
+                                          {ss?.address || 'Kano, Nigeria'}
+                                        </p>
+                                        {(ss?.phone || ss?.email) && (
+                                          <p className="text-[9px] font-bold text-gray-600">
+                                            {ss?.phone ? `TEL: ${ss.phone}` : ''} {ss?.phone && ss?.email ? ' | ' : ''} {ss?.email ? `EMAIL: ${ss.email}` : ''}
+                                          </p>
+                                        )}
+                                        <div className="pt-1">
+                                          <h2 className="text-xs font-black uppercase tracking-widest text-white py-1 px-3 inline-block rounded shadow-sm" style={{ backgroundColor: currentReportColor }}>
+                                            EARLY YEARS PROGRESS REPORT
+                                          </h2>
+                                        </div>
+                                      </div>
+
+                                      {/* Student Photo */}
+                                      <div className="w-24 h-28 flex-shrink-0 flex items-center justify-center">
+                                        {photoUri ? (
+                                          <img src={photoUri} alt="Student Photo" className="w-24 h-28 object-cover border-2 border-black rounded shadow-sm" />
+                                        ) : (
+                                          <div className="w-24 h-28 bg-gray-100 border-2 border-black rounded flex items-center justify-center text-[10px] text-gray-400 font-bold uppercase">Photo</div>
+                                        )}
+                                      </div>
+                                    </div>
     
-                                    <table className="w-full border-2 border-collapse text-[10px] font-bold uppercase" style={{ borderColor: reportColor }}>
+                                    <table className="w-full border-2 border-black border-collapse text-[10px] font-bold uppercase">
                                       <tbody>
-                                        <tr className="border-b" style={{ borderColor: reportColor }}>
-                                          <td className="border-r p-1 w-[15%] bg-gray-100 font-black" style={{ borderColor: reportColor }}>STUDENT</td>
-                                          <td className="border-r p-1 w-[45%] font-black text-black" style={{ borderColor: reportColor }}>{getStudentDisplayName(data.student)}</td>
-                                          <td className="border-r p-1 w-[15%] bg-gray-100 font-black" style={{ borderColor: reportColor }}>CLASS</td>
+                                        <tr className="border-b border-black">
+                                          <td className="border-r border-black p-1 w-[15%] bg-gray-100 font-black">STUDENT</td>
+                                          <td className="border-r border-black p-1 w-[45%] font-black text-black">{getStudentDisplayName(data.student)}</td>
+                                          <td className="border-r border-black p-1 w-[15%] bg-gray-100 font-black">CLASS</td>
                                           <td className="p-1 w-[25%] font-black text-black">{data.student?.class}</td>
                                         </tr>
-                                        <tr className="border-b" style={{ borderColor: reportColor }}>
-                                          <td className="border-r p-1 bg-gray-100 font-black" style={{ borderColor: reportColor }}>DATE OF BIRTH</td>
-                                          <td className="border-r p-1 font-bold" style={{ borderColor: reportColor }}>{formatDateVerbose(data.student?.dateOfBirth)}</td>
-                                          <td className="border-r p-1 bg-gray-100 font-black" style={{ borderColor: reportColor }}>SESSION</td>
+                                        <tr className="border-b border-black">
+                                          <td className="border-r border-black p-1 bg-gray-100 font-black">DATE OF BIRTH</td>
+                                          <td className="border-r border-black p-1 font-bold">{formatDateVerbose(data.student?.dateOfBirth)}</td>
+                                          <td className="border-r border-black p-1 bg-gray-100 font-black">SESSION</td>
                                           <td className="p-1 font-bold">{data.term?.session}</td>
                                         </tr>
                                         <tr>
-                                          <td className="border-r p-1 bg-gray-100 font-black" style={{ borderColor: reportColor }}>TERM</td>
-                                          <td className="border-r p-1 font-bold" style={{ borderColor: reportColor }}>{data.term?.name}</td>
-                                          <td className="border-r p-1 bg-gray-100 font-black" style={{ borderColor: reportColor }}>REPORT STATUS</td>
-                                          <td className="p-1 font-black" style={{ color: reportColor }}>Published</td>
+                                          <td className="border-r border-black p-1 bg-gray-100 font-black">TERM</td>
+                                          <td className="border-r border-black p-1 font-bold">{data.term?.name}</td>
+                                          <td className="border-r border-black p-1 bg-gray-100 font-black">REPORT STATUS</td>
+                                          <td className="p-1 font-black text-emerald-800">Published</td>
                                         </tr>
                                       </tbody>
                                     </table>
     
-                                    <div className="border-2" style={{ borderColor: reportColor }}>
-                                      <div className="grid grid-cols-4 divide-x-2 text-center p-1" style={{ borderColor: reportColor }}>
+                                    <div className="border-2 border-black">
+                                      <div className="grid grid-cols-4 divide-x-2 divide-black text-center p-1">
                                         <div>
                                           <div className="text-lg font-black text-black">{data.attendance ? (data.attendance.present ?? 0) : 0}</div>
                                           <div className="text-[9px] font-black uppercase text-gray-700">DAYS PRESENT</div>
@@ -530,46 +528,46 @@ const BulkReportDownload = () => {
     
                                     <div>
                                       <p className="text-[10px] font-black uppercase mb-0.5 text-black">ASSESSMENT KEY</p>
-                                      <div className="grid grid-cols-4 border-2 divide-x-2 bg-gray-50 text-center p-1 text-[10px]" style={{ borderColor: reportColor }}>
+                                      <div className="grid grid-cols-4 border-2 border-black divide-x-2 divide-black bg-gray-50 text-center p-1 text-[10px]">
                                         <div>
-                                          <span className="font-black text-xs block" style={{ color: reportColor }}>A</span>
+                                          <span className="font-black text-xs block text-black">A</span>
                                           <span className="text-[9px] font-bold text-gray-700">Excellent</span>
                                         </div>
                                         <div>
-                                          <span className="font-black text-xs block" style={{ color: reportColor }}>P</span>
+                                          <span className="font-black text-xs block text-black">P</span>
                                           <span className="text-[9px] font-bold text-gray-700">Perfected</span>
                                         </div>
                                         <div>
-                                          <span className="font-black text-xs block" style={{ color: reportColor }}>W</span>
+                                          <span className="font-black text-xs block text-black">W</span>
                                           <span className="text-[9px] font-bold text-gray-700">Working on It</span>
                                         </div>
                                         <div>
-                                          <span className="font-black text-xs block text-gray-500">NA</span>
+                                          <span className="font-black text-xs block text-black">NA</span>
                                           <span className="text-[9px] font-bold text-gray-700">Not Applicable</span>
                                         </div>
                                       </div>
                                     </div>
     
                                     {allDomains.map((domain, dIdx) => (
-                                      <div key={dIdx} className="border-2 overflow-hidden" style={{ borderColor: reportColor }}>
-                                        <div className="text-white px-2 py-0.5 font-black text-[10px] uppercase border-b-2 text-white" style={{ backgroundColor: reportColor, borderColor: reportColor }}>
+                                      <div key={dIdx} className="border-2 border-black overflow-hidden">
+                                        <div className="px-2 py-0.5 font-black text-[10px] uppercase border-b-2 border-black text-white" style={{ backgroundColor: currentReportColor }}>
                                           {domain.name}
                                         </div>
                                         <table className="w-full border-collapse text-[10px]">
                                           <thead>
-                                            <tr className="bg-gray-100 border-b text-[10px] font-black uppercase text-black" style={{ borderColor: reportColor }}>
-                                              <th className="p-1 text-left border-r" style={{ borderColor: reportColor }}>Learning outcome / skill</th>
-                                              <th className="p-1 text-center w-16 border-r" style={{ borderColor: reportColor }}>Current</th>
-                                              <th className="p-1 text-center w-16 border-r" style={{ borderColor: reportColor }}>Previous</th>
+                                            <tr className="bg-gray-100 border-b border-black text-[10px] font-black uppercase text-black">
+                                              <th className="p-1 text-left border-r border-black">Learning outcome / skill</th>
+                                              <th className="p-1 text-center w-16 border-r border-black">Current</th>
+                                              <th className="p-1 text-center w-16 border-r border-black">Previous</th>
                                               <th className="p-1 text-center w-24">Progress</th>
                                             </tr>
                                           </thead>
                                           <tbody>
                                             {(domain.skills || []).map((skill, sIdx) => (
                                               <tr key={sIdx} className="border-b border-gray-200 last:border-b-0 h-5 font-medium text-black">
-                                                <td className="p-1 border-r border-gray-300 font-bold text-[11px]">{skill.name}</td>
-                                                <td className="p-1 text-center font-black border-r border-gray-300" style={{ color: reportColor }}>{skill.current || 'A'}</td>
-                                                <td className="p-1 text-center border-r border-gray-300">{skill.previous || 'A'}</td>
+                                                <td className="p-1 border-r border-black font-bold text-[11px]">{skill.name}</td>
+                                                <td className="p-1 text-center font-black border-r border-black">{skill.current || 'A'}</td>
+                                                <td className="p-1 text-center border-r border-black">{skill.previous || 'A'}</td>
                                                 <td className="p-1 text-center font-bold">{skill.progress || 'Maintained'}</td>
                                               </tr>
                                             ))}
@@ -585,12 +583,16 @@ const BulkReportDownload = () => {
                                   </div>
     
                                   {/* PAGE 2 COMPACT */}
-                                  <div className="bg-white border-4 p-4 space-y-3 print:p-3 print:space-y-2 print:break-before-page" style={{ borderColor: reportColor }}>
-                                    {renderEarlyYearsHeader()}
-
-                                    {/* PROGRESS AT A GLANCE TABLE */}
-                                    <div className="border-2 overflow-hidden" style={{ borderColor: reportColor }}>
-                                      <div className="text-white px-3 py-1 font-black text-xs uppercase tracking-wider" style={{ backgroundColor: reportColor }}>
+                                  <div className="bg-white border-4 border-black p-4 space-y-3 print:p-3 print:space-y-2 print:break-before-page">
+                                    <div className="text-center border-b-2 border-black pb-1">
+                                      <h2 className="text-base font-black uppercase tracking-wider text-black">EARLY YEARS PROGRESS REPORT</h2>
+                                      <p className="text-[10px] font-bold text-gray-700">
+                                        Student: {getStudentDisplayName(data.student)} &bull; Class: {data.student?.class} &bull; Term: {data.term?.name}
+                                      </p>
+                                    </div>
+    
+                                    <div className="border-2 border-black overflow-hidden">
+                                      <div className="bg-black text-white px-2 py-0.5 font-black text-[10px] uppercase tracking-wider">
                                         PROGRESS AT A GLANCE
                                       </div>
                                       <table className="w-full border-collapse text-[10px]">
