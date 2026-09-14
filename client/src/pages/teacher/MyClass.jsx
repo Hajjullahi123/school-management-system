@@ -28,6 +28,7 @@ const MyClass = () => {
   });
   const [psychomotorRatings, setPsychomotorRatings] = useState([]);
   const [domains, setDomains] = useState([]);
+  const [earlyYearsDomains, setEarlyYearsDomains] = useState([]);
   const [currentTerm, setCurrentTerm] = useState(null);
   const [saving, setSaving] = useState(false);
   const [publication, setPublication] = useState({ isPublished: false, isProgressivePublished: false });
@@ -48,6 +49,7 @@ const MyClass = () => {
   useEffect(() => {
     fetchMyClass();
     fetchDomains();
+    fetchEarlyYearsDomains();
     fetchCurrentTerm();
   }, [selectedClassId]);
 
@@ -65,6 +67,50 @@ const MyClass = () => {
         setDomains(Array.isArray(data) ? data : []);
       }
     } catch (e) { console.error("Failed to fetch domains", e); }
+  };
+
+  const fetchEarlyYearsDomains = async () => {
+    try {
+      const res = await api.get('/api/early-years/domains');
+      if (res.ok) {
+        const data = await res.json();
+        setEarlyYearsDomains(Array.isArray(data) ? data : []);
+      }
+    } catch (e) { console.error("Failed to fetch early years domains", e); }
+  };
+
+  const getSkillRating = (skill) => {
+    const rating = psychomotorRatings.find(r => r.skillId === skill.id || r.name === skill.name);
+    if (!rating) return 'A';
+    if (typeof rating.score === 'string') return rating.score.toUpperCase();
+    if (rating.score >= 5) return 'A';
+    if (rating.score === 4) return 'P';
+    if (rating.score === 3 || rating.score === 2) return 'W';
+    if (rating.score <= 1) return 'NA';
+    return 'A';
+  };
+
+  const handleSkillRate = (skill, code) => {
+    setPsychomotorRatings(prev => {
+      const existingIndex = prev.findIndex(r => r.skillId === skill.id || r.name === skill.name);
+      const item = { skillId: skill.id, name: skill.name, score: code };
+      if (existingIndex >= 0) {
+        const updated = [...prev];
+        updated[existingIndex] = item;
+        return updated;
+      }
+      return [...prev, item];
+    });
+  };
+
+  const setAllEarlyYearsSkills = (code) => {
+    const allSkillsRatings = [];
+    earlyYearsDomains.forEach(domain => {
+      (domain.skills || []).forEach(skill => {
+        allSkillsRatings.push({ skillId: skill.id, name: skill.name, score: code });
+      });
+    });
+    setPsychomotorRatings(allSkillsRatings);
   };
 
   const fetchCurrentTerm = async () => {
@@ -655,54 +701,140 @@ const MyClass = () => {
                     </div>
                   )}
 
-                  {/* Psychomotor Assessment */}
+                  {/* Psychomotor / Early Years Domain Assessment */}
                   <div className="space-y-6">
-                    <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
-                       <span className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-black text-sm">02</span>
-                       <h4 className="font-black text-gray-900 uppercase tracking-tighter text-lg">Affective & Psychomotor Assessment</h4>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-4">
+                       <div className="flex items-center gap-3">
+                         <span className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-black text-sm">02</span>
+                         <h4 className="font-black text-gray-900 uppercase tracking-tighter text-lg">
+                           {(classData?.reportLayout === 'early_years' || reportPreview?.reportSettings?.reportLayout === 'early_years') 
+                             ? "Early Years Developmental Domains & Skills" 
+                             : "Affective & Psychomotor Assessment"}
+                         </h4>
+                       </div>
+                       {(classData?.reportLayout === 'early_years' || reportPreview?.reportSettings?.reportLayout === 'early_years') && (
+                         <div className="flex items-center gap-2">
+                           <button
+                             type="button"
+                             onClick={() => setAllEarlyYearsSkills('A')}
+                             className="px-3 py-1 bg-emerald-100 text-emerald-800 text-xs font-bold rounded-lg hover:bg-emerald-200 transition-colors"
+                           >
+                             Mark All Achieved (A)
+                           </button>
+                           <button
+                             type="button"
+                             onClick={() => setPsychomotorRatings([])}
+                             className="px-3 py-1 bg-gray-100 text-gray-600 text-xs font-bold rounded-lg hover:bg-gray-200 transition-colors"
+                           >
+                             Reset
+                           </button>
+                         </div>
+                       )}
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {domains.length === 0 ? (
-                        <div className="col-span-full p-4 bg-amber-50 rounded-2xl border border-amber-100 text-amber-700 text-sm font-medium">
-                           Assessment categories are not yet configured. Please contact the administrator.
+                    {(classData?.reportLayout === 'early_years' || reportPreview?.reportSettings?.reportLayout === 'early_years') ? (
+                      <div className="space-y-6">
+                        {/* Rating Legend Key */}
+                        <div className="p-3 bg-gradient-to-r from-emerald-50 via-teal-50 to-blue-50 border border-emerald-200 rounded-xl text-xs font-bold text-gray-700 flex flex-wrap items-center justify-between gap-2">
+                          <span className="text-gray-500 uppercase tracking-wider text-[10px] font-black">Rating Scale:</span>
+                          <div className="flex items-center gap-3 flex-wrap">
+                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-emerald-600 text-white rounded font-bold"><span className="font-black">A</span> Achieved</span>
+                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-blue-600 text-white rounded font-bold"><span className="font-black">P</span> Progressing</span>
+                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-amber-500 text-white rounded font-bold"><span className="font-black">W</span> Working on It</span>
+                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-gray-400 text-white rounded font-bold"><span className="font-black">NA</span> Not Assessed</span>
+                          </div>
                         </div>
-                      ) : (
-                        domains.map((domain) => {
-                          const rating = psychomotorRatings.find(r => r.domainId === domain.id) || { score: 1 };
-                          return (
-                            <div key={domain.id} className="group p-4 rounded-2xl border-2 border-gray-50 hover:border-emerald-100 hover:bg-emerald-50/30 transition-all">
-                              <div className="flex justify-between items-center mb-4">
-                                <span className="text-sm font-black text-gray-700 uppercase tracking-tight">{domain.name}</span>
-                                <span className="px-2 py-1 bg-white rounded-lg text-xs font-black text-emerald-600 shadow-sm border border-emerald-100">{rating.score} / {domain.maxScore}</span>
+
+                        {/* Domains & Sub-Skills */}
+                        {earlyYearsDomains.length === 0 ? (
+                          <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 text-amber-700 text-sm font-medium">
+                            Early Years domains loading or not configured.
+                          </div>
+                        ) : (
+                          earlyYearsDomains.map((domain) => (
+                            <div key={domain.id} className="border border-gray-200 rounded-2xl overflow-hidden shadow-sm bg-white">
+                              <div className="bg-gradient-to-r from-gray-900 to-gray-800 px-4 py-2.5 text-white font-black text-xs uppercase tracking-wider flex justify-between items-center">
+                                <span>{domain.name}</span>
+                                <span className="text-[10px] font-medium text-gray-300">{(domain.skills || []).length} Skills</span>
                               </div>
-                              <input
-                                type="range"
-                                min="1"
-                                max={domain.maxScore}
-                                step="1"
-                                value={rating.score}
-                                onChange={(e) => {
-                                  const val = parseInt(e.target.value);
-                                  setPsychomotorRatings(prev => {
-                                    const existing = prev.find(p => p.domainId === domain.id);
-                                    if (existing) {
-                                      return prev.map(p => p.domainId === domain.id ? { ...p, score: val } : p);
-                                    }
-                                    return [...prev, { domainId: domain.id, name: domain.name, score: val }];
-                                  });
-                                }}
-                                className="w-full accent-emerald-600 h-1.5 bg-gray-200 rounded-lg cursor-pointer"
-                              />
-                              <div className="flex justify-between mt-2 px-1">
-                                <span className="text-[10px] font-black text-gray-300">WEAK</span>
-                                <span className="text-[10px] font-black text-gray-300">EXCELLENT</span>
+                              <div className="divide-y divide-gray-100">
+                                {(domain.skills || []).map((skill) => {
+                                  const currentRating = getSkillRating(skill);
+                                  return (
+                                    <div key={skill.id} className="p-3 hover:bg-gray-50/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2 transition-colors">
+                                      <span className="text-xs font-semibold text-gray-800 flex-1">{skill.name}</span>
+                                      <div className="flex items-center gap-1 shrink-0">
+                                        {[
+                                          { code: 'A', label: 'A', bgSelected: 'bg-emerald-600 text-white border-emerald-600' },
+                                          { code: 'P', label: 'P', bgSelected: 'bg-blue-600 text-white border-blue-600' },
+                                          { code: 'W', label: 'W', bgSelected: 'bg-amber-500 text-white border-amber-500' },
+                                          { code: 'NA', label: 'NA', bgSelected: 'bg-gray-500 text-white border-gray-500' }
+                                        ].map((opt) => (
+                                          <button
+                                            key={opt.code}
+                                            type="button"
+                                            onClick={() => handleSkillRate(skill, opt.code)}
+                                            className={`w-8 h-8 rounded-lg text-xs font-black border transition-all ${
+                                              currentRating === opt.code
+                                                ? `${opt.bgSelected} shadow-sm scale-105`
+                                                : 'border-gray-200 text-gray-500 bg-gray-50 hover:bg-gray-100 hover:text-gray-900'
+                                            }`}
+                                          >
+                                            {opt.label}
+                                          </button>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
                               </div>
                             </div>
-                          );
-                        })
-                      )}
-                    </div>
+                          ))
+                        )}
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {domains.length === 0 ? (
+                          <div className="col-span-full p-4 bg-amber-50 rounded-2xl border border-amber-100 text-amber-700 text-sm font-medium">
+                             Assessment categories are not yet configured. Please contact the administrator.
+                          </div>
+                        ) : (
+                          domains.map((domain) => {
+                            const rating = psychomotorRatings.find(r => r.domainId === domain.id) || { score: 1 };
+                            return (
+                              <div key={domain.id} className="group p-4 rounded-2xl border-2 border-gray-50 hover:border-emerald-100 hover:bg-emerald-50/30 transition-all">
+                                <div className="flex justify-between items-center mb-4">
+                                  <span className="text-sm font-black text-gray-700 uppercase tracking-tight">{domain.name}</span>
+                                  <span className="px-2 py-1 bg-white rounded-lg text-xs font-black text-emerald-600 shadow-sm border border-emerald-100">{rating.score} / {domain.maxScore}</span>
+                                </div>
+                                <input
+                                  type="range"
+                                  min="1"
+                                  max={domain.maxScore}
+                                  step="1"
+                                  value={rating.score}
+                                  onChange={(e) => {
+                                    const val = parseInt(e.target.value);
+                                    setPsychomotorRatings(prev => {
+                                      const existing = prev.find(p => p.domainId === domain.id);
+                                      if (existing) {
+                                        return prev.map(p => p.domainId === domain.id ? { ...p, score: val } : p);
+                                      }
+                                      return [...prev, { domainId: domain.id, name: domain.name, score: val }];
+                                    });
+                                  }}
+                                  className="w-full accent-emerald-600 h-1.5 bg-gray-200 rounded-lg cursor-pointer"
+                                />
+                                <div className="flex justify-between mt-2 px-1">
+                                  <span className="text-[10px] font-black text-gray-300">WEAK</span>
+                                  <span className="text-[10px] font-black text-gray-300">EXCELLENT</span>
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
 
