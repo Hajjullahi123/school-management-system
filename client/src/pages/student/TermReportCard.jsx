@@ -117,6 +117,8 @@ const TermReportCard = () => {
       const currentTerm = termsArray.find(t => t.isCurrent);
       if (currentTerm) {
         setSelectedTerm(currentTerm.id.toString());
+      } else if (termsArray.length > 0) {
+        setSelectedTerm(termsArray[0].id.toString());
       }
     } catch (error) {
       console.error('Error fetching terms:', error);
@@ -487,11 +489,14 @@ const TermReportCard = () => {
                 className="w-full bg-slate-50 border-white rounded-2xl px-4 py-4 text-sm font-bold shadow-inner focus:ring-2 focus:ring-primary transition-all cursor-pointer"
               >
                 <option value="">Select Academic Term</option>
-                {terms.map(term => (
-                  <option key={term.id} value={term.id}>
-                    {term.name} - {term.academicSession?.name}
-                  </option>
-                ))}
+                {terms.map(term => {
+                  const sessionName = term.academicSession?.name || term.session || '';
+                  return (
+                    <option key={term.id} value={term.id.toString()}>
+                      {term.name}{sessionName ? ` - ${sessionName}` : ''}{term.isCurrent ? ' ★ (Active Term)' : ''}
+                    </option>
+                  );
+                })}
               </select>
             </div>
 
