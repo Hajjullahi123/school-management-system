@@ -350,7 +350,8 @@ const MyClass = () => {
     classData?.reportLayout === 'early_years' ||
     reportPreview?.reportSettings?.reportLayout === 'early_years' ||
     schoolSettings?.reportLayout === 'early_years' ||
-    (classData?.name && /early|nursery|kg|kindergarten|reception|playgroup|toddler|creche|pre-k|الركن|الروضة|تمهيدي|حضانة/i.test(classData.name))
+    (classData?.name && /early|nursery|kg|kindergarten|reception|playgroup|toddler|creche|pre-k|ركن|الركن|روضة|الروضة|تمهيدي|حضانة/i.test(classData.name)) ||
+    (reportPreview?.student?.class && /early|nursery|kg|kindergarten|reception|playgroup|toddler|creche|pre-k|ركن|الركن|روضة|الروضة|تمهيدي|حضانة/i.test(reportPreview.student.class))
   );
 
   const isEarlyYearsMode = activeLayoutMode === 'early_years' 
