@@ -44,8 +44,64 @@ const MyClass = () => {
     "Fair performance. Room for more improvement.",
     "Weak performance. Needs more focus on core subjects.",
     "Satisfactory result. Consolidate your effort.",
-    "Poor performance. You need to be more serious with your studies."
+    "Poor performance. You need to be more serious with your studies.",
+    "Has shown remarkable improvement this term. Well done!",
+    "Distinguished academic performance. Keep shining!",
+    "Active participant in class activities. Good progress made."
   ];
+
+  const earlyYearsPredefinedComments = {
+    teacherOverall: [
+      "An outstanding term! Shows exceptional curiosity, enthusiasm, and consistent engagement across all learning activities.",
+      "Has made steady and pleasing progress this term. Settling in well and showing growing independence.",
+      "Demonstrates fantastic social skills, creative expression, and active participation in daily classroom routines.",
+      "A cheerful and confident learner who demonstrates great leadership and positive collaboration with peers.",
+      "Participates enthusiastically in group activities and is developing strong active listening skills.",
+      "Shows good effort and curiosity. Continues to build confidence during structured and independent play.",
+      "Making steady growth but requires occasional encouragement to focus and complete tasks independently.",
+      "Shows potential but needs consistent support with classroom routines and sharing with peers.",
+      "Gradually adjusting to class activities; further encouragement will boost confidence and focus."
+    ],
+    literacy: [
+      "Demonstrates excellent phonics awareness, accurately recognizes letter sounds, and reads simple sight words confidently.",
+      "Has a rich vocabulary, expresses ideas clearly in full sentences, and enjoys storytelling and book reading.",
+      "Recognizes most uppercase and lowercase letters and is learning to blend basic letter sounds together.",
+      "Enjoys listening to stories, follows story plots well, and is developing confidence in verbal expression.",
+      "Working on identifying basic letter sounds and building vocabulary through daily rhyming and picture books.",
+      "Encouraged to practise letter tracing, pencil grip, and expressing thoughts in complete sentences."
+    ],
+    numeracy: [
+      "Confidently counts beyond 20, recognizes numerals, and understands basic shapes, patterns, and quantities.",
+      "Demonstrates strong problem-solving skills in sorting objects, counting games, and spatial awareness.",
+      "Counts objects accurately up to 10 and is making steady progress in identifying basic numbers and shapes.",
+      "Participates actively in counting songs and hands-on math activities with manipulative objects.",
+      "Developing number recognition from 1 to 5 and learning to match quantities with numerals.",
+      "Needs continued hands-on practice with counting games, shape matching, and number formation."
+    ],
+    atSchoolNextStep: [
+      "Provide guided phonics and blending exercises during literacy centers.",
+      "Engage in small-group hands-on counting games and shape sorting activities.",
+      "Encourage active participation in show-and-tell to build public speaking and vocabulary.",
+      "Support pencil grip control, fine motor activities (playdough, scissors), and letter tracing.",
+      "Reinforce sharing, turn-taking, and cooperative play during outdoor and free play sessions.",
+      "Offer extra encouragement to follow multi-step instructions and maintain task focus."
+    ],
+    atHomeNextStep: [
+      "Read storybooks together daily and discuss pictures, characters, and story endings.",
+      "Practise counting everyday objects at home (cutlery, toys, steps) and identifying number symbols.",
+      "Engage in rhyming games, letter sound hunts, and singing phonics songs together.",
+      "Promote fine motor skills through drawing, coloring, buttoning clothes, and playdough.",
+      "Encourage independent self-care routines (packing bag, tidying toys, washing hands).",
+      "Discuss daily events to build conversational skills and expand expressive vocabulary."
+    ],
+    headTeacher: [
+      "An excellent report reflecting great dedication and growth. Keep up the wonderful work!",
+      "Very commendable performance and character development. Keep striving for excellence.",
+      "A solid term's work. Continued effort and practice will yield even higher achievements.",
+      "Fair progress shown this term. With consistent practice at home and school, further growth will follow.",
+      "Promising development. We look forward to seeing continued improvement next term."
+    ]
+  };
 
   useEffect(() => {
     fetchMyClass();
@@ -682,7 +738,21 @@ const MyClass = () => {
 
                       <div className="space-y-4">
                         <div className="space-y-2">
-                          <label className="text-xs font-black text-gray-700 uppercase tracking-wider">Teacher's Overall Comment</label>
+                          <div className="flex justify-between items-center">
+                            <label className="text-xs font-black text-gray-700 uppercase tracking-wider">Teacher's Overall Comment</label>
+                            <select 
+                              value=""
+                              onChange={(e) => {
+                                if (e.target.value) setDevelopmentPlan(prev => ({ ...prev, teacherComment: e.target.value }));
+                              }}
+                              className="text-xs border-none bg-emerald-50/70 rounded-lg px-3 py-1.5 font-bold text-emerald-800 focus:ring-0 cursor-pointer outline-none max-w-[220px] truncate"
+                            >
+                              <option value="">-- Quick Select Comment --</option>
+                              {earlyYearsPredefinedComments.teacherOverall.map((rem, i) => (
+                                <option key={i} value={rem}>{rem.length > 45 ? rem.substring(0, 45) + '...' : rem}</option>
+                              ))}
+                            </select>
+                          </div>
                           <textarea
                             placeholder="Overall assessment of energy, engagement, and term progress..."
                             className="w-full border-2 border-gray-100 rounded-xl p-3 h-24 focus:border-primary transition-all outline-none font-medium text-xs text-gray-700 bg-gray-50/30 resize-none"
@@ -692,7 +762,21 @@ const MyClass = () => {
                         </div>
 
                         <div className="space-y-2">
-                          <label className="text-xs font-black text-gray-700 uppercase tracking-wider">Literacy Development Comment</label>
+                          <div className="flex justify-between items-center">
+                            <label className="text-xs font-black text-gray-700 uppercase tracking-wider">Literacy Development Comment</label>
+                            <select 
+                              value=""
+                              onChange={(e) => {
+                                if (e.target.value) setDevelopmentPlan(prev => ({ ...prev, literacyComment: e.target.value }));
+                              }}
+                              className="text-xs border-none bg-emerald-50/70 rounded-lg px-3 py-1.5 font-bold text-emerald-800 focus:ring-0 cursor-pointer outline-none max-w-[220px] truncate"
+                            >
+                              <option value="">-- Quick Select Comment --</option>
+                              {earlyYearsPredefinedComments.literacy.map((rem, i) => (
+                                <option key={i} value={rem}>{rem.length > 45 ? rem.substring(0, 45) + '...' : rem}</option>
+                              ))}
+                            </select>
+                          </div>
                           <textarea
                             placeholder="Letter sound recognition, vocabulary, complete sentence development..."
                             className="w-full border-2 border-gray-100 rounded-xl p-3 h-20 focus:border-primary transition-all outline-none font-medium text-xs text-gray-700 bg-gray-50/30 resize-none"
@@ -702,7 +786,21 @@ const MyClass = () => {
                         </div>
 
                         <div className="space-y-2">
-                          <label className="text-xs font-black text-gray-700 uppercase tracking-wider">Numeracy Development Comment</label>
+                          <div className="flex justify-between items-center">
+                            <label className="text-xs font-black text-gray-700 uppercase tracking-wider">Numeracy Development Comment</label>
+                            <select 
+                              value=""
+                              onChange={(e) => {
+                                if (e.target.value) setDevelopmentPlan(prev => ({ ...prev, numeracyComment: e.target.value }));
+                              }}
+                              className="text-xs border-none bg-emerald-50/70 rounded-lg px-3 py-1.5 font-bold text-emerald-800 focus:ring-0 cursor-pointer outline-none max-w-[220px] truncate"
+                            >
+                              <option value="">-- Quick Select Comment --</option>
+                              {earlyYearsPredefinedComments.numeracy.map((rem, i) => (
+                                <option key={i} value={rem}>{rem.length > 45 ? rem.substring(0, 45) + '...' : rem}</option>
+                              ))}
+                            </select>
+                          </div>
                           <textarea
                             placeholder="Counting, number recognition, basic concepts..."
                             className="w-full border-2 border-gray-100 rounded-xl p-3 h-20 focus:border-primary transition-all outline-none font-medium text-xs text-gray-700 bg-gray-50/30 resize-none"
@@ -713,7 +811,21 @@ const MyClass = () => {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div className="space-y-2">
-                            <label className="text-xs font-black text-gray-700 uppercase tracking-wider">Recommended Next Step (At School)</label>
+                            <div className="flex justify-between items-center">
+                              <label className="text-xs font-black text-gray-700 uppercase tracking-wider">Recommended Next Step (At School)</label>
+                              <select 
+                                value=""
+                                onChange={(e) => {
+                                  if (e.target.value) setDevelopmentPlan(prev => ({ ...prev, atSchoolNextStep: e.target.value }));
+                                }}
+                                className="text-xs border-none bg-emerald-50/70 rounded-lg px-2.5 py-1 font-bold text-emerald-800 focus:ring-0 cursor-pointer outline-none max-w-[180px] truncate"
+                              >
+                                <option value="">-- Quick Select --</option>
+                                {earlyYearsPredefinedComments.atSchoolNextStep.map((rem, i) => (
+                                  <option key={i} value={rem}>{rem.length > 40 ? rem.substring(0, 40) + '...' : rem}</option>
+                                ))}
+                              </select>
+                            </div>
                             <textarea
                               placeholder="Guided literacy and numeracy practice, classroom routines..."
                               className="w-full border-2 border-gray-100 rounded-xl p-3 h-20 focus:border-primary transition-all outline-none font-medium text-xs text-gray-700 bg-gray-50/30 resize-none"
@@ -722,7 +834,21 @@ const MyClass = () => {
                             />
                           </div>
                           <div className="space-y-2">
-                            <label className="text-xs font-black text-gray-700 uppercase tracking-wider">Recommended Next Step (At Home)</label>
+                            <div className="flex justify-between items-center">
+                              <label className="text-xs font-black text-gray-700 uppercase tracking-wider">Recommended Next Step (At Home)</label>
+                              <select 
+                                value=""
+                                onChange={(e) => {
+                                  if (e.target.value) setDevelopmentPlan(prev => ({ ...prev, atHomeNextStep: e.target.value }));
+                                }}
+                                className="text-xs border-none bg-emerald-50/70 rounded-lg px-2.5 py-1 font-bold text-emerald-800 focus:ring-0 cursor-pointer outline-none max-w-[180px] truncate"
+                              >
+                                <option value="">-- Quick Select --</option>
+                                {earlyYearsPredefinedComments.atHomeNextStep.map((rem, i) => (
+                                  <option key={i} value={rem}>{rem.length > 40 ? rem.substring(0, 40) + '...' : rem}</option>
+                                ))}
+                              </select>
+                            </div>
                             <textarea
                               placeholder="Read together, practise sounds and counting, sorting games..."
                               className="w-full border-2 border-gray-100 rounded-xl p-3 h-20 focus:border-primary transition-all outline-none font-medium text-xs text-gray-700 bg-gray-50/30 resize-none"
@@ -733,7 +859,21 @@ const MyClass = () => {
                         </div>
 
                         <div className="space-y-2">
-                          <label className="text-xs font-black text-gray-700 uppercase tracking-wider">Head Teacher's Comment</label>
+                          <div className="flex justify-between items-center">
+                            <label className="text-xs font-black text-gray-700 uppercase tracking-wider">Head Teacher's Comment</label>
+                            <select 
+                              value=""
+                              onChange={(e) => {
+                                if (e.target.value) setDevelopmentPlan(prev => ({ ...prev, headTeacherComment: e.target.value }));
+                              }}
+                              className="text-xs border-none bg-emerald-50/70 rounded-lg px-3 py-1.5 font-bold text-emerald-800 focus:ring-0 cursor-pointer outline-none max-w-[220px] truncate"
+                            >
+                              <option value="">-- Quick Select Comment --</option>
+                              {earlyYearsPredefinedComments.headTeacher.map((rem, i) => (
+                                <option key={i} value={rem}>{rem.length > 45 ? rem.substring(0, 45) + '...' : rem}</option>
+                              ))}
+                            </select>
+                          </div>
                           <textarea
                             placeholder="Official headteacher's comment..."
                             className="w-full border-2 border-gray-100 rounded-xl p-3 h-20 focus:border-primary transition-all outline-none font-medium text-xs text-gray-700 bg-gray-50/30 resize-none"
