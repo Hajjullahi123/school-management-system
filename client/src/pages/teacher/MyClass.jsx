@@ -898,63 +898,186 @@ const MyClass = () => {
                           <p className="text-sm font-bold text-gray-500">Retrieving academic record...</p>
                        </div>
                     ) : reportPreview ? (
-                      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden divide-y divide-gray-50">
-                        {/* Summary Header */}
-                        <div className="p-5 bg-gradient-to-br from-primary to-primary-dark text-white">
-                           <div className="flex justify-between items-start mb-4">
+                      isEarlyYearsMode ? (
+                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden divide-y divide-gray-50">
+                          {/* Early Years Header Banner */}
+                          <div className="p-5 bg-gradient-to-br from-emerald-600 to-teal-700 text-white">
+                            <div className="flex justify-between items-start mb-2">
                               <div>
-                                 <p className="text-[10px] font-black opacity-60 uppercase mb-1">Overall Average</p>
-                                 <p className="text-3xl font-black">{reportPreview.termAverage?.toFixed(1)}%</p>
+                                <p className="text-[10px] font-black opacity-80 uppercase tracking-widest mb-1">Evaluation Mode</p>
+                                <p className="text-xl font-black">Early Years Progress</p>
+                              </div>
+                              <span className="px-2.5 py-1 bg-white/20 backdrop-blur-sm rounded-lg text-[10px] font-black uppercase tracking-wider text-emerald-100">
+                                No Subject Marks
+                              </span>
+                            </div>
+                            <p className="text-xs text-emerald-100/90 font-medium">
+                              Assessment is based on developmental domain skill ratings and teacher qualitative feedback.
+                            </p>
+                          </div>
+
+                          {/* Attendance Summary */}
+                          {reportPreview.attendance && (
+                            <div className="p-4 bg-emerald-50/50 flex items-center justify-between">
+                              <div>
+                                <p className="text-[10px] font-black text-emerald-800 uppercase tracking-wider">Attendance Summary</p>
+                                <p className="text-xs font-bold text-gray-700">
+                                  {reportPreview.attendance.presentDays ?? 0} / {reportPreview.attendance.totalDays ?? 0} Days Present
+                                </p>
                               </div>
                               <div className="text-right">
-                                 <p className="text-[10px] font-black opacity-60 uppercase mb-1">Position</p>
-                                 <p className="text-xl font-black">{reportPreview.termPosition} / {reportPreview.totalStudents}</p>
+                                <span className="text-sm font-black text-emerald-600">
+                                  {reportPreview.attendance.totalDays ? Math.round(((reportPreview.attendance.presentDays || 0) / reportPreview.attendance.totalDays) * 100) : 0}%
+                                </span>
                               </div>
-                           </div>
-                           <div className="flex gap-2">
-                              <span className="px-2 py-1 bg-white/20 rounded-lg text-[10px] font-bold uppercase tracking-wider">
-                                 Grade: {reportPreview.overallGrade || 'N/A'}
-                              </span>
-                           </div>
-                        </div>
+                            </div>
+                          )}
 
-                        {/* Subject Table */}
-                        <div className="p-0">
-                           <table className="w-full text-left text-[11px]">
-                              <thead className="bg-gray-50/50 text-gray-400 font-black uppercase tracking-widest font-mono">
-                                 <tr>
-                                    <th className="px-4 py-3">Subject</th>
-                                    <th className="px-4 py-3 text-center">TOT</th>
-                                    <th className="px-4 py-3 text-center">GRD</th>
-                                 </tr>
-                              </thead>
-                              <tbody className="divide-y divide-gray-50">
-                                 {reportPreview.subjects?.map((sub, i) => (
-                                    <tr key={i} className="hover:bg-gray-50/50 transition-colors">
-                                       <td className="px-4 py-3 font-bold text-gray-700">{sub.name}</td>
-                                       <td className="px-4 py-3 text-center font-black">{sub.total?.toFixed(0)}</td>
-                                       <td className="px-4 py-3 text-center">
-                                          <span className={`px-2 py-0.5 rounded font-black ${sub.grade === 'F' ? 'text-red-500 bg-red-50' : 'text-emerald-600 bg-emerald-50'}`}>{sub.grade}</span>
-                                       </td>
-                                    </tr>
-                                 ))}
-                              </tbody>
-                           </table>
-                        </div>
+                          {/* Live Skill Mastery Breakdown */}
+                          <div className="p-4 space-y-3">
+                            <div className="flex justify-between items-center">
+                              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Skill Mastery Summary</p>
+                              <span className="text-[10px] font-bold text-gray-400">{psychomotorRatings.length} Skills Rated</span>
+                            </div>
 
-                        {/* Psychomotor Summary */}
-                        <div className="p-5 space-y-4">
-                           <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Psychomotor Record</p>
-                           <div className="space-y-2">
-                              {reportPreview.psychomotorRatings?.slice(0, 5).map((r, i) => (
-                                <div key={i} className="flex justify-between items-center text-[11px]">
-                                   <span className="font-bold text-gray-600">{r.name}</span>
-                                   {renderRatingTicks(r.score)}
+                            {(() => {
+                              const counts = { A: 0, P: 0, W: 0, NA: 0 };
+                              psychomotorRatings.forEach(r => {
+                                let code = 'A';
+                                if (typeof r.score === 'string') {
+                                  code = r.score.toUpperCase();
+                                } else {
+                                  if (r.score >= 5) code = 'A';
+                                  else if (r.score === 4) code = 'P';
+                                  else if (r.score === 2 || r.score === 3) code = 'W';
+                                  else if (r.score <= 1) code = 'NA';
+                                }
+                                if (counts[code] !== undefined) counts[code]++;
+                                else counts['A']++;
+                              });
+
+                              return (
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div className="p-2.5 bg-emerald-50 rounded-xl border border-emerald-100 flex items-center justify-between">
+                                    <span className="text-xs font-black text-emerald-800 flex items-center gap-1.5">
+                                      <span className="w-5 h-5 rounded bg-emerald-600 text-white flex items-center justify-center text-[10px] font-black">A</span>
+                                      Achieved
+                                    </span>
+                                    <span className="text-base font-black text-emerald-700">{counts.A}</span>
+                                  </div>
+                                  <div className="p-2.5 bg-blue-50 rounded-xl border border-blue-100 flex items-center justify-between">
+                                    <span className="text-xs font-black text-blue-800 flex items-center gap-1.5">
+                                      <span className="w-5 h-5 rounded bg-blue-600 text-white flex items-center justify-center text-[10px] font-black">P</span>
+                                      Progressing
+                                    </span>
+                                    <span className="text-base font-black text-blue-700">{counts.P}</span>
+                                  </div>
+                                  <div className="p-2.5 bg-amber-50 rounded-xl border border-amber-100 flex items-center justify-between">
+                                    <span className="text-xs font-black text-amber-800 flex items-center gap-1.5">
+                                      <span className="w-5 h-5 rounded bg-amber-500 text-white flex items-center justify-center text-[10px] font-black">W</span>
+                                      Working on It
+                                    </span>
+                                    <span className="text-base font-black text-amber-700">{counts.W}</span>
+                                  </div>
+                                  <div className="p-2.5 bg-gray-50 rounded-xl border border-gray-200 flex items-center justify-between">
+                                    <span className="text-xs font-black text-gray-700 flex items-center gap-1.5">
+                                      <span className="w-5 h-5 rounded bg-gray-400 text-white flex items-center justify-center text-[10px] font-black">NA</span>
+                                      Not Assessed
+                                    </span>
+                                    <span className="text-base font-black text-gray-600">{counts.NA}</span>
+                                  </div>
                                 </div>
-                              ))}
-                           </div>
+                              );
+                            })()}
+                          </div>
+
+                          {/* Comments Preview */}
+                          <div className="p-4 space-y-3 bg-gray-50/50">
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Development Comments Preview</p>
+                            
+                            {developmentPlan.teacherComment ? (
+                              <div className="p-3 bg-white rounded-xl border border-gray-100 text-xs">
+                                <span className="font-bold text-gray-500 block text-[10px] uppercase mb-0.5">Teacher Comment:</span>
+                                <p className="text-gray-700 italic line-clamp-3">"{developmentPlan.teacherComment}"</p>
+                              </div>
+                            ) : (
+                              <p className="text-xs text-gray-400 italic">No teacher comment added yet.</p>
+                            )}
+
+                            {developmentPlan.literacyComment && (
+                              <div className="p-3 bg-white rounded-xl border border-gray-100 text-xs">
+                                <span className="font-bold text-gray-500 block text-[10px] uppercase mb-0.5">Literacy Comment:</span>
+                                <p className="text-gray-700 italic line-clamp-2">"{developmentPlan.literacyComment}"</p>
+                              </div>
+                            )}
+
+                            {developmentPlan.numeracyComment && (
+                              <div className="p-3 bg-white rounded-xl border border-gray-100 text-xs">
+                                <span className="font-bold text-gray-500 block text-[10px] uppercase mb-0.5">Numeracy Comment:</span>
+                                <p className="text-gray-700 italic line-clamp-2">"{developmentPlan.numeracyComment}"</p>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
+                      ) : (
+                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden divide-y divide-gray-50">
+                          {/* Summary Header */}
+                          <div className="p-5 bg-gradient-to-br from-primary to-primary-dark text-white">
+                             <div className="flex justify-between items-start mb-4">
+                                <div>
+                                   <p className="text-[10px] font-black opacity-60 uppercase mb-1">Overall Average</p>
+                                   <p className="text-3xl font-black">{reportPreview.termAverage?.toFixed(1)}%</p>
+                                </div>
+                                <div className="text-right">
+                                   <p className="text-[10px] font-black opacity-60 uppercase mb-1">Position</p>
+                                   <p className="text-xl font-black">{reportPreview.termPosition} / {reportPreview.totalStudents}</p>
+                                </div>
+                             </div>
+                             <div className="flex gap-2">
+                                <span className="px-2 py-1 bg-white/20 rounded-lg text-[10px] font-bold uppercase tracking-wider">
+                                   Grade: {reportPreview.overallGrade || 'N/A'}
+                                </span>
+                             </div>
+                          </div>
+
+                          {/* Subject Table */}
+                          <div className="p-0">
+                             <table className="w-full text-left text-[11px]">
+                                <thead className="bg-gray-50/50 text-gray-400 font-black uppercase tracking-widest font-mono">
+                                   <tr>
+                                      <th className="px-4 py-3">Subject</th>
+                                      <th className="px-4 py-3 text-center">TOT</th>
+                                      <th className="px-4 py-3 text-center">GRD</th>
+                                   </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-50">
+                                   {reportPreview.subjects?.map((sub, i) => (
+                                      <tr key={i} className="hover:bg-gray-50/50 transition-colors">
+                                         <td className="px-4 py-3 font-bold text-gray-700">{sub.name}</td>
+                                         <td className="px-4 py-3 text-center font-black">{sub.total?.toFixed(0)}</td>
+                                         <td className="px-4 py-3 text-center">
+                                            <span className={`px-2 py-0.5 rounded font-black ${sub.grade === 'F' ? 'text-red-500 bg-red-50' : 'text-emerald-600 bg-emerald-50'}`}>{sub.grade}</span>
+                                         </td>
+                                      </tr>
+                                   ))}
+                                </tbody>
+                             </table>
+                          </div>
+
+                          {/* Psychomotor Summary */}
+                          <div className="p-5 space-y-4">
+                             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Psychomotor Record</p>
+                             <div className="space-y-2">
+                                {reportPreview.psychomotorRatings?.slice(0, 5).map((r, i) => (
+                                  <div key={i} className="flex justify-between items-center text-[11px]">
+                                     <span className="font-bold text-gray-600">{r.name}</span>
+                                     {renderRatingTicks(r.score)}
+                                  </div>
+                                ))}
+                             </div>
+                          </div>
+                        </div>
+                      )
                     ) : (
                       <div className="p-8 text-center bg-gray-50 rounded-2xl border-2 border-dashed border-gray-100">
                          <p className="text-gray-400 font-bold text-sm">No grade data available for this term yet.</p>
