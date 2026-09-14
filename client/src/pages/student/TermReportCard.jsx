@@ -954,18 +954,51 @@ const TermReportCard = () => {
                     return (
                       <div className="space-y-6">
                       {/* PAGE 1 */}
-                      <div className="bg-white border-4 border-black p-6 space-y-4 print:p-4 print:space-y-3">
+                      <div className="bg-white border-4 p-6 space-y-4 print:p-4 print:space-y-3" style={{ borderColor: currentReportColor }}>
                         {/* Header */}
-                        <div className="text-center space-y-1">
-                          <h1 className="text-2xl font-black uppercase tracking-wider text-black">
-                            {schoolSettings?.schoolName || 'AL-BAYYINAH BASIC / TAHFEEDH SCHOOL'}
-                          </h1>
-                          <p className="text-xs font-bold text-gray-700">
-                            {schoolSettings?.address || 'Kano, Nigeria'} {schoolSettings?.phone ? `• ${schoolSettings.phone}` : ''} {schoolSettings?.email ? `• ${schoolSettings.email}` : ''}
-                          </p>
-                          <h2 className="text-lg font-black uppercase tracking-wider border-y-2 border-black py-1 mt-2 text-black">
-                            EARLY YEARS PROGRESS REPORT
-                          </h2>
+                        <div className="grid grid-cols-[96px_1fr_96px] items-center gap-4 mb-2 pb-2 border-b-2 border-black">
+                          {/* Logo */}
+                          <div className="w-24 h-24 flex-shrink-0 flex items-center justify-center">
+                            {logoUri ? (
+                              <img src={logoUri} alt="School Logo" className="w-full h-full object-contain" />
+                            ) : (
+                              <div className="w-20 h-20 bg-gray-100 border border-gray-300 rounded flex items-center justify-center text-[10px] text-gray-400 font-bold uppercase text-center p-1">No Logo</div>
+                            )}
+                          </div>
+
+                          {/* Center School Details */}
+                          <div className="text-center space-y-1">
+                            <h1 className="text-2xl font-black uppercase tracking-wider leading-tight" style={{ color: currentReportColor }}>
+                              {ss?.name || ss?.schoolName || schoolSettings?.schoolName || 'AL-BAYYINAH BASIC / TAHFEEDH SCHOOL'}
+                            </h1>
+                            {ss?.motto && (
+                              <p className="text-xs font-black italic text-gray-800 uppercase tracking-wide">
+                                "{ss.motto}"
+                              </p>
+                            )}
+                            <p className="text-[11px] font-bold text-gray-700 leading-tight">
+                              {ss?.address || schoolSettings?.address || 'Kano, Nigeria'}
+                            </p>
+                            {(ss?.phone || ss?.email || schoolSettings?.phone || schoolSettings?.email) && (
+                              <p className="text-[10px] font-bold text-gray-600">
+                                {(ss?.phone || schoolSettings?.phone) ? `TEL: ${ss?.phone || schoolSettings?.phone}` : ''} {(ss?.phone || schoolSettings?.phone) && (ss?.email || schoolSettings?.email) ? ' | ' : ''} {(ss?.email || schoolSettings?.email) ? `EMAIL: ${ss?.email || schoolSettings?.email}` : ''}
+                              </p>
+                            )}
+                            <div className="pt-1">
+                              <h2 className="text-xs font-black uppercase tracking-widest text-white py-1 px-4 inline-block rounded shadow-sm" style={{ backgroundColor: currentReportColor }}>
+                                EARLY YEARS PROGRESS REPORT
+                              </h2>
+                            </div>
+                          </div>
+
+                          {/* Student Photo */}
+                          <div className="w-24 h-28 flex-shrink-0 flex items-center justify-center">
+                            {photoUri ? (
+                              <img src={photoUri} alt="Student Photo" className="w-24 h-28 object-cover border-2 border-black rounded shadow-sm" />
+                            ) : (
+                              <div className="w-24 h-28 bg-gray-100 border-2 border-black rounded flex items-center justify-center text-[10px] text-gray-400 font-bold uppercase">Photo</div>
+                            )}
+                          </div>
                         </div>
 
                         {/* Student Details Table */}
