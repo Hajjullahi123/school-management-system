@@ -605,69 +605,71 @@ const MyClass = () => {
                     </div>
                   </div>
 
-                  {/* Performance Breakdown Section */}
-                  <div className="space-y-6">
-                    <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
-                       <span className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-black text-sm">01</span>
-                       <h4 className="font-black text-gray-900 uppercase tracking-tighter">Academic Remarks</h4>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 gap-8">
-                      <div className="space-y-3">
-                        <div className="flex justify-between items-center">
-                          <div className="flex items-center gap-2">
-                            <label className="text-sm font-black text-gray-700 uppercase tracking-wider">Form Master's Remark</label>
-                            <button 
-                              onClick={generateAIRemark}
-                              disabled={generatingAI}
-                              title="Generate AI Remark"
-                              className={`p-1.5 rounded-lg transition-all ${generatingAI ? 'bg-gray-100 text-gray-400' : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100 hover:scale-110 active:scale-95'}`}
+                  {/* Standard Academic Remarks Section (Standard Mode Only) */}
+                  {!isEarlyYearsMode && (
+                    <div className="space-y-6">
+                      <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
+                         <span className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-black text-sm">01</span>
+                         <h4 className="font-black text-gray-900 uppercase tracking-tighter">Academic Remarks</h4>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 gap-8">
+                        <div className="space-y-3">
+                          <div className="flex justify-between items-center">
+                            <div className="flex items-center gap-2">
+                              <label className="text-sm font-black text-gray-700 uppercase tracking-wider">Form Master's Remark</label>
+                              <button 
+                                onClick={generateAIRemark}
+                                disabled={generatingAI}
+                                title="Generate AI Remark"
+                                className={`p-1.5 rounded-lg transition-all ${generatingAI ? 'bg-gray-100 text-gray-400' : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100 hover:scale-110 active:scale-95'}`}
+                              >
+                                {generatingAI ? (
+                                  <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent animate-spin rounded-full"></div>
+                                ) : (
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                  </svg>
+                                )}
+                              </button>
+                            </div>
+                            <select 
+                              onChange={(e) => setRemarks({ ...remarks, formMasterRemark: e.target.value })}
+                              className="text-xs border-none bg-gray-50 rounded-lg px-3 py-1.5 font-bold text-gray-500 focus:ring-0 cursor-pointer outline-none"
                             >
-                              {generatingAI ? (
-                                <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent animate-spin rounded-full"></div>
-                              ) : (
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                                </svg>
-                              )}
-                            </button>
+                              <option value="">-- Quick Select --</option>
+                              {predefinedRemarks.map((rem, i) => <option key={i} value={rem}>{rem}</option>)}
+                            </select>
                           </div>
-                          <select 
+                          <textarea
+                            placeholder="Provide a detailed assessment of the student's behavior and academic attitude..."
+                            className="w-full border-2 border-gray-100 rounded-2xl p-4 h-32 focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all outline-none font-medium text-gray-700 bg-gray-50/30 resize-none"
+                            value={remarks.formMasterRemark}
                             onChange={(e) => setRemarks({ ...remarks, formMasterRemark: e.target.value })}
-                            className="text-xs border-none bg-gray-50 rounded-lg px-3 py-1.5 font-bold text-gray-500 focus:ring-0 cursor-pointer outline-none"
-                          >
-                            <option value="">-- Quick Select --</option>
-                            {predefinedRemarks.map((rem, i) => <option key={i} value={rem}>{rem}</option>)}
-                          </select>
+                          />
                         </div>
-                        <textarea
-                          placeholder="Provide a detailed assessment of the student's behavior and academic attitude..."
-                          className="w-full border-2 border-gray-100 rounded-2xl p-4 h-32 focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all outline-none font-medium text-gray-700 bg-gray-50/30 resize-none"
-                          value={remarks.formMasterRemark}
-                          onChange={(e) => setRemarks({ ...remarks, formMasterRemark: e.target.value })}
-                        />
-                      </div>
 
-                      <div className="space-y-3">
-                        <div className="flex justify-between items-center">
-                          <label className="text-sm font-black text-gray-700 uppercase tracking-wider">Principal's Remark</label>
-                          <select 
+                        <div className="space-y-3">
+                          <div className="flex justify-between items-center">
+                            <label className="text-sm font-black text-gray-700 uppercase tracking-wider">Principal's Remark</label>
+                            <select 
+                              onChange={(e) => setRemarks({ ...remarks, principalRemark: e.target.value })}
+                              className="text-xs border-none bg-gray-50 rounded-lg px-3 py-1.5 font-bold text-gray-500 focus:ring-0 cursor-pointer outline-none"
+                            >
+                              <option value="">-- Quick Select --</option>
+                              {predefinedRemarks.map((rem, i) => <option key={i} value={rem}>{rem}</option>)}
+                            </select>
+                          </div>
+                          <textarea
+                            placeholder="Official headteacher's comment based on term performance..."
+                            className="w-full border-2 border-gray-100 rounded-2xl p-4 h-28 focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all outline-none font-medium text-gray-700 bg-gray-50/30 resize-none"
+                            value={remarks.principalRemark}
                             onChange={(e) => setRemarks({ ...remarks, principalRemark: e.target.value })}
-                            className="text-xs border-none bg-gray-50 rounded-lg px-3 py-1.5 font-bold text-gray-500 focus:ring-0 cursor-pointer outline-none"
-                          >
-                            <option value="">-- Quick Select --</option>
-                            {predefinedRemarks.map((rem, i) => <option key={i} value={rem}>{rem}</option>)}
-                          </select>
+                          />
                         </div>
-                        <textarea
-                          placeholder="Official headteacher's comment based on term performance..."
-                          className="w-full border-2 border-gray-100 rounded-2xl p-4 h-28 focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all outline-none font-medium text-gray-700 bg-gray-50/30 resize-none"
-                          value={remarks.principalRemark}
-                          onChange={(e) => setRemarks({ ...remarks, principalRemark: e.target.value })}
-                        />
                       </div>
                     </div>
-                  </div>
+                  )}
 
                   {/* EARLY YEARS COMMENTS & DEVELOPMENT PLAN */}
                   {isEarlyYearsMode && (
