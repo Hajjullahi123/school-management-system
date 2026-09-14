@@ -614,40 +614,65 @@ const UserManagement = () => {
                                 </span>
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                <div className="flex justify-end gap-2">
+                                <div className="flex items-center justify-end gap-2">
                                   {role === 'student' && (
                                     <Link
                                       to="/dashboard/student-management"
                                       state={{ search: user.student?.admissionNumber }}
-                                      className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all"
+                                      className="p-2 bg-emerald-50 border border-emerald-200/80 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700 rounded-xl transition-all shadow-sm flex items-center justify-center min-w-[36px] min-h-[36px]"
                                       title="Manage Full Profile"
                                     >
-                                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0c0 .884-.896 1.75-2.129 2.25M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                                      <svg className="w-5 h-5 shrink-0 stroke-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0c0 .884-.896 1.75-2.129 2.25M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                      </svg>
                                     </Link>
                                   )}
                                   {user.id !== currentUser?.id && (
                                     <>
                                       {['admin', 'sub_admin', 'principal', 'examination_officer', 'attendance_admin', 'superadmin'].includes(currentUser?.role) && user.role !== 'superadmin' && (
-                                        <button onClick={() => handleImpersonate(user.id)} className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all" title="Ghost Login (Login As)">
-                                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                                        <button
+                                          onClick={() => handleImpersonate(user.id)}
+                                          className="p-2 bg-indigo-50 border border-indigo-200/80 text-indigo-600 hover:bg-indigo-100 hover:text-indigo-700 rounded-xl transition-all shadow-sm flex items-center justify-center min-w-[36px] min-h-[36px]"
+                                          title="Ghost Login (Login As)"
+                                        >
+                                          <svg className="w-5 h-5 shrink-0 stroke-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                          </svg>
                                         </button>
                                       )}
                                       <button
                                         onClick={() => handleDeactivateToggle(user.id)}
                                         disabled={deactivating === user.id}
-                                        className={`p-2 ${user.isActive ? 'text-amber-600 hover:bg-amber-50' : 'text-green-600 hover:bg-green-50'} rounded-xl transition-all`}
+                                        className={`p-2 border rounded-xl transition-all shadow-sm flex items-center justify-center min-w-[36px] min-h-[36px] ${
+                                          user.isActive
+                                            ? 'bg-amber-50 border-amber-200/80 text-amber-600 hover:bg-amber-100 hover:text-amber-700'
+                                            : 'bg-emerald-50 border-emerald-200/80 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700'
+                                        }`}
                                         title={user.isActive ? 'Deactivate User' : 'Activate User'}
                                       >
                                         {deactivating === user.id ? (
-                                          <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                                          <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                          </svg>
                                         ) : user.isActive ? (
-                                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>
+                                          <svg className="w-5 h-5 shrink-0 stroke-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                                          </svg>
                                         ) : (
-                                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                          <svg className="w-5 h-5 shrink-0 stroke-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                          </svg>
                                         )}
                                       </button>
-                                      <button onClick={() => handleDeleteClick(user.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-xl transition-all" title="Delete">
-                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                      <button
+                                        onClick={() => handleDeleteClick(user.id)}
+                                        className="p-2 bg-rose-50 border border-rose-200/80 text-rose-600 hover:bg-rose-100 hover:text-rose-700 rounded-xl transition-all shadow-sm flex items-center justify-center min-w-[36px] min-h-[36px]"
+                                        title="Delete"
+                                      >
+                                        <svg className="w-5 h-5 shrink-0 stroke-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
                                       </button>
                                     </>
                                   )}
