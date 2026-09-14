@@ -461,15 +461,15 @@ const BulkReportDownload = () => {
                                 <div className="border-2 border-black">
                                   <div className="grid grid-cols-4 divide-x-2 divide-black text-center p-2">
                                     <div>
-                                      <div className="text-xl font-black text-black">{data.attendance?.present || 75}</div>
+                                      <div className="text-xl font-black text-black">{data.attendance ? (data.attendance.present ?? 0) : 0}</div>
                                       <div className="text-[10px] font-black uppercase text-gray-700">DAYS PRESENT</div>
                                     </div>
                                     <div>
-                                      <div className="text-xl font-black text-black">{data.attendance?.absent || 0}</div>
+                                      <div className="text-xl font-black text-black">{data.attendance ? (data.attendance.absent ?? 0) : 0}</div>
                                       <div className="text-[10px] font-black uppercase text-gray-700">DAYS ABSENT</div>
                                     </div>
                                     <div>
-                                      <div className="text-xl font-black text-black">{data.attendance ? `${data.attendance.percentage}%` : '100%'}</div>
+                                      <div className="text-xl font-black text-black">{data.attendance ? `${data.attendance.percentage}%` : '0%'}</div>
                                       <div className="text-[10px] font-black uppercase text-gray-700">ATTENDANCE</div>
                                     </div>
                                     <div>

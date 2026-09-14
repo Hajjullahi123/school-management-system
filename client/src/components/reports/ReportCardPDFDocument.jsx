@@ -749,15 +749,15 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
                 {/* Attendance Summary */}
                 <View style={{ borderWidth: 1, borderColor: '#000000', marginBottom: 4, flexDirection: 'row' }}>
                   <View style={{ flex: 1, alignItems: 'center', padding: 4, borderRightWidth: 1, borderColor: '#000000' }}>
-                    <Text style={{ fontSize: 13, fontWeight: 'bold' }}>{data.attendance?.present || 75}</Text>
+                    <Text style={{ fontSize: 13, fontWeight: 'bold' }}>{data.attendance ? (data.attendance.present ?? 0) : 0}</Text>
                     <Text style={{ fontSize: 7, fontWeight: 'bold', marginTop: 1 }}>DAYS PRESENT</Text>
                   </View>
                   <View style={{ flex: 1, alignItems: 'center', padding: 4, borderRightWidth: 1, borderColor: '#000000' }}>
-                    <Text style={{ fontSize: 13, fontWeight: 'bold' }}>{data.attendance?.absent || 0}</Text>
+                    <Text style={{ fontSize: 13, fontWeight: 'bold' }}>{data.attendance ? (data.attendance.absent ?? 0) : 0}</Text>
                     <Text style={{ fontSize: 7, fontWeight: 'bold', marginTop: 1 }}>DAYS ABSENT</Text>
                   </View>
                   <View style={{ flex: 1, alignItems: 'center', padding: 4, borderRightWidth: 1, borderColor: '#000000' }}>
-                    <Text style={{ fontSize: 13, fontWeight: 'bold' }}>{data.attendance ? `${data.attendance.percentage}%` : '100%'}</Text>
+                    <Text style={{ fontSize: 13, fontWeight: 'bold' }}>{data.attendance ? `${data.attendance.percentage}%` : '0%'}</Text>
                     <Text style={{ fontSize: 7, fontWeight: 'bold', marginTop: 1 }}>ATTENDANCE</Text>
                   </View>
                   <View style={{ flex: 1, alignItems: 'center', padding: 4 }}>
