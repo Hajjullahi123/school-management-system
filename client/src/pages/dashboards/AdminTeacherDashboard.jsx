@@ -648,14 +648,17 @@ const AdminTeacherDashboard = ({ user, schoolSettings }) => {
 
       {/* Admin Quick Links */}
       {(user?.role === 'admin' || user?.role === 'principal') && (
-        <div className="grid grid-cols-2 gap-3">
-          <Link to="/dashboard/users" className="bg-indigo-600 text-white p-4 rounded-xl text-center">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <Link to="/dashboard/users" className="bg-indigo-600 hover:bg-indigo-700 text-white p-4 rounded-xl text-center shadow transition-all">
              <span className="text-[11px] font-black uppercase tracking-widest">Users</span>
           </Link>
-          <Link to="/dashboard/hr-admin" className="bg-rose-600 text-white p-4 rounded-xl text-center">
+          <Link to="/dashboard/result-entry" className="bg-emerald-600 hover:bg-emerald-700 text-white p-4 rounded-xl text-center shadow transition-all">
+             <span className="text-[11px] font-black uppercase tracking-widest">Assessment & Results</span>
+          </Link>
+          <Link to="/dashboard/hr-admin" className="bg-rose-600 hover:bg-rose-700 text-white p-4 rounded-xl text-center shadow transition-all">
              <span className="text-[11px] font-black uppercase tracking-widest">HR Command</span>
           </Link>
-          <Link to="/dashboard/settings" className="bg-slate-700 text-white p-4 rounded-xl text-center sm:col-span-2 lg:col-span-1">
+          <Link to="/dashboard/settings" className="bg-slate-700 hover:bg-slate-800 text-white p-4 rounded-xl text-center shadow transition-all">
              <span className="text-[11px] font-black uppercase tracking-widest">System</span>
           </Link>
         </div>

@@ -1,10 +1,21 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { toast } from '../../utils/toast';
 import { api, API_BASE_URL } from '../../api';
 import EarlyYearsDomainConfig from './EarlyYearsDomainConfig';
 
 const ExamConfig = () => {
-  const [activeTab, setActiveTab] = useState('academic'); // 'academic' | 'early-years'
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const requestedTab = queryParams.get('tab') || 'academic';
+  const [activeTab, setActiveTab] = useState(requestedTab);
+
+  useEffect(() => {
+    const tabParam = new URLSearchParams(location.search).get('tab');
+    if (tabParam) {
+      setActiveTab(tabParam);
+    }
+  }, [location.search]);
  const [settings, setSettings] = useState({
  examMode: false,
  examModeType: 'none',

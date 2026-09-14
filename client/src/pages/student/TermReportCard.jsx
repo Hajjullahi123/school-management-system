@@ -655,51 +655,90 @@ const TermReportCard = () => {
                     const earlyYearsPageFormat = data.reportSettings?.earlyYearsPageFormat || '3-page';
                     const allDomains = data.earlyYearsDomains || [];
 
+                    const logoUrlRaw = ss?.logoUrl || schoolSettings?.logoUrl;
+                    const logoUri = logoUrlRaw
+                      ? (logoUrlRaw.startsWith('http') || logoUrlRaw.startsWith('data:') ? logoUrlRaw : `${API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL}${logoUrlRaw.startsWith('/') ? logoUrlRaw : '/' + logoUrlRaw}`)
+                      : null;
+
+                    const photoUrlRaw = data.student?.user?.photoUrl || data.student?.photoUrl;
+                    const photoUri = photoUrlRaw
+                      ? (photoUrlRaw.startsWith('http') || photoUrlRaw.startsWith('data:') ? photoUrlRaw : `${API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL}${photoUrlRaw.startsWith('/') ? photoUrlRaw : '/' + photoUrlRaw}`)
+                      : null;
+
+                    const renderEarlyYearsHeader = () => (
+                      <div className="grid grid-cols-[80px_1fr_80px] items-center gap-3 mb-2 pb-2 border-b-2" style={{ borderColor: reportColor }}>
+                        <div className="w-20 h-20 flex-shrink-0 flex items-center justify-center">
+                          {logoUri ? (
+                            <img src={logoUri} alt="School Logo" className="max-w-full max-h-full object-contain" />
+                          ) : (
+                            <div className="w-16 h-16 bg-gray-100 flex items-center justify-center rounded-full text-[9px] font-bold text-gray-400 border border-gray-300">No Logo</div>
+                          )}
+                        </div>
+
+                        <div className="text-center flex flex-col items-center justify-center">
+                          <h1 className="text-xl font-black uppercase mb-0.5 tracking-wider leading-none" style={{ color: reportColor }}>
+                            {ss?.name || schoolSettings?.name || schoolSettings?.schoolName || 'School Name'}
+                          </h1>
+                          {(ss?.motto || schoolSettings?.motto) && (
+                            <p className="text-[10px] font-black italic text-gray-700 mb-0.5 uppercase tracking-normal">
+                              "{ss?.motto || schoolSettings?.motto}"
+                            </p>
+                          )}
+                          <p className="text-[9px] font-bold text-gray-600 max-w-[480px] leading-tight">
+                            {ss?.address || schoolSettings?.address || 'School Address'}
+                          </p>
+                          <p className="text-[9px] font-semibold text-gray-500">
+                            {(ss?.phone || schoolSettings?.phone) ? `TEL: ${ss?.phone || schoolSettings?.phone}` : ''} {(ss?.phone || schoolSettings?.phone) && (ss?.email || schoolSettings?.email) ? '|' : ''} {(ss?.email || schoolSettings?.email) ? `EMAIL: ${ss?.email || schoolSettings?.email}` : ''}
+                          </p>
+                          <div className="mt-1.5 inline-block text-white px-5 py-0.5 rounded-full font-black uppercase tracking-widest text-xs shadow-sm" style={{ backgroundColor: reportColor }}>
+                            EARLY YEARS PROGRESS REPORT
+                          </div>
+                        </div>
+
+                        <div className="w-20 h-24 flex-shrink-0 flex items-center justify-center">
+                          {photoUri ? (
+                            <img src={photoUri} alt="Student Photo" className="w-full h-full object-cover border-2 rounded shadow-sm" style={{ borderColor: reportColor }} />
+                          ) : (
+                            <div className="w-20 h-24 bg-gray-100 flex items-center justify-center border-2 border-dashed border-gray-300 rounded text-[9px] text-gray-400">Photo</div>
+                          )}
+                        </div>
+                      </div>
+                    );
+
                     if (earlyYearsPageFormat === '2-page') {
                       return (
                         <div className="space-y-6">
                           {/* PAGE 1 */}
-                          <div className="bg-white border-4 border-black p-4 space-y-2 print:p-3 print:space-y-1">
-                            {/* Header */}
-                            <div className="text-center space-y-1">
-                              <h1 className="text-2xl font-black uppercase tracking-wider text-black">
-                                {schoolSettings?.schoolName || 'AL-BAYYINAH BASIC / TAHFEEDH SCHOOL'}
-                              </h1>
-                              <p className="text-xs font-bold text-gray-700">
-                                {schoolSettings?.address || 'Kano, Nigeria'} {schoolSettings?.phone ? `• ${schoolSettings.phone}` : ''} {schoolSettings?.email ? `• ${schoolSettings.email}` : ''}
-                              </p>
-                              <h2 className="text-lg font-black uppercase tracking-wider border-y-2 border-black py-1 mt-2 text-black">
-                                EARLY YEARS PROGRESS REPORT
-                              </h2>
-                            </div>
+                          <div className="bg-white border-4 p-4 space-y-2 print:p-3 print:space-y-1" style={{ borderColor: reportColor }}>
+                            {renderEarlyYearsHeader()}
 
                             {/* Student Details Table */}
-                            <table className="w-full border-2 border-black border-collapse text-xs font-bold uppercase">
+                            <table className="w-full border-2 border-collapse text-xs font-bold uppercase" style={{ borderColor: reportColor }}>
                               <tbody>
-                                <tr className="border-b border-black">
-                                  <td className="border-r border-black p-1.5 w-[15%] bg-gray-100 font-black">STUDENT</td>
-                                  <td className="border-r border-black p-1.5 w-[45%] font-black text-black">{getStudentDisplayName(data.student)}</td>
-                                  <td className="border-r border-black p-1.5 w-[15%] bg-gray-100 font-black">CLASS</td>
+                                <tr className="border-b" style={{ borderColor: reportColor }}>
+                                  <td className="border-r p-1.5 w-[15%] bg-gray-100 font-black" style={{ borderColor: reportColor }}>STUDENT</td>
+                                  <td className="border-r p-1.5 w-[45%] font-black text-black" style={{ borderColor: reportColor }}>{getStudentDisplayName(data.student)}</td>
+                                  <td className="border-r p-1.5 w-[15%] bg-gray-100 font-black" style={{ borderColor: reportColor }}>CLASS</td>
                                   <td className="p-1.5 w-[25%] font-black text-black">{data.student?.class}</td>
                                 </tr>
-                                <tr className="border-b border-black">
-                                  <td className="border-r border-black p-1.5 bg-gray-100 font-black">DATE OF BIRTH</td>
-                                  <td className="border-r border-black p-1.5 font-bold">{formatDateVerbose(data.student?.dateOfBirth)}</td>
-                                  <td className="border-r border-black p-1.5 bg-gray-100 font-black">SESSION</td>
+                                <tr className="border-b" style={{ borderColor: reportColor }}>
+                                  <td className="border-r p-1.5 bg-gray-100 font-black" style={{ borderColor: reportColor }}>DATE OF BIRTH</td>
+                                  <td className="border-r p-1.5 font-bold" style={{ borderColor: reportColor }}>{formatDateVerbose(data.student?.dateOfBirth)}</td>
+                                  <td className="border-r p-1.5 bg-gray-100 font-black" style={{ borderColor: reportColor }}>SESSION</td>
                                   <td className="p-1.5 font-bold">{data.term?.session}</td>
                                 </tr>
                                 <tr>
-                                  <td className="border-r border-black p-1.5 bg-gray-100 font-black">TERM</td>
-                                  <td className="border-r border-black p-1.5 font-bold">{data.term?.name}</td>
-                                  <td className="border-r border-black p-1.5 bg-gray-100 font-black">REPORT STATUS</td>
-                                  <td className="p-1.5 font-black text-emerald-800">Published</td>
+                                  <td className="border-r p-1.5 bg-gray-100 font-black" style={{ borderColor: reportColor }}>TERM</td>
+                                  <td className="border-r p-1.5 font-bold" style={{ borderColor: reportColor }}>{data.term?.name}</td>
+                                  <td className="border-r p-1.5 bg-gray-100 font-black" style={{ borderColor: reportColor }}>REPORT STATUS</td>
+                                  <td className="p-1.5 font-black" style={{ color: reportColor }}>Published</td>
                                 </tr>
                               </tbody>
                             </table>
 
                             {/* Attendance Summary */}
-                            <div className="border-2 border-black">
-                              <div className="grid grid-cols-4 divide-x-2 divide-black text-center p-2">
+                            <div className="border-2" style={{ borderColor: reportColor }}>
+                              <div className="grid grid-cols-4 divide-x-2 text-center p-2" style={{ borderColor: reportColor }}>
                                 <div>
                                   <div className="text-xl font-black text-black">{data.attendance ? (data.attendance.present ?? 0) : 0}</div>
                                   <div className="text-[10px] font-black uppercase text-gray-700">DAYS PRESENT</div>
@@ -725,21 +764,21 @@ const TermReportCard = () => {
                             {/* Assessment Key Banner */}
                             <div>
                               <p className="text-xs font-black uppercase mb-1 text-black">ASSESSMENT KEY</p>
-                              <div className="grid grid-cols-4 border-2 border-black divide-x-2 divide-black bg-gray-50 text-center p-2 text-xs">
+                              <div className="grid grid-cols-4 border-2 divide-x-2 bg-gray-50 text-center p-2 text-xs" style={{ borderColor: reportColor }}>
                                 <div>
-                                  <span className="font-black text-sm block text-black">A</span>
+                                  <span className="font-black text-sm block" style={{ color: reportColor }}>A</span>
                                   <span className="text-[10px] font-bold text-gray-700">Excellent</span>
                                 </div>
                                 <div>
-                                  <span className="font-black text-sm block text-black">P</span>
+                                  <span className="font-black text-sm block" style={{ color: reportColor }}>P</span>
                                   <span className="text-[10px] font-bold text-gray-700">Perfected</span>
                                 </div>
                                 <div>
-                                  <span className="font-black text-sm block text-black">W</span>
+                                  <span className="font-black text-sm block" style={{ color: reportColor }}>W</span>
                                   <span className="text-[10px] font-bold text-gray-700">Working on It</span>
                                 </div>
                                 <div>
-                                  <span className="font-black text-sm block text-black">NA</span>
+                                  <span className="font-black text-sm block text-gray-500">NA</span>
                                   <span className="text-[10px] font-bold text-gray-700">Not Applicable</span>
                                 </div>
                               </div>
@@ -747,25 +786,25 @@ const TermReportCard = () => {
 
                             {/* Page 1 Domains (ALL Domains for 2-page) */}
                             {allDomains.map((domain, dIdx) => (
-                              <div key={dIdx} className="border-2 border-black overflow-hidden">
-                                <div className="bg-gray-200 px-3 py-1 font-black text-[11px] uppercase border-b-2 border-black text-black">
+                              <div key={dIdx} className="border-2 overflow-hidden" style={{ borderColor: reportColor }}>
+                                <div className="text-white px-3 py-1 font-black text-[11px] uppercase border-b-2 text-white" style={{ backgroundColor: reportColor, borderColor: reportColor }}>
                                   {domain.name}
                                 </div>
                                 <table className="w-full border-collapse text-xs">
                                   <thead>
-                                    <tr className="bg-gray-100 border-b border-black text-[10px] font-black uppercase text-black">
-                                      <th className="p-1 text-left border-r border-black">Learning outcome / skill</th>
-                                      <th className="p-1 text-center w-16 border-r border-black">Current</th>
-                                      <th className="p-1 text-center w-16 border-r border-black">Previous</th>
+                                    <tr className="bg-gray-100 border-b text-[10px] font-black uppercase text-black" style={{ borderColor: reportColor }}>
+                                      <th className="p-1 text-left border-r" style={{ borderColor: reportColor }}>Learning outcome / skill</th>
+                                      <th className="p-1 text-center w-16 border-r" style={{ borderColor: reportColor }}>Current</th>
+                                      <th className="p-1 text-center w-16 border-r" style={{ borderColor: reportColor }}>Previous</th>
                                       <th className="p-1 text-center w-24">Progress</th>
                                     </tr>
                                   </thead>
                                   <tbody>
                                     {(domain.skills || []).map((skill, sIdx) => (
                                       <tr key={sIdx} className="border-b border-gray-200 last:border-b-0 h-5 font-medium text-black text-[11px]">
-                                        <td className="p-1 border-r border-black font-bold">{skill.name}</td>
-                                        <td className="p-1 text-center font-black border-r border-black">{skill.current || 'A'}</td>
-                                        <td className="p-1 text-center border-r border-black">{skill.previous || 'A'}</td>
+                                        <td className="p-1 border-r border-gray-300 font-bold">{skill.name}</td>
+                                        <td className="p-1 text-center font-black border-r border-gray-300" style={{ color: reportColor }}>{skill.current || 'A'}</td>
+                                        <td className="p-1 text-center border-r border-gray-300">{skill.previous || 'A'}</td>
                                         <td className="p-1 text-center font-bold">{skill.progress || 'Maintained'}</td>
                                       </tr>
                                     ))}
@@ -781,24 +820,19 @@ const TermReportCard = () => {
                           </div>
 
                           {/* PAGE 2 */}
-                          <div className="bg-white border-4 border-black p-4 space-y-3 print:p-3 print:space-y-2 print:break-before-page">
-                            <div className="text-center border-b-2 border-black pb-2">
-                              <h2 className="text-lg font-black uppercase tracking-wider text-black">EARLY YEARS PROGRESS REPORT</h2>
-                              <p className="text-xs font-bold text-gray-700">
-                                Student: {getStudentDisplayName(data.student)} &bull; Class: {data.student?.class} &bull; Term: {data.term?.name}
-                              </p>
-                            </div>
+                          <div className="bg-white border-4 p-4 space-y-3 print:p-3 print:space-y-2 print:break-before-page" style={{ borderColor: reportColor }}>
+                            {renderEarlyYearsHeader()}
 
                             {/* PROGRESS AT A GLANCE TABLE */}
-                            <div className="border-2 border-black overflow-hidden">
-                              <div className="bg-black text-white px-3 py-1 font-black text-xs uppercase tracking-wider">
+                            <div className="border-2 overflow-hidden" style={{ borderColor: reportColor }}>
+                              <div className="text-white px-3 py-1 font-black text-xs uppercase tracking-wider" style={{ backgroundColor: reportColor }}>
                                 PROGRESS AT A GLANCE
                               </div>
                               <table className="w-full border-collapse text-xs">
                                 <thead>
-                                  <tr className="bg-gray-100 border-b border-black font-black uppercase text-black text-[11px]">
-                                    <th className="p-1.5 text-left w-1/4 border-r border-black">AREA</th>
-                                    <th className="p-1.5 text-left w-3/8 border-r border-black">WHAT IS GOING WELL</th>
+                                  <tr className="bg-gray-100 border-b font-black uppercase text-black text-[11px]" style={{ borderColor: reportColor }}>
+                                    <th className="p-1.5 text-left w-1/4 border-r" style={{ borderColor: reportColor }}>AREA</th>
+                                    <th className="p-1.5 text-left w-3/8 border-r" style={{ borderColor: reportColor }}>WHAT IS GOING WELL</th>
                                     <th className="p-1.5 text-left w-3/8">NEXT FOCUS</th>
                                   </tr>
                                 </thead>
@@ -809,9 +843,9 @@ const TermReportCard = () => {
                                     { area: 'Physical', goingWell: 'Fine-motor control, organised play and safety.', nextFocus: 'Maintain regular pencil, crayon and scissors activities.' },
                                     { area: 'Social / Emotional', goingWell: 'Self-control, confidence and participation.', nextFocus: 'Continue positive reinforcement and independence.' }
                                   ]).map((row, rIdx) => (
-                                    <tr key={rIdx} className="border-b border-black last:border-b-0 font-medium text-black">
-                                      <td className="p-1.5 border-r border-black font-black">{row.area}</td>
-                                      <td className="p-1.5 border-r border-black">{row.goingWell}</td>
+                                    <tr key={rIdx} className="border-b last:border-b-0 font-medium text-black" style={{ borderColor: reportColor }}>
+                                      <td className="p-1.5 border-r font-black" style={{ borderColor: reportColor }}>{row.area}</td>
+                                      <td className="p-1.5 border-r" style={{ borderColor: reportColor }}>{row.goingWell}</td>
                                       <td className="p-1.5">{row.nextFocus}</td>
                                     </tr>
                                   ))}
@@ -822,7 +856,7 @@ const TermReportCard = () => {
                             {/* TEACHER'S OVERALL COMMENT */}
                             <div className="space-y-1">
                               <p className="text-xs font-black uppercase text-black">TEACHER'S OVERALL COMMENT</p>
-                              <div className="border-2 border-black p-3 text-xs italic font-medium leading-relaxed bg-gray-50 text-black">
+                              <div className="border-2 p-3 text-xs italic font-medium leading-relaxed bg-gray-50 text-black" style={{ borderColor: reportColor }}>
                                 "{data.developmentPlan?.teacherComment || 'The student is an energetic and engaged learner who has made clear progress during the term. She demonstrates strong performance in areas of interest and is developing confidence across literacy, numeracy and classroom activities.'}"
                               </div>
                             </div>
@@ -830,14 +864,14 @@ const TermReportCard = () => {
                             {/* SUBJECT / DEVELOPMENT COMMENTS */}
                             <div className="space-y-1">
                               <p className="text-xs font-black uppercase text-black">SUBJECT / DEVELOPMENT COMMENTS</p>
-                              <table className="w-full border-2 border-black border-collapse text-xs">
+                              <table className="w-full border-2 border-collapse text-xs" style={{ borderColor: reportColor }}>
                                 <tbody>
-                                  <tr className="border-b border-black">
-                                    <td className="p-2 w-1/4 font-black border-r border-black bg-gray-100 uppercase text-black">LITERACY</td>
+                                  <tr className="border-b" style={{ borderColor: reportColor }}>
+                                    <td className="p-2 w-1/4 font-black border-r bg-gray-100 uppercase text-black" style={{ borderColor: reportColor }}>LITERACY</td>
                                     <td className="p-2 italic text-black">{data.developmentPlan?.literacyComment || 'Recognises letter sounds confidently and is developing ability to use complete sentences and appropriate vocabulary.'}</td>
                                   </tr>
                                   <tr>
-                                    <td className="p-2 w-1/4 font-black border-r border-black bg-gray-100 uppercase text-black">NUMERACY</td>
+                                    <td className="p-2 w-1/4 font-black border-r bg-gray-100 uppercase text-black" style={{ borderColor: reportColor }}>NUMERACY</td>
                                     <td className="p-2 italic text-black">{data.developmentPlan?.numeracyComment || 'Demonstrates strong understanding of basic numeracy concepts and applies counting and number skills confidently.'}</td>
                                   </tr>
                                 </tbody>
@@ -847,16 +881,16 @@ const TermReportCard = () => {
                             {/* RECOMMENDED NEXT STEPS */}
                             <div className="space-y-1">
                               <p className="text-xs font-black uppercase text-black">RECOMMENDED NEXT STEPS</p>
-                              <table className="w-full border-2 border-black border-collapse text-xs">
+                              <table className="w-full border-2 border-collapse text-xs" style={{ borderColor: reportColor }}>
                                 <thead>
-                                  <tr className="bg-gray-100 border-b border-black font-black uppercase text-black text-[11px]">
-                                    <th className="p-2 text-left w-1/2 border-r border-black">At School</th>
+                                  <tr className="bg-gray-100 border-b font-black uppercase text-black text-[11px]" style={{ borderColor: reportColor }}>
+                                    <th className="p-2 text-left w-1/2 border-r" style={{ borderColor: reportColor }}>At School</th>
                                     <th className="p-2 text-left w-1/2">At Home</th>
                                   </tr>
                                 </thead>
                                 <tbody>
                                   <tr>
-                                    <td className="p-2 border-r border-black text-black">{data.developmentPlan?.atSchoolNextStep || 'Continue guided literacy and numeracy practice; reinforce independent classroom routines.'}</td>
+                                    <td className="p-2 border-r text-black" style={{ borderColor: reportColor }}>{data.developmentPlan?.atSchoolNextStep || 'Continue guided literacy and numeracy practice; reinforce independent classroom routines.'}</td>
                                     <td className="p-2 text-black">{data.developmentPlan?.atHomeNextStep || 'Read together, practise sounds and counting, and use everyday objects for sorting and number games.'}</td>
                                   </tr>
                                 </tbody>
@@ -866,7 +900,7 @@ const TermReportCard = () => {
                             {/* HEAD TEACHER'S COMMENT */}
                             <div className="space-y-1">
                               <p className="text-xs font-black uppercase text-black">HEAD TEACHER'S COMMENT</p>
-                              <div className="border-2 border-black p-3 text-xs italic font-medium leading-relaxed bg-gray-50 text-black">
+                              <div className="border-2 p-3 text-xs italic font-medium leading-relaxed bg-gray-50 text-black" style={{ borderColor: reportColor }}>
                                 "{data.developmentPlan?.headTeacherComment || 'Has shown encouraging progress this term. Should continue to practise consistently and maintain a positive attitude toward learning.'}"
                               </div>
                             </div>
@@ -875,7 +909,7 @@ const TermReportCard = () => {
                             <div className="grid grid-cols-3 gap-6 pt-6 text-center text-xs font-black uppercase text-black">
                               <div className="space-y-2">
                                 <p>CLASS TEACHER</p>
-                                <div className="border-b-2 border-black h-8 flex items-center justify-center">
+                                <div className="border-b-2 h-8 flex items-center justify-center" style={{ borderColor: reportColor }}>
                                   {data.student?.formMasterSignatureUrl && (
                                     <img src={data.student.formMasterSignatureUrl.startsWith('data:') || data.student.formMasterSignatureUrl.startsWith('http') ? data.student.formMasterSignatureUrl : `${API_BASE_URL}${data.student.formMasterSignatureUrl}`} alt="Teacher Signature" className="h-full w-auto mix-blend-multiply" />
                                   )}
@@ -884,7 +918,7 @@ const TermReportCard = () => {
                               </div>
                               <div className="space-y-2">
                                 <p>HEAD TEACHER</p>
-                                <div className="border-b-2 border-black h-8 flex items-center justify-center">
+                                <div className="border-b-2 h-8 flex items-center justify-center" style={{ borderColor: reportColor }}>
                                   {data.term?.principalSignatureUrl && (
                                     <img src={data.term.principalSignatureUrl.startsWith('data:') || data.term.principalSignatureUrl.startsWith('http') ? data.term.principalSignatureUrl : `${API_BASE_URL}${data.term.principalSignatureUrl}`} alt="Principal Signature" className="h-full w-auto mix-blend-multiply" />
                                   )}
@@ -893,7 +927,7 @@ const TermReportCard = () => {
                               </div>
                               <div className="space-y-2">
                                 <p>PARENT / GUARDIAN</p>
-                                <div className="border-b-2 border-black h-8" />
+                                <div className="border-b-2 h-8" style={{ borderColor: reportColor }} />
                                 <p className="text-[10px] font-normal">Date: ______________</p>
                               </div>
                             </div>
@@ -915,47 +949,36 @@ const TermReportCard = () => {
                     return (
                       <div className="space-y-6">
                       {/* PAGE 1 */}
-                      <div className="bg-white border-4 border-black p-6 space-y-4 print:p-4 print:space-y-3">
-                        {/* Header */}
-                        <div className="text-center space-y-1">
-                          <h1 className="text-2xl font-black uppercase tracking-wider text-black">
-                            {schoolSettings?.schoolName || 'AL-BAYYINAH BASIC / TAHFEEDH SCHOOL'}
-                          </h1>
-                          <p className="text-xs font-bold text-gray-700">
-                            {schoolSettings?.address || 'Kano, Nigeria'} {schoolSettings?.phone ? `• ${schoolSettings.phone}` : ''} {schoolSettings?.email ? `• ${schoolSettings.email}` : ''}
-                          </p>
-                          <h2 className="text-lg font-black uppercase tracking-wider border-y-2 border-black py-1 mt-2 text-black">
-                            EARLY YEARS PROGRESS REPORT
-                          </h2>
-                        </div>
+                      <div className="bg-white border-4 p-6 space-y-4 print:p-4 print:space-y-3" style={{ borderColor: reportColor }}>
+                        {renderEarlyYearsHeader()}
 
                         {/* Student Details Table */}
-                        <table className="w-full border-2 border-black border-collapse text-xs font-bold uppercase">
+                        <table className="w-full border-2 border-collapse text-xs font-bold uppercase" style={{ borderColor: reportColor }}>
                           <tbody>
-                            <tr className="border-b border-black">
-                              <td className="border-r border-black p-1.5 w-[15%] bg-gray-100 font-black">STUDENT</td>
-                              <td className="border-r border-black p-1.5 w-[45%] font-black text-black">{getStudentDisplayName(data.student)}</td>
-                              <td className="border-r border-black p-1.5 w-[15%] bg-gray-100 font-black">CLASS</td>
+                            <tr className="border-b" style={{ borderColor: reportColor }}>
+                              <td className="border-r p-1.5 w-[15%] bg-gray-100 font-black" style={{ borderColor: reportColor }}>STUDENT</td>
+                              <td className="border-r p-1.5 w-[45%] font-black text-black" style={{ borderColor: reportColor }}>{getStudentDisplayName(data.student)}</td>
+                              <td className="border-r p-1.5 w-[15%] bg-gray-100 font-black" style={{ borderColor: reportColor }}>CLASS</td>
                               <td className="p-1.5 w-[25%] font-black text-black">{data.student?.class}</td>
                             </tr>
-                            <tr className="border-b border-black">
-                              <td className="border-r border-black p-1.5 bg-gray-100 font-black">DATE OF BIRTH</td>
-                              <td className="border-r border-black p-1.5 font-bold">{formatDateVerbose(data.student?.dateOfBirth)}</td>
-                              <td className="border-r border-black p-1.5 bg-gray-100 font-black">SESSION</td>
+                            <tr className="border-b" style={{ borderColor: reportColor }}>
+                              <td className="border-r p-1.5 bg-gray-100 font-black" style={{ borderColor: reportColor }}>DATE OF BIRTH</td>
+                              <td className="border-r p-1.5 font-bold" style={{ borderColor: reportColor }}>{formatDateVerbose(data.student?.dateOfBirth)}</td>
+                              <td className="border-r p-1.5 bg-gray-100 font-black" style={{ borderColor: reportColor }}>SESSION</td>
                               <td className="p-1.5 font-bold">{data.term?.session}</td>
                             </tr>
                             <tr>
-                              <td className="border-r border-black p-1.5 bg-gray-100 font-black">TERM</td>
-                              <td className="border-r border-black p-1.5 font-bold">{data.term?.name}</td>
-                              <td className="border-r border-black p-1.5 bg-gray-100 font-black">REPORT STATUS</td>
-                              <td className="p-1.5 font-black text-emerald-800">Published</td>
+                              <td className="border-r p-1.5 bg-gray-100 font-black" style={{ borderColor: reportColor }}>TERM</td>
+                              <td className="border-r p-1.5 font-bold" style={{ borderColor: reportColor }}>{data.term?.name}</td>
+                              <td className="border-r p-1.5 bg-gray-100 font-black" style={{ borderColor: reportColor }}>REPORT STATUS</td>
+                              <td className="p-1.5 font-black" style={{ color: reportColor }}>Published</td>
                             </tr>
                           </tbody>
                         </table>
 
                         {/* Attendance Summary */}
-                        <div className="border-2 border-black">
-                          <div className="grid grid-cols-4 divide-x-2 divide-black text-center p-2">
+                        <div className="border-2" style={{ borderColor: reportColor }}>
+                          <div className="grid grid-cols-4 divide-x-2 text-center p-2" style={{ borderColor: reportColor }}>
                             <div>
                               <div className="text-xl font-black text-black">{data.attendance ? (data.attendance.present ?? 0) : 0}</div>
                               <div className="text-[10px] font-black uppercase text-gray-700">DAYS PRESENT</div>
@@ -981,21 +1004,21 @@ const TermReportCard = () => {
                         {/* Assessment Key Banner */}
                         <div>
                           <p className="text-xs font-black uppercase mb-1 text-black">ASSESSMENT KEY</p>
-                          <div className="grid grid-cols-4 border-2 border-black divide-x-2 divide-black bg-gray-50 text-center p-2 text-xs">
+                          <div className="grid grid-cols-4 border-2 divide-x-2 bg-gray-50 text-center p-2 text-xs" style={{ borderColor: reportColor }}>
                             <div>
-                              <span className="font-black text-sm block text-black">A</span>
+                              <span className="font-black text-sm block" style={{ color: reportColor }}>A</span>
                               <span className="text-[10px] font-bold text-gray-700">Excellent</span>
                             </div>
                             <div>
-                              <span className="font-black text-sm block text-black">P</span>
+                              <span className="font-black text-sm block" style={{ color: reportColor }}>P</span>
                               <span className="text-[10px] font-bold text-gray-700">Perfected</span>
                             </div>
                             <div>
-                              <span className="font-black text-sm block text-black">W</span>
+                              <span className="font-black text-sm block" style={{ color: reportColor }}>W</span>
                               <span className="text-[10px] font-bold text-gray-700">Working on It</span>
                             </div>
                             <div>
-                              <span className="font-black text-sm block text-black">NA</span>
+                              <span className="font-black text-sm block text-gray-500">NA</span>
                               <span className="text-[10px] font-bold text-gray-700">Not Applicable</span>
                             </div>
                           </div>
@@ -1003,25 +1026,25 @@ const TermReportCard = () => {
 
                         {/* Page 1 Domains (01 & 02) */}
                         {(data.earlyYearsDomains || []).filter(d => (d.name || '').startsWith('01') || (d.name || '').startsWith('02')).map((domain, dIdx) => (
-                          <div key={dIdx} className="border-2 border-black overflow-hidden">
-                            <div className="bg-gray-200 px-3 py-1 font-black text-xs uppercase border-b-2 border-black text-black">
+                          <div key={dIdx} className="border-2 overflow-hidden" style={{ borderColor: reportColor }}>
+                            <div className="text-white px-3 py-1 font-black text-xs uppercase border-b-2 text-white" style={{ backgroundColor: reportColor, borderColor: reportColor }}>
                               {domain.name}
                             </div>
                             <table className="w-full border-collapse text-xs">
                               <thead>
-                                <tr className="bg-gray-100 border-b border-black text-[11px] font-black uppercase text-black">
-                                  <th className="p-1.5 text-left border-r border-black">Learning outcome / skill</th>
-                                  <th className="p-1.5 text-center w-20 border-r border-black">Current</th>
-                                  <th className="p-1.5 text-center w-20 border-r border-black">Previous</th>
+                                <tr className="bg-gray-100 border-b text-[11px] font-black uppercase text-black" style={{ borderColor: reportColor }}>
+                                  <th className="p-1.5 text-left border-r" style={{ borderColor: reportColor }}>Learning outcome / skill</th>
+                                  <th className="p-1.5 text-center w-20 border-r" style={{ borderColor: reportColor }}>Current</th>
+                                  <th className="p-1.5 text-center w-20 border-r" style={{ borderColor: reportColor }}>Previous</th>
                                   <th className="p-1.5 text-center w-28">Progress</th>
                                 </tr>
                               </thead>
                               <tbody>
                                 {(domain.skills || []).map((skill, sIdx) => (
                                   <tr key={sIdx} className="border-b border-gray-200 last:border-b-0 h-6 font-medium text-black">
-                                    <td className="p-1.5 border-r border-black font-bold">{skill.name}</td>
-                                    <td className="p-1.5 text-center font-black border-r border-black">{skill.current || 'A'}</td>
-                                    <td className="p-1.5 text-center border-r border-black">{skill.previous || 'A'}</td>
+                                    <td className="p-1.5 border-r border-gray-300 font-bold">{skill.name}</td>
+                                    <td className="p-1.5 text-center font-black border-r border-gray-300" style={{ color: reportColor }}>{skill.current || 'A'}</td>
+                                    <td className="p-1.5 text-center border-r border-gray-300">{skill.previous || 'A'}</td>
                                     <td className="p-1.5 text-center font-bold">{skill.progress || 'Maintained'}</td>
                                   </tr>
                                 ))}
@@ -1037,38 +1060,33 @@ const TermReportCard = () => {
                       </div>
 
                       {/* PAGE 2 */}
-                      <div className="bg-white border-4 border-black p-6 space-y-4 print:p-4 print:space-y-3 print:break-before-page">
-                        <div className="text-center border-b-2 border-black pb-2">
-                          <h2 className="text-lg font-black uppercase tracking-wider text-black">EARLY YEARS PROGRESS REPORT</h2>
-                          <p className="text-xs font-bold text-gray-700">
-                            Student: {getStudentDisplayName(data.student)} &bull; Class: {data.student?.class} &bull; Term: {data.term?.name}
-                          </p>
-                        </div>
+                      <div className="bg-white border-4 p-6 space-y-4 print:p-4 print:space-y-3 print:break-before-page" style={{ borderColor: reportColor }}>
+                        {renderEarlyYearsHeader()}
 
                         {/* Page 2 Domains (03, 04, 05+) */}
                         {((data.earlyYearsDomains || []).filter(d => !(d.name || '').startsWith('01') && !(d.name || '').startsWith('02')).length > 0
                           ? (data.earlyYearsDomains || []).filter(d => !(d.name || '').startsWith('01') && !(d.name || '').startsWith('02'))
                           : (data.earlyYearsDomains || [])
                         ).map((domain, dIdx) => (
-                          <div key={dIdx} className="border-2 border-black overflow-hidden">
-                            <div className="bg-gray-200 px-3 py-1 font-black text-xs uppercase border-b-2 border-black text-black">
+                          <div key={dIdx} className="border-2 overflow-hidden" style={{ borderColor: reportColor }}>
+                            <div className="text-white px-3 py-1 font-black text-xs uppercase border-b-2 text-white" style={{ backgroundColor: reportColor, borderColor: reportColor }}>
                               {domain.name}
                             </div>
                             <table className="w-full border-collapse text-xs">
                               <thead>
-                                <tr className="bg-gray-100 border-b border-black text-[11px] font-black uppercase text-black">
-                                  <th className="p-1.5 text-left border-r border-black">Learning outcome / skill</th>
-                                  <th className="p-1.5 text-center w-20 border-r border-black">Current</th>
-                                  <th className="p-1.5 text-center w-20 border-r border-black">Previous</th>
+                                <tr className="bg-gray-100 border-b text-[11px] font-black uppercase text-black" style={{ borderColor: reportColor }}>
+                                  <th className="p-1.5 text-left border-r" style={{ borderColor: reportColor }}>Learning outcome / skill</th>
+                                  <th className="p-1.5 text-center w-20 border-r" style={{ borderColor: reportColor }}>Current</th>
+                                  <th className="p-1.5 text-center w-20 border-r" style={{ borderColor: reportColor }}>Previous</th>
                                   <th className="p-1.5 text-center w-28">Progress</th>
                                 </tr>
                               </thead>
                               <tbody>
                                 {(domain.skills || []).map((skill, sIdx) => (
                                   <tr key={sIdx} className="border-b border-gray-200 last:border-b-0 h-6 font-medium text-black">
-                                    <td className="p-1.5 border-r border-black font-bold">{skill.name}</td>
-                                    <td className="p-1.5 text-center font-black border-r border-black">{skill.current || 'A'}</td>
-                                    <td className="p-1.5 text-center border-r border-black">{skill.previous || 'A'}</td>
+                                    <td className="p-1.5 border-r border-gray-300 font-bold">{skill.name}</td>
+                                    <td className="p-1.5 text-center font-black border-r border-gray-300" style={{ color: reportColor }}>{skill.current || 'A'}</td>
+                                    <td className="p-1.5 text-center border-r border-gray-300">{skill.previous || 'A'}</td>
                                     <td className="p-1.5 text-center font-bold">{skill.progress || 'Maintained'}</td>
                                   </tr>
                                 ))}
@@ -1114,18 +1132,13 @@ const TermReportCard = () => {
                       </div>
 
                       {/* PAGE 3 */}
-                      <div className="bg-white border-4 border-black p-6 space-y-4 print:p-4 print:space-y-3 print:break-before-page">
-                        <div className="text-center border-b-2 border-black pb-2">
-                          <h2 className="text-lg font-black uppercase tracking-wider text-black">COMMENTS & DEVELOPMENT PLAN</h2>
-                          <p className="text-xs font-bold text-gray-700">
-                            Student: {getStudentDisplayName(data.student)} &bull; Session: {data.term?.session} &bull; Term: {data.term?.name}
-                          </p>
-                        </div>
+                      <div className="bg-white border-4 p-6 space-y-4 print:p-4 print:space-y-3 print:break-before-page" style={{ borderColor: reportColor }}>
+                        {renderEarlyYearsHeader()}
 
                         {/* TEACHER'S OVERALL COMMENT */}
                         <div className="space-y-1">
                           <p className="text-xs font-black uppercase text-black">TEACHER'S OVERALL COMMENT</p>
-                          <div className="border-2 border-black p-3 text-xs italic font-medium leading-relaxed bg-gray-50 text-black">
+                          <div className="border-2 p-3 text-xs italic font-medium leading-relaxed bg-gray-50 text-black" style={{ borderColor: reportColor }}>
                             "{data.developmentPlan?.teacherComment || 'The student is an energetic and engaged learner who has made clear progress during the term. She demonstrates strong performance in areas of interest and is developing confidence across literacy, numeracy and classroom activities.'}"
                           </div>
                         </div>
@@ -1133,14 +1146,14 @@ const TermReportCard = () => {
                         {/* SUBJECT / DEVELOPMENT COMMENTS */}
                         <div className="space-y-1">
                           <p className="text-xs font-black uppercase text-black">SUBJECT / DEVELOPMENT COMMENTS</p>
-                          <table className="w-full border-2 border-black border-collapse text-xs">
+                          <table className="w-full border-2 border-collapse text-xs" style={{ borderColor: reportColor }}>
                             <tbody>
-                              <tr className="border-b border-black">
-                                <td className="p-2 w-1/4 font-black border-r border-black bg-gray-100 uppercase text-black">LITERACY</td>
+                              <tr className="border-b" style={{ borderColor: reportColor }}>
+                                <td className="p-2 w-1/4 font-black border-r bg-gray-100 uppercase text-black" style={{ borderColor: reportColor }}>LITERACY</td>
                                 <td className="p-2 italic text-black">{data.developmentPlan?.literacyComment || 'Recognises letter sounds confidently and is developing ability to use complete sentences and appropriate vocabulary.'}</td>
                               </tr>
                               <tr>
-                                <td className="p-2 w-1/4 font-black border-r border-black bg-gray-100 uppercase text-black">NUMERACY</td>
+                                <td className="p-2 w-1/4 font-black border-r bg-gray-100 uppercase text-black" style={{ borderColor: reportColor }}>NUMERACY</td>
                                 <td className="p-2 italic text-black">{data.developmentPlan?.numeracyComment || 'Demonstrates strong understanding of basic numeracy concepts and applies counting and number skills confidently.'}</td>
                               </tr>
                             </tbody>
@@ -1150,16 +1163,16 @@ const TermReportCard = () => {
                         {/* RECOMMENDED NEXT STEPS */}
                         <div className="space-y-1">
                           <p className="text-xs font-black uppercase text-black">RECOMMENDED NEXT STEPS</p>
-                          <table className="w-full border-2 border-black border-collapse text-xs">
+                          <table className="w-full border-2 border-collapse text-xs" style={{ borderColor: reportColor }}>
                             <thead>
-                              <tr className="bg-gray-100 border-b border-black font-black uppercase text-black text-[11px]">
-                                <th className="p-2 text-left w-1/2 border-r border-black">At School</th>
+                              <tr className="bg-gray-100 border-b font-black uppercase text-black text-[11px]" style={{ borderColor: reportColor }}>
+                                <th className="p-2 text-left w-1/2 border-r" style={{ borderColor: reportColor }}>At School</th>
                                 <th className="p-2 text-left w-1/2">At Home</th>
                               </tr>
                             </thead>
                             <tbody>
                               <tr>
-                                <td className="p-2 border-r border-black text-black">{data.developmentPlan?.atSchoolNextStep || 'Continue guided literacy and numeracy practice; reinforce independent classroom routines.'}</td>
+                                <td className="p-2 border-r text-black" style={{ borderColor: reportColor }}>{data.developmentPlan?.atSchoolNextStep || 'Continue guided literacy and numeracy practice; reinforce independent classroom routines.'}</td>
                                 <td className="p-2 text-black">{data.developmentPlan?.atHomeNextStep || 'Read together, practise sounds and counting, and use everyday objects for sorting and number games.'}</td>
                               </tr>
                             </tbody>
@@ -1169,7 +1182,7 @@ const TermReportCard = () => {
                         {/* HEAD TEACHER'S COMMENT */}
                         <div className="space-y-1">
                           <p className="text-xs font-black uppercase text-black">HEAD TEACHER'S COMMENT</p>
-                          <div className="border-2 border-black p-3 text-xs italic font-medium leading-relaxed bg-gray-50 text-black">
+                          <div className="border-2 p-3 text-xs italic font-medium leading-relaxed bg-gray-50 text-black" style={{ borderColor: reportColor }}>
                             "{data.developmentPlan?.headTeacherComment || 'Has shown encouraging progress this term. Should continue to practise consistently and maintain a positive attitude toward learning.'}"
                           </div>
                         </div>
@@ -1178,7 +1191,7 @@ const TermReportCard = () => {
                         <div className="grid grid-cols-3 gap-6 pt-6 text-center text-xs font-black uppercase text-black">
                           <div className="space-y-2">
                             <p>CLASS TEACHER</p>
-                            <div className="border-b-2 border-black h-8 flex items-center justify-center">
+                            <div className="border-b-2 h-8 flex items-center justify-center" style={{ borderColor: reportColor }}>
                               {data.student?.formMasterSignatureUrl && (
                                 <img src={data.student.formMasterSignatureUrl.startsWith('data:') || data.student.formMasterSignatureUrl.startsWith('http') ? data.student.formMasterSignatureUrl : `${API_BASE_URL}${data.student.formMasterSignatureUrl}`} alt="Teacher Signature" className="h-full w-auto mix-blend-multiply" />
                               )}
@@ -1187,7 +1200,7 @@ const TermReportCard = () => {
                           </div>
                           <div className="space-y-2">
                             <p>HEAD TEACHER</p>
-                            <div className="border-b-2 border-black h-8 flex items-center justify-center">
+                            <div className="border-b-2 h-8 flex items-center justify-center" style={{ borderColor: reportColor }}>
                               {data.term?.principalSignatureUrl && (
                                 <img src={data.term.principalSignatureUrl.startsWith('data:') || data.term.principalSignatureUrl.startsWith('http') ? data.term.principalSignatureUrl : `${API_BASE_URL}${data.term.principalSignatureUrl}`} alt="Principal Signature" className="h-full w-auto mix-blend-multiply" />
                               )}
@@ -1196,7 +1209,7 @@ const TermReportCard = () => {
                           </div>
                           <div className="space-y-2">
                             <p>PARENT / GUARDIAN</p>
-                            <div className="border-b-2 border-black h-8" />
+                            <div className="border-b-2 h-8" style={{ borderColor: reportColor }} />
                             <p className="text-[10px] font-normal">Date: ______________</p>
                           </div>
                         </div>
