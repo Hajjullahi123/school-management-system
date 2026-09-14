@@ -13,6 +13,21 @@ const { getStudentFeeSummary } = require('../utils/feeCalculations');
 const { generateAINarrative } = require('../utils/aiNarrative');
 const { pdfService } = require('../services/pdfService');
 
+const formatEarlyYearsCode = (scoreOrRating) => {
+  if (scoreOrRating === null || scoreOrRating === undefined) return '—';
+  if (typeof scoreOrRating === 'string') {
+    const s = scoreOrRating.trim().toUpperCase();
+    if (['A', 'P', 'W', 'NA'].includes(s)) return s;
+  }
+  const num = parseInt(scoreOrRating);
+  if (isNaN(num)) return '—';
+  if (num >= 5) return 'A';
+  if (num === 4) return 'P';
+  if (num === 3 || num === 2) return 'W';
+  if (num <= 1) return 'NA';
+  return 'A';
+};
+
 // Generate PDF from HTML payload using warm Puppeteer Pool and multi-tiered Cache
 router.post('/generate-pdf', async (req, res) => {
   try {
@@ -1956,6 +1971,77 @@ router.get('/cumulative/:studentId/:sessionId', authenticate, async (req, res) =
       status: rawFeeSummary.currentBalance <= 0 ? 'Cleared' : 'Owing'
     };
 
+    // Early Years Domains & Skills with ratings per term
+    const rawEarlyYearsDomains = await prisma.earlyYearsDomain.findMany({
+      where: { schoolId: req.schoolId, isActive: true },
+      include: {
+        skills: {
+          where: { isActive: true },
+          orderBy: { sortOrder: 'asc' }
+        }
+      },
+      orderBy: { sortOrder: 'asc' }
+    });
+
+    const studentReportCards = await prisma.studentReportCard.findMany({
+      where: {
+        studentId: parseInt(studentId),
+        schoolId: req.schoolId,
+        term: { academicSessionId: parseInt(sessionId) }
+      }
+    });
+
+    const earlyYearsDomains = rawEarlyYearsDomains.map(d => ({
+      id: d.id,
+      name: d.name,
+      code: d.code,
+      skills: (d.skills || []).map(s => {
+        const termCodes = session.terms.map(t => {
+          const rc = studentReportCards.find(card => card.termId === t.id);
+          if (!rc || !rc.psychomotorRatings) return '—';
+          try {
+            const parsed = JSON.parse(rc.psychomotorRatings);
+            const list = Array.isArray(parsed) ? parsed : (Array.isArray(parsed.ratings) ? parsed.ratings : []);
+            const ratingObj = list.find(r => r.skillId === s.id || r.domainId === s.id || r.name === s.name || r.name === `${d.name} - ${s.name}`);
+            return ratingObj && ratingObj.score !== null && ratingObj.score !== undefined ? formatEarlyYearsCode(ratingObj.score) : '—';
+          } catch (e) {
+            return '—';
+          }
+        });
+        const annualRating = [...termCodes].reverse().find(c => c !== '—') || '—';
+        return {
+          id: s.id,
+          name: s.name,
+          term1: termCodes[0] || '—',
+          term2: termCodes[1] || '—',
+          term3: termCodes[2] || '—',
+          annual: annualRating
+        };
+      })
+    }));
+
+    let earlyYearsComments = { literacyComment: '', numeracyComment: '', overallRemark: '', recommendedNextSteps: '' };
+    const lastRcWithDevPlan = [...studentReportCards].reverse().find(rc => {
+      if (!rc.psychomotorRatings) return false;
+      try {
+        const parsed = JSON.parse(rc.psychomotorRatings);
+        return parsed && typeof parsed === 'object' && parsed.developmentPlan;
+      } catch (e) { return false; }
+    });
+    if (lastRcWithDevPlan) {
+      try {
+        const parsed = JSON.parse(lastRcWithDevPlan.psychomotorRatings);
+        if (parsed.developmentPlan) {
+          earlyYearsComments = {
+            literacyComment: parsed.developmentPlan.literacyComment || '',
+            numeracyComment: parsed.developmentPlan.numeracyComment || '',
+            overallRemark: parsed.developmentPlan.overallRemark || '',
+            recommendedNextSteps: parsed.developmentPlan.recommendedNextSteps || ''
+          };
+        }
+      } catch (e) {}
+    }
+
     // Check if the student has ANY results across all terms
     const hasAnyResults = cumulativeSubjects.some(s => s.count > 0);
 
@@ -1996,6 +2082,8 @@ router.get('/cumulative/:studentId/:sessionId', authenticate, async (req, res) =
       },
       terms: termsData,
       subjects: cumulativeSubjects,
+      earlyYearsDomains,
+      earlyYearsComments,
       overallAverage: hasAnyResults ? sessionAverage : null,
       overallGrade: hasAnyResults ? getGrade(sessionAverage, schoolSettings.gradingSystem) : 'N/A',
       overallRemark: hasAnyResults ? getRemark(getGrade(sessionAverage, schoolSettings.gradingSystem), schoolSettings.gradingSystem) : 'No results available',
@@ -2104,6 +2192,24 @@ router.get('/bulk-cumulative/:classId/:sessionId', authenticate, authorize(['adm
       include: { subject: true }
     });
 
+    const rawEarlyYearsDomains = await prisma.earlyYearsDomain.findMany({
+      where: { schoolId: req.schoolId, isActive: true },
+      include: {
+        skills: {
+          where: { isActive: true },
+          orderBy: { sortOrder: 'asc' }
+        }
+      },
+      orderBy: { sortOrder: 'asc' }
+    });
+
+    const allStudentReportCards = await prisma.studentReportCard.findMany({
+      where: {
+        schoolId: req.schoolId,
+        term: { academicSessionId: parseInt(sessionId) }
+      }
+    });
+
     const reports = [];
 
     for (const student of students) {
@@ -2175,6 +2281,59 @@ router.get('/bulk-cumulative/:classId/:sessionId', authenticate, authorize(['adm
         };
       }).sort((a, b) => a.name.localeCompare(b.name));
 
+      // Early Years domains for this student
+      const studentCards = allStudentReportCards.filter(card => card.studentId === student.id);
+      const earlyYearsDomains = rawEarlyYearsDomains.map(d => ({
+        id: d.id,
+        name: d.name,
+        code: d.code,
+        skills: (d.skills || []).map(s => {
+          const termCodes = session.terms.map(t => {
+            const rc = studentCards.find(card => card.termId === t.id);
+            if (!rc || !rc.psychomotorRatings) return '—';
+            try {
+              const parsed = JSON.parse(rc.psychomotorRatings);
+              const list = Array.isArray(parsed) ? parsed : (Array.isArray(parsed.ratings) ? parsed.ratings : []);
+              const ratingObj = list.find(r => r.skillId === s.id || r.domainId === s.id || r.name === s.name || r.name === `${d.name} - ${s.name}`);
+              return ratingObj && ratingObj.score !== null && ratingObj.score !== undefined ? formatEarlyYearsCode(ratingObj.score) : '—';
+            } catch (e) {
+              return '—';
+            }
+          });
+          const annualRating = [...termCodes].reverse().find(c => c !== '—') || '—';
+          return {
+            id: s.id,
+            name: s.name,
+            term1: termCodes[0] || '—',
+            term2: termCodes[1] || '—',
+            term3: termCodes[2] || '—',
+            annual: annualRating
+          };
+        })
+      }));
+
+      let earlyYearsComments = { literacyComment: '', numeracyComment: '', overallRemark: '', recommendedNextSteps: '' };
+      const lastRcWithDevPlan = [...studentCards].reverse().find(rc => {
+        if (!rc.psychomotorRatings) return false;
+        try {
+          const parsed = JSON.parse(rc.psychomotorRatings);
+          return parsed && typeof parsed === 'object' && parsed.developmentPlan;
+        } catch (e) { return false; }
+      });
+      if (lastRcWithDevPlan) {
+        try {
+          const parsed = JSON.parse(lastRcWithDevPlan.psychomotorRatings);
+          if (parsed.developmentPlan) {
+            earlyYearsComments = {
+              literacyComment: parsed.developmentPlan.literacyComment || '',
+              numeracyComment: parsed.developmentPlan.numeracyComment || '',
+              overallRemark: parsed.developmentPlan.overallRemark || '',
+              recommendedNextSteps: parsed.developmentPlan.recommendedNextSteps || ''
+            };
+          }
+        } catch (e) {}
+      }
+
       reports.push({
         schoolSettings,
         student: {
@@ -2216,6 +2375,8 @@ router.get('/bulk-cumulative/:classId/:sessionId', authenticate, authorize(['adm
         session: { name: session.name, principalSignatureUrl: schoolSettings.principalSignatureUrl || null },
         terms: termsData,
         subjects: cumulativeSubjects,
+        earlyYearsDomains,
+        earlyYearsComments,
         overallAverage: hasAnyResults ? sessionAverage : null,
         overallGrade: hasAnyResults ? getGrade(sessionAverage, schoolSettings.gradingSystem) : 'N/A',
         overallRemark: hasAnyResults ? getRemark(getGrade(sessionAverage, schoolSettings.gradingSystem), schoolSettings.gradingSystem) : 'No results available',

@@ -316,36 +316,7 @@ const CumulativeReport = () => {
 
           {/* CUMULATIVE SCORE TABLE OR EARLY YEARS DEVELOPMENTAL SUMMARY */}
           {isEarlyYearsReport ? (
-            <div className="border-2 border-black rounded-sm overflow-hidden p-3 bg-white space-y-3">
-              <div className="bg-emerald-900 text-white font-black text-xs uppercase px-3 py-1.5 flex justify-between items-center rounded-sm">
-                <span>EARLY YEARS ANNUAL DEVELOPMENTAL SUMMARY</span>
-                <span className="text-[10px] text-emerald-200">Session {data.session?.name}</span>
-              </div>
-
-              {/* Attendance Summary */}
-              {data.attendanceSummary && (
-                <div className="grid grid-cols-4 border border-black text-center text-[10px] font-bold divide-x divide-black bg-gray-50">
-                  <div className="p-1">
-                    <span className="text-gray-500 block text-[8px] uppercase">Times School Opened</span>
-                    <span className="font-black text-sm">{data.attendanceSummary?.timesOpened ?? '-'}</span>
-                  </div>
-                  <div className="p-1">
-                    <span className="text-gray-500 block text-[8px] uppercase">Times Present</span>
-                    <span className="font-black text-sm text-emerald-800">{data.attendanceSummary?.timesPresent ?? '-'}</span>
-                  </div>
-                  <div className="p-1">
-                    <span className="text-gray-500 block text-[8px] uppercase">Times Absent</span>
-                    <span className="font-black text-sm text-red-600">{data.attendanceSummary?.timesAbsent ?? '-'}</span>
-                  </div>
-                  <div className="p-1">
-                    <span className="text-gray-500 block text-[8px] uppercase">Attendance Rate</span>
-                    <span className="font-black text-sm text-indigo-900">
-                      {data.attendanceSummary?.timesOpened ? `${Math.round((data.attendanceSummary.timesPresent / data.attendanceSummary.timesOpened) * 100)}%` : '-'}
-                    </span>
-                  </div>
-                </div>
-              )}
-
+            <div className="space-y-3">
               {/* RATING SCALE KEY */}
               <div className="border border-black p-2 bg-gray-50 rounded-sm">
                 <div className="text-[9px] font-black uppercase text-gray-700 mb-1">RATING SCALE LEGEND:</div>
@@ -357,18 +328,88 @@ const CumulativeReport = () => {
                 </div>
               </div>
 
-              {/* ANNUAL DEVELOPMENT REMARKS */}
-              <div className="border border-black p-3 bg-white rounded-sm space-y-2">
+              {/* EARLY YEARS DOMAINS & SKILLS TABLE */}
+              {data.earlyYearsDomains && data.earlyYearsDomains.length > 0 ? (
+                <div className="space-y-2">
+                  {data.earlyYearsDomains.map((domain, dIdx) => (
+                    <div key={domain.id || dIdx} className="border-2 border-black rounded-sm overflow-hidden bg-white">
+                      <div className="bg-emerald-900 text-white px-3 py-1 font-black text-[10px] uppercase flex justify-between items-center">
+                        <span>{domain.name}</span>
+                        <span className="text-[8px] font-bold text-emerald-200">Domain {dIdx + 1}</span>
+                      </div>
+                      <table className="w-full text-[9px] border-collapse font-bold uppercase text-center">
+                        <thead className="bg-gray-100 border-b border-black text-gray-800">
+                          <tr>
+                            <th className="p-1 text-left pl-3 w-[45%] border-r border-black">SKILL / LEARNING OUTCOME</th>
+                            <th className="p-1 w-[13%] border-r border-black">1ST TERM</th>
+                            <th className="p-1 w-[13%] border-r border-black">2ND TERM</th>
+                            <th className="p-1 w-[13%] border-r border-black">3RD TERM</th>
+                            <th className="p-1 w-[16%] bg-emerald-800 text-white">ANNUAL</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200">
+                          {(domain.skills || []).map((skill, sIdx) => {
+                            const getBadgeClass = (val) => {
+                              if (val === 'A') return 'bg-emerald-100 text-emerald-900 border-emerald-300';
+                              if (val === 'P') return 'bg-blue-100 text-blue-900 border-blue-300';
+                              if (val === 'W') return 'bg-amber-100 text-amber-900 border-amber-300';
+                              return 'text-gray-500';
+                            };
+                            return (
+                              <tr key={skill.id || sIdx} className={`${sIdx % 2 === 1 ? 'bg-gray-50' : 'bg-white'} divide-x divide-gray-200 h-5`}>
+                                <td className="p-1 text-left pl-3 font-extrabold text-[9px] border-r border-black">{skill.name}</td>
+                                <td className="p-1 border-r border-black">{skill.term1 || '—'}</td>
+                                <td className="p-1 border-r border-black">{skill.term2 || '—'}</td>
+                                <td className="p-1 border-r border-black">{skill.term3 || '—'}</td>
+                                <td className="p-1 font-black bg-gray-50">
+                                  <span className={`px-1.5 py-0.5 rounded border text-[9px] font-black ${getBadgeClass(skill.annual)}`}>
+                                    {skill.annual || '—'}
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="border border-black p-3 bg-gray-50 rounded text-center text-xs font-bold text-gray-600 uppercase">
+                  Early Years Developmental Ratings Recorded in Term Reports
+                </div>
+              )}
+
+              {/* ANNUAL DEVELOPMENT REMARKS & SUBJECT COMMENTS */}
+              <div className="border-2 border-black p-3 bg-white rounded-sm space-y-2">
+                {data.earlyYearsComments?.literacyComment && (
+                  <div>
+                    <span className="text-[9px] font-black uppercase text-gray-700 block mb-0.5">LITERACY & LANGUAGE DEVELOPMENT COMMENT:</span>
+                    <p className="text-xs font-medium italic text-gray-900 bg-gray-50 p-2 border border-gray-200 rounded">
+                      {data.earlyYearsComments.literacyComment}
+                    </p>
+                  </div>
+                )}
+
+                {data.earlyYearsComments?.numeracyComment && (
+                  <div>
+                    <span className="text-[9px] font-black uppercase text-gray-700 block mb-0.5">NUMERACY & COGNITIVE DEVELOPMENT COMMENT:</span>
+                    <p className="text-xs font-medium italic text-gray-900 bg-gray-50 p-2 border border-gray-200 rounded">
+                      {data.earlyYearsComments.numeracyComment}
+                    </p>
+                  </div>
+                )}
+
                 <div>
-                  <span className="text-[9px] font-black uppercase text-gray-600 block mb-1">ANNUAL DEVELOPMENTAL PROGRESS REMARK:</span>
-                  <p className="text-xs font-medium italic text-gray-900 bg-gray-50 p-2 border border-gray-200 rounded min-h-[48px]">
+                  <span className="text-[9px] font-black uppercase text-gray-700 block mb-0.5">ANNUAL DEVELOPMENTAL PROGRESS REMARK:</span>
+                  <p className="text-xs font-medium italic text-gray-900 bg-gray-50 p-2 border border-gray-200 rounded min-h-[40px]">
                     {data.overallRemark || data.earlyYearsComments?.overallRemark || 'The child has demonstrated satisfactory holistic growth across cognitive, socio-emotional, physical, and creative developmental domains over the academic session.'}
                   </p>
                 </div>
 
                 {data.earlyYearsComments?.recommendedNextSteps && (
                   <div>
-                    <span className="text-[9px] font-black uppercase text-gray-600 block mb-1">RECOMMENDED NEXT STEPS & SUPPORT AT HOME:</span>
+                    <span className="text-[9px] font-black uppercase text-gray-700 block mb-0.5">RECOMMENDED NEXT STEPS & SUPPORT AT HOME:</span>
                     <p className="text-xs font-medium italic text-gray-900 bg-gray-50 p-2 border border-gray-200 rounded">
                       {data.earlyYearsComments.recommendedNextSteps}
                     </p>
