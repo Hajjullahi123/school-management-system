@@ -512,7 +512,7 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
       const currentTermIndex = allTermsInSession.findIndex(t => t.id === parseInt(termId));
       if (currentTermIndex > 0) {
         const prevTerm = allTermsInSession[currentTermIndex - 1];
-        const prevReportExtra = await prisma.reportExtra.findFirst({
+        const prevReportExtra = await prisma.studentReportCard.findFirst({
           where: {
             studentId: parseInt(studentId),
             academicSessionId: term.academicSessionId,
@@ -2650,7 +2650,7 @@ router.get('/progressive-enhanced/:studentId/:termId', authenticate, async (req,
       orderBy: { sortOrder: 'asc' }
     });
 
-    const reportExtra = await prisma.reportExtra.findFirst({
+    const reportExtra = await prisma.studentReportCard.findFirst({
       where: {
         studentId: parseInt(studentId),
         academicSessionId: term.academicSessionId,
@@ -2660,10 +2660,18 @@ router.get('/progressive-enhanced/:studentId/:termId', authenticate, async (req,
     });
 
     let psychomotorRatings = [];
+    let developmentPlan = null;
+    let progressAtAGlance = null;
     if (reportExtra && reportExtra.psychomotorRatings) {
       try {
         const parsed = JSON.parse(reportExtra.psychomotorRatings);
-        psychomotorRatings = Array.isArray(parsed) ? parsed : [];
+        if (Array.isArray(parsed)) {
+          psychomotorRatings = parsed;
+        } else if (parsed && typeof parsed === 'object') {
+          psychomotorRatings = Array.isArray(parsed.ratings) ? parsed.ratings : [];
+          developmentPlan = parsed.developmentPlan || null;
+          progressAtAGlance = parsed.progressAtAGlance || null;
+        }
       } catch (e) {
         psychomotorRatings = [];
       }
@@ -2673,6 +2681,8 @@ router.get('/progressive-enhanced/:studentId/:termId', authenticate, async (req,
       schoolSettings,
       earlyYearsDomains,
       psychomotorRatings,
+      developmentPlan,
+      progressAtAGlance,
       student: {
         id: student.id,
         name: (() => { const fName = student.user?.firstName || ''; const lName = student.user?.lastName || ''; const mName = student.middleName || ''; const legacyName = student.name || ''; if (fName || lName) return `${fName} ${lName} ${mName}`.replace(/\s+/g, ' ').trim(); return legacyName || mName || `Student (${student.admissionNumber || student.id})`; })(),
@@ -2824,7 +2834,7 @@ router.get('/bulk-progressive/:classId/:termId', authenticate, authorize(['admin
       orderBy: { sortOrder: 'asc' }
     });
 
-    const reportExtras = await prisma.reportExtra.findMany({
+    const reportExtras = await prisma.studentReportCard.findMany({
       where: {
         studentId: { in: allStudentsInClass.map(s => s.id) },
         academicSessionId: term.academicSessionId,
@@ -2952,10 +2962,18 @@ router.get('/bulk-progressive/:classId/:termId', authenticate, authorize(['admin
 
       const sReportExtra = reportExtras.find(re => re.studentId === student.id);
       let psychomotorRatings = [];
+      let developmentPlan = null;
+      let progressAtAGlance = null;
       if (sReportExtra && sReportExtra.psychomotorRatings) {
         try {
           const parsed = JSON.parse(sReportExtra.psychomotorRatings);
-          psychomotorRatings = Array.isArray(parsed) ? parsed : [];
+          if (Array.isArray(parsed)) {
+            psychomotorRatings = parsed;
+          } else if (parsed && typeof parsed === 'object') {
+            psychomotorRatings = Array.isArray(parsed.ratings) ? parsed.ratings : [];
+            developmentPlan = parsed.developmentPlan || null;
+            progressAtAGlance = parsed.progressAtAGlance || null;
+          }
         } catch (e) {
           psychomotorRatings = [];
         }
@@ -2965,6 +2983,8 @@ router.get('/bulk-progressive/:classId/:termId', authenticate, authorize(['admin
         schoolSettings,
         earlyYearsDomains,
         psychomotorRatings,
+        developmentPlan,
+        progressAtAGlance,
         student: {
           id: student.id,
           name: (() => { const fName = student.user?.firstName || ''; const lName = student.user?.lastName || ''; const mName = student.middleName || ''; const legacyName = student.name || ''; if (fName || lName) return `${fName} ${lName} ${mName}`.replace(/\s+/g, ' ').trim(); return legacyName || mName || `Student (${student.admissionNumber || student.id})`; })(),

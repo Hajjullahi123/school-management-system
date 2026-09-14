@@ -18,6 +18,14 @@ const MyClass = () => {
   // Grading State
   const [gradingStudent, setGradingStudent] = useState(null);
   const [remarks, setRemarks] = useState({ formMasterRemark: '', principalRemark: '' });
+  const [developmentPlan, setDevelopmentPlan] = useState({
+    teacherComment: '',
+    literacyComment: '',
+    numeracyComment: '',
+    atSchoolNextStep: '',
+    atHomeNextStep: '',
+    headTeacherComment: ''
+  });
   const [psychomotorRatings, setPsychomotorRatings] = useState([]);
   const [domains, setDomains] = useState([]);
   const [currentTerm, setCurrentTerm] = useState(null);
@@ -116,6 +124,25 @@ const MyClass = () => {
           principalRemark: data.principalRemark || ''
         });
         setPsychomotorRatings(Array.isArray(data.psychomotorRatings) ? data.psychomotorRatings : []);
+        if (data.developmentPlan) {
+          setDevelopmentPlan({
+            teacherComment: data.developmentPlan.teacherComment || data.formMasterRemark || '',
+            literacyComment: data.developmentPlan.literacyComment || '',
+            numeracyComment: data.developmentPlan.numeracyComment || '',
+            atSchoolNextStep: data.developmentPlan.atSchoolNextStep || '',
+            atHomeNextStep: data.developmentPlan.atHomeNextStep || '',
+            headTeacherComment: data.developmentPlan.headTeacherComment || data.principalRemark || ''
+          });
+        } else {
+          setDevelopmentPlan({
+            teacherComment: data.formMasterRemark || '',
+            literacyComment: '',
+            numeracyComment: '',
+            atSchoolNextStep: '',
+            atHomeNextStep: '',
+            headTeacherComment: data.principalRemark || ''
+          });
+        }
       }
 
       if (reportRes.ok) {
@@ -137,9 +164,10 @@ const MyClass = () => {
         studentId: gradingStudent.id,
         termId: currentTerm.id,
         classId: classData.id,
-        formMasterRemark: remarks.formMasterRemark,
-        principalRemark: remarks.principalRemark,
-        psychomotorRatings
+        formMasterRemark: developmentPlan.teacherComment || remarks.formMasterRemark,
+        principalRemark: developmentPlan.headTeacherComment || remarks.principalRemark,
+        psychomotorRatings,
+        developmentPlan
       };
 
       const res = await api.post('/api/report-extras/save', payload);
@@ -553,6 +581,79 @@ const MyClass = () => {
                       </div>
                     </div>
                   </div>
+
+                  {/* EARLY YEARS COMMENTS & DEVELOPMENT PLAN */}
+                  {(classData?.reportLayout === 'early_years' || reportPreview?.reportSettings?.reportLayout === 'early_years') && (
+                    <div className="space-y-6 pt-4 border-t border-gray-100">
+                      <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
+                        <span className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-black text-sm">EY</span>
+                        <h4 className="font-black text-gray-900 uppercase tracking-tighter text-lg">Early Years Comments & Development Plan</h4>
+                      </div>
+
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <label className="text-xs font-black text-gray-700 uppercase tracking-wider">Teacher's Overall Comment</label>
+                          <textarea
+                            placeholder="Overall assessment of energy, engagement, and term progress..."
+                            className="w-full border-2 border-gray-100 rounded-xl p-3 h-24 focus:border-primary transition-all outline-none font-medium text-xs text-gray-700 bg-gray-50/30 resize-none"
+                            value={developmentPlan.teacherComment}
+                            onChange={(e) => setDevelopmentPlan({ ...developmentPlan, teacherComment: e.target.value })}
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-xs font-black text-gray-700 uppercase tracking-wider">Literacy Development Comment</label>
+                          <textarea
+                            placeholder="Letter sound recognition, vocabulary, complete sentence development..."
+                            className="w-full border-2 border-gray-100 rounded-xl p-3 h-20 focus:border-primary transition-all outline-none font-medium text-xs text-gray-700 bg-gray-50/30 resize-none"
+                            value={developmentPlan.literacyComment}
+                            onChange={(e) => setDevelopmentPlan({ ...developmentPlan, literacyComment: e.target.value })}
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-xs font-black text-gray-700 uppercase tracking-wider">Numeracy Development Comment</label>
+                          <textarea
+                            placeholder="Counting, number recognition, basic concepts..."
+                            className="w-full border-2 border-gray-100 rounded-xl p-3 h-20 focus:border-primary transition-all outline-none font-medium text-xs text-gray-700 bg-gray-50/30 resize-none"
+                            value={developmentPlan.numeracyComment}
+                            onChange={(e) => setDevelopmentPlan({ ...developmentPlan, numeracyComment: e.target.value })}
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <label className="text-xs font-black text-gray-700 uppercase tracking-wider">Recommended Next Step (At School)</label>
+                            <textarea
+                              placeholder="Guided literacy and numeracy practice, classroom routines..."
+                              className="w-full border-2 border-gray-100 rounded-xl p-3 h-20 focus:border-primary transition-all outline-none font-medium text-xs text-gray-700 bg-gray-50/30 resize-none"
+                              value={developmentPlan.atSchoolNextStep}
+                              onChange={(e) => setDevelopmentPlan({ ...developmentPlan, atSchoolNextStep: e.target.value })}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-xs font-black text-gray-700 uppercase tracking-wider">Recommended Next Step (At Home)</label>
+                            <textarea
+                              placeholder="Read together, practise sounds and counting, sorting games..."
+                              className="w-full border-2 border-gray-100 rounded-xl p-3 h-20 focus:border-primary transition-all outline-none font-medium text-xs text-gray-700 bg-gray-50/30 resize-none"
+                              value={developmentPlan.atHomeNextStep}
+                              onChange={(e) => setDevelopmentPlan({ ...developmentPlan, atHomeNextStep: e.target.value })}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-xs font-black text-gray-700 uppercase tracking-wider">Head Teacher's Comment</label>
+                          <textarea
+                            placeholder="Official headteacher's comment..."
+                            className="w-full border-2 border-gray-100 rounded-xl p-3 h-20 focus:border-primary transition-all outline-none font-medium text-xs text-gray-700 bg-gray-50/30 resize-none"
+                            value={developmentPlan.headTeacherComment}
+                            onChange={(e) => setDevelopmentPlan({ ...developmentPlan, headTeacherComment: e.target.value })}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Psychomotor Assessment */}
                   <div className="space-y-6">

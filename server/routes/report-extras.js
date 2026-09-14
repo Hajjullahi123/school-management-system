@@ -184,12 +184,30 @@ router.get('/:studentId/:termId', authenticate, async (req, res) => {
       });
     }
 
-    // Parse JSON string to object
-    const ratings = reportExtras.psychomotorRatings ? JSON.parse(reportExtras.psychomotorRatings) : [];
+    let ratings = [];
+    let developmentPlan = null;
+    let progressAtAGlance = null;
+
+    if (reportExtras.psychomotorRatings) {
+      try {
+        const parsed = JSON.parse(reportExtras.psychomotorRatings);
+        if (Array.isArray(parsed)) {
+          ratings = parsed;
+        } else if (parsed && typeof parsed === 'object') {
+          ratings = Array.isArray(parsed.ratings) ? parsed.ratings : [];
+          developmentPlan = parsed.developmentPlan || null;
+          progressAtAGlance = parsed.progressAtAGlance || null;
+        }
+      } catch (e) {
+        ratings = [];
+      }
+    }
 
     res.json({
       ...reportExtras,
-      psychomotorRatings: ratings
+      psychomotorRatings: ratings,
+      developmentPlan,
+      progressAtAGlance
     });
   } catch (error) {
     console.error(error);
@@ -206,7 +224,9 @@ router.post('/save', authenticate, authorize(['admin', 'teacher', 'principal', '
       classId,
       formMasterRemark,
       principalRemark,
-      psychomotorRatings
+      psychomotorRatings,
+      developmentPlan,
+      progressAtAGlance
     } = req.body;
 
     // Get Term to find Session Id
@@ -219,6 +239,12 @@ router.post('/save', authenticate, authorize(['admin', 'teacher', 'principal', '
 
     if (!term) return res.status(404).json({ error: 'Term not found' });
 
+    const payloadToStore = (developmentPlan || progressAtAGlance) ? {
+      ratings: Array.isArray(psychomotorRatings) ? psychomotorRatings : [],
+      developmentPlan: developmentPlan || null,
+      progressAtAGlance: progressAtAGlance || null
+    } : psychomotorRatings;
+
     // Upsert
     const reportCard = await prisma.studentReportCard.upsert({
       where: {
@@ -230,12 +256,9 @@ router.post('/save', authenticate, authorize(['admin', 'teacher', 'principal', '
         }
       },
       update: {
-        formMasterRemark,
-        // Only update principal remark if provided (or if admin?)
-        // principalRemark, 
-        // Logic: if user is admin, they can update principal remark. If teacher, maybe they can too as per requirements "remark on behalf of headmaster"
-        principalRemark,
-        psychomotorRatings: JSON.stringify(psychomotorRatings)
+        formMasterRemark: developmentPlan?.teacherComment || formMasterRemark,
+        principalRemark: developmentPlan?.headTeacherComment || principalRemark,
+        psychomotorRatings: JSON.stringify(payloadToStore)
       },
       create: {
         schoolId: req.schoolId,
@@ -243,9 +266,9 @@ router.post('/save', authenticate, authorize(['admin', 'teacher', 'principal', '
         termId: parseInt(termId),
         academicSessionId: term.academicSessionId,
         classId: parseInt(classId),
-        formMasterRemark,
-        principalRemark,
-        psychomotorRatings: JSON.stringify(psychomotorRatings)
+        formMasterRemark: developmentPlan?.teacherComment || formMasterRemark,
+        principalRemark: developmentPlan?.headTeacherComment || principalRemark,
+        psychomotorRatings: JSON.stringify(payloadToStore)
       }
     });
 
