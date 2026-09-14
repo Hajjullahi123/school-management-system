@@ -29,6 +29,7 @@ const MyClass = () => {
   const [psychomotorRatings, setPsychomotorRatings] = useState([]);
   const [domains, setDomains] = useState([]);
   const [earlyYearsDomains, setEarlyYearsDomains] = useState([]);
+  const [activeLayoutMode, setActiveLayoutMode] = useState('auto'); // 'auto', 'early_years', 'standard'
   const [currentTerm, setCurrentTerm] = useState(null);
   const [saving, setSaving] = useState(false);
   const [publication, setPublication] = useState({ isPublished: false, isProgressivePublished: false });
@@ -345,6 +346,17 @@ const MyClass = () => {
 
   const activeStudents = classData?.students?.filter(s => s.user?.isActive !== false) || [];
 
+  const isEarlyYearsClass = Boolean(
+    classData?.reportLayout === 'early_years' ||
+    reportPreview?.reportSettings?.reportLayout === 'early_years' ||
+    schoolSettings?.reportLayout === 'early_years' ||
+    (classData?.name && /early|nursery|kg|kindergarten|reception|playgroup|toddler|creche|pre-k|الركن|الروضة|تمهيدي|حضانة/i.test(classData.name))
+  );
+
+  const isEarlyYearsMode = activeLayoutMode === 'early_years' 
+    ? true 
+    : (activeLayoutMode === 'standard' ? false : isEarlyYearsClass);
+
   const renderRatingTicks = (score) => {
     const rounded = Math.round(score);
     return (
@@ -564,6 +576,35 @@ const MyClass = () => {
               <div className="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-[1fr,380px] divide-x divide-gray-100">
                 {/* LEFT: Assessment Form */}
                 <div className={`${isMobile && modalTab !== 'assessment' ? 'hidden' : 'block'} overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-8 sm:space-y-10 custom-scrollbar`}>
+                  {/* Template Layout Switcher Bar */}
+                  <div className="flex flex-wrap items-center justify-between bg-slate-50 p-3 rounded-2xl border border-slate-200 gap-2 mb-6">
+                    <div className="flex items-center gap-2 text-xs font-bold text-slate-700">
+                      <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" />
+                      </svg>
+                      <span>Grading Layout:</span>
+                      <span className="font-black text-primary uppercase tracking-wider bg-primary/10 px-2 py-0.5 rounded">
+                        {isEarlyYearsMode ? 'Early Years Progress Template' : 'Standard Psychomotor Template'}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1 bg-white p-1 rounded-xl shadow-xs border border-slate-200">
+                      <button
+                        type="button"
+                        onClick={() => setActiveLayoutMode('early_years')}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all ${isEarlyYearsMode ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                      >
+                        Early Years Mode
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setActiveLayoutMode('standard')}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all ${!isEarlyYearsMode ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                      >
+                        Standard Mode
+                      </button>
+                    </div>
+                  </div>
+
                   {/* Performance Breakdown Section */}
                   <div className="space-y-6">
                     <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
@@ -629,7 +670,7 @@ const MyClass = () => {
                   </div>
 
                   {/* EARLY YEARS COMMENTS & DEVELOPMENT PLAN */}
-                  {(classData?.reportLayout === 'early_years' || reportPreview?.reportSettings?.reportLayout === 'early_years') && (
+                  {isEarlyYearsMode && (
                     <div className="space-y-6 pt-4 border-t border-gray-100">
                       <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
                         <span className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-black text-sm">EY</span>
@@ -707,12 +748,12 @@ const MyClass = () => {
                        <div className="flex items-center gap-3">
                          <span className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-black text-sm">02</span>
                          <h4 className="font-black text-gray-900 uppercase tracking-tighter text-lg">
-                           {(classData?.reportLayout === 'early_years' || reportPreview?.reportSettings?.reportLayout === 'early_years') 
+                           {isEarlyYearsMode 
                              ? "Early Years Developmental Domains & Skills" 
                              : "Affective & Psychomotor Assessment"}
                          </h4>
                        </div>
-                       {(classData?.reportLayout === 'early_years' || reportPreview?.reportSettings?.reportLayout === 'early_years') && (
+                       {isEarlyYearsMode && (
                          <div className="flex items-center gap-2">
                            <button
                              type="button"
@@ -732,7 +773,7 @@ const MyClass = () => {
                        )}
                     </div>
 
-                    {(classData?.reportLayout === 'early_years' || reportPreview?.reportSettings?.reportLayout === 'early_years') ? (
+                    {isEarlyYearsMode ? (
                       <div className="space-y-6">
                         {/* Rating Legend Key */}
                         <div className="p-3 bg-gradient-to-r from-emerald-50 via-teal-50 to-blue-50 border border-emerald-200 rounded-xl text-xs font-bold text-gray-700 flex flex-wrap items-center justify-between gap-2">

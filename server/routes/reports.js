@@ -458,9 +458,19 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
     );
 
     let ratings = [];
+    let devPlanFromRatings = null;
+    let progressFromRatings = null;
     try {
-      const parsed = reportExtras?.psychomotorRatings ? JSON.parse(reportExtras.psychomotorRatings) : [];
-      ratings = Array.isArray(parsed) ? parsed : [];
+      if (reportExtras?.psychomotorRatings) {
+        const parsed = JSON.parse(reportExtras.psychomotorRatings);
+        if (Array.isArray(parsed)) {
+          ratings = parsed;
+        } else if (parsed && typeof parsed === 'object') {
+          ratings = Array.isArray(parsed.ratings) ? parsed.ratings : [];
+          devPlanFromRatings = parsed.developmentPlan || null;
+          progressFromRatings = parsed.progressAtAGlance || null;
+        }
+      }
     } catch (e) {
       console.error('Error parsing psychomotor ratings:', e);
       ratings = [];
@@ -714,20 +724,35 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
           };
         })
       })),
-      progressAtAGlance: reportExtras?.progressAtAGlance ? (typeof reportExtras.progressAtAGlance === 'string' ? JSON.parse(reportExtras.progressAtAGlance) : reportExtras.progressAtAGlance) : [
-        { area: 'Literacy', goingWell: 'Sound recognition, rhymes and reading direction.', nextFocus: 'Continue vocabulary and sentence development.' },
-        { area: 'Numeracy', goingWell: 'Counting, number recognition and basic concepts.', nextFocus: 'Reinforce number concepts through daily practice.' },
-        { area: 'Physical', goingWell: 'Fine-motor control, organised play and safety.', nextFocus: 'Maintain regular pencil, crayon and scissors activities.' },
-        { area: 'Social / Emotional', goingWell: 'Self-control, confidence and participation.', nextFocus: 'Continue positive reinforcement and independence.' }
-      ],
-      developmentPlan: reportExtras?.developmentPlan ? (typeof reportExtras.developmentPlan === 'string' ? JSON.parse(reportExtras.developmentPlan) : reportExtras.developmentPlan) : {
-        teacherComment: reportExtras?.formMasterRemark || 'The student is an energetic and engaged learner who has made clear progress during the term. She demonstrates strong performance in areas of interest and is developing confidence across literacy, numeracy and classroom activities.',
-        literacyComment: 'Recognises letter sounds confidently and is developing ability to use complete sentences and appropriate vocabulary.',
-        numeracyComment: 'Demonstrates strong understanding of basic numeracy concepts and applies counting and number skills confidently.',
-        atSchoolNextStep: 'Continue guided literacy and numeracy practice; reinforce independent classroom routines.',
-        atHomeNextStep: 'Read together, practise sounds and counting, and use everyday objects for sorting and number games.',
-        headTeacherComment: reportExtras?.principalRemark || 'Has shown encouraging progress this term. Should continue to practise consistently and maintain a positive attitude toward learning.'
-      },
+      progressAtAGlance: (() => {
+        const raw = reportExtras?.progressAtAGlance || progressFromRatings;
+        if (raw) {
+          if (Array.isArray(raw)) return raw;
+          if (typeof raw === 'object') return raw;
+          try { return JSON.parse(raw); } catch (e) { console.error('Error parsing progressAtAGlance:', e); }
+        }
+        return [
+          { area: 'Literacy', goingWell: 'Sound recognition, rhymes and reading direction.', nextFocus: 'Continue vocabulary and sentence development.' },
+          { area: 'Numeracy', goingWell: 'Counting, number recognition and basic concepts.', nextFocus: 'Reinforce number concepts through daily practice.' },
+          { area: 'Physical', goingWell: 'Fine-motor control, organised play and safety.', nextFocus: 'Maintain regular pencil, crayon and scissors activities.' },
+          { area: 'Social / Emotional', goingWell: 'Self-control, confidence and participation.', nextFocus: 'Continue positive reinforcement and independence.' }
+        ];
+      })(),
+      developmentPlan: (() => {
+        const raw = reportExtras?.developmentPlan || devPlanFromRatings;
+        if (raw) {
+          if (typeof raw === 'object') return raw;
+          try { return JSON.parse(raw); } catch (e) { console.error('Error parsing developmentPlan:', e); }
+        }
+        return {
+          teacherComment: reportExtras?.formMasterRemark || 'The student is an energetic and engaged learner who has made clear progress during the term. She demonstrates strong performance in areas of interest and is developing confidence across literacy, numeracy and classroom activities.',
+          literacyComment: 'Recognises letter sounds confidently and is developing ability to use complete sentences and appropriate vocabulary.',
+          numeracyComment: 'Demonstrates strong understanding of basic numeracy concepts and applies counting and number skills confidently.',
+          atSchoolNextStep: 'Continue guided literacy and numeracy practice; reinforce independent classroom routines.',
+          atHomeNextStep: 'Read together, practise sounds and counting, and use everyday objects for sorting and number games.',
+          headTeacherComment: reportExtras?.principalRemark || 'Has shown encouraging progress this term. Should continue to practise consistently and maintain a positive attitude toward learning.'
+        };
+      })(),
       aiNarrative: reportExtras?.aiNarrative || null,
       reportSettings: {
         showPositionOnReport: schoolSettings.showPositionOnReport && (student.classModel?.showPositionOnReport !== false),
