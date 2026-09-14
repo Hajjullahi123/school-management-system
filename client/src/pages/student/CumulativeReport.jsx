@@ -230,6 +230,7 @@ const CumulativeReport = () => {
     const reportColor = rs.reportColorScheme || ss?.reportColorScheme || ss?.primaryColor;
     const reportFont = rs.reportFontFamily || ss?.reportFontFamily || 'serif';
     const layout = rs.reportLayout || ss?.reportLayout || 'classic';
+    const isEarlyYearsReport = layout === 'early_years' || /early|nursery|kg|kindergarten|reception|playgroup|toddler|creche|pre-k|ركن|الركن|روضة|الروضة|تمهيدي|حضانة/i.test(data.student?.class || '');
     const showPosition = rs.showPositionOnReport !== undefined ? rs.showPositionOnReport : ss?.showPositionOnReport !== false;
     const borderStyle = layout === 'minimal' ? 'border-[2px] border-gray-400' : layout === 'modern' ? 'border-[6px] rounded-2xl' : 'border-[12px]';
 
@@ -244,7 +245,8 @@ const CumulativeReport = () => {
             <img src={logoUri} alt="" className="w-[800px] h-auto grayscale filter blur-[1px]" />
         </div>
 
-        <div className="relative z-10 space-y-2 print:space-y-1">          {/* HEADER */}
+        <div className="relative z-10 space-y-2 print:space-y-1">
+          {/* HEADER */}
           <div className="grid grid-cols-[96px_1fr_96px] items-start gap-4 mb-2">
             <div className="w-24 h-24 flex-shrink-0">
               {ss?.logoUrl && (
@@ -264,7 +266,9 @@ const CumulativeReport = () => {
               <p className="text-[9px] font-black text-gray-600 max-w-[500px] leading-tight text-center">{ss?.address || 'School Address Location'} | TEL: {ss?.phone || '000'} | Email: {ss?.email || 'email@school.com'}</p>
 
               <div className="mt-1 border-b-2 inline-block px-4 pb-0" style={{ borderColor: reportColor }}>
-                <h2 className="text-lg font-black uppercase tracking-wider">ANNUAL CUMULATIVE PERFORMANCE REPORT</h2>
+                <h2 className="text-lg font-black uppercase tracking-wider">
+                  {isEarlyYearsReport ? 'ANNUAL EARLY YEARS DEVELOPMENTAL REPORT' : 'ANNUAL CUMULATIVE PERFORMANCE REPORT'}
+                </h2>
               </div>
             </div>
 
@@ -310,49 +314,112 @@ const CumulativeReport = () => {
             </div>
           )}
 
-          {/* CUMULATIVE SCORE TABLE */}
-          <div className="border-2 border-black rounded-sm overflow-hidden">
-            <table className="w-full text-[10px] uppercase font-bold text-center border-collapse">
-              <thead className="bg-black text-white border-b-2 border-black" style={{ backgroundColor: '#000000' }}>
-                <tr className="divide-x divide-white/20">
-                  <th className="p-0.5 text-left w-[35%] bg-emerald-900 border-r-2 border-black tracking-tight">SUBJECT</th>
-                  <th className="p-0.5 w-[12%] tracking-tight">1st TERM</th>
-                  <th className="p-0.5 w-[12%] tracking-tight">2nd TERM</th>
-                  <th className="p-0.5 w-[12%] tracking-tight">3rd TERM</th>
-                  <th className="p-0.5 w-[15%] bg-emerald-700 tracking-tight">ANNUAL AVG</th>
-                  <th className="p-0.5 w-[14%] bg-gray-900 border-l border-white/20 tracking-tight">GRADE</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-300">
-                {(() => {
-                  const subs = data.subjects || [];
-                  return subs.map((sub, idx) => (
-                    <tr key={idx} className={`${idx % 2 === 1 ? 'bg-gray-50' : 'bg-white'} divide-x divide-gray-300`}>
-                      <td className="p-1 text-left pl-3 font-extrabold border-r-2 border-black text-[9px] h-5">{sub.isEmpty ? '\u00A0' : (sub.name || '')}</td>
-                      <td className="p-1 text-[9px] h-5">{sub.isEmpty ? '' : (sub.term1 !== null && sub.term1 !== undefined ? sub.term1 : '-')}</td>
-                      <td className="p-1 text-[9px] h-5">{sub.isEmpty ? '' : (sub.term2 !== null && sub.term2 !== undefined ? sub.term2 : '-')}</td>
-                      <td className="p-1 text-[9px] h-5">{sub.isEmpty ? '' : (sub.term3 !== null && sub.term3 !== undefined ? sub.term3 : '-')}</td>
-                      <td className="p-1 font-black bg-gray-50 text-[9px] h-5">{sub.isEmpty ? '' : (sub.average !== null && sub.average !== undefined ? sub.average.toFixed(1) : '-')}</td>
-                      <td className={`p-1 font-black text-[9px] h-5 ${sub.grade === 'F' ? 'text-red-600' : 'text-emerald-900'}`}>{sub.isEmpty ? '' : (sub.grade || '')}</td>
-                    </tr>
-                  ));
-                })()}
-              </tbody>
-              <tfoot className="border-t-2 border-black bg-gray-200 divide-x divide-black">
-                <tr className="font-black">
-                  <td className="p-2 text-right pr-6 uppercase border-r-2 border-black">ANNUAL PERFORMANCE SUMMARY</td>
-                  <td className="p-2" colSpan={3}>
-                    <div className="flex justify-around text-xs">
-                      <span>AVERAGE: {data.overallAverage !== null && data.overallAverage !== undefined ? `${data.overallAverage.toFixed(2)}%` : 'N/A'}</span>
-                    </div>
-                  </td>
-                  <td className="p-2 text-white text-xs border-l-2 border-black" colSpan={2} style={{ backgroundColor: data.overallGrade === 'N/A' ? '#6b7280' : (reportColor || '#064e3b') }}>
-                    OVERALL GRADE: {data.overallGrade || 'N/A'}
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
+          {/* CUMULATIVE SCORE TABLE OR EARLY YEARS DEVELOPMENTAL SUMMARY */}
+          {isEarlyYearsReport ? (
+            <div className="border-2 border-black rounded-sm overflow-hidden p-3 bg-white space-y-3">
+              <div className="bg-emerald-900 text-white font-black text-xs uppercase px-3 py-1.5 flex justify-between items-center rounded-sm">
+                <span>EARLY YEARS ANNUAL DEVELOPMENTAL SUMMARY</span>
+                <span className="text-[10px] text-emerald-200">Session {data.session?.name}</span>
+              </div>
+
+              {/* Attendance Summary */}
+              {data.attendanceSummary && (
+                <div className="grid grid-cols-4 border border-black text-center text-[10px] font-bold divide-x divide-black bg-gray-50">
+                  <div className="p-1">
+                    <span className="text-gray-500 block text-[8px] uppercase">Times School Opened</span>
+                    <span className="font-black text-sm">{data.attendanceSummary?.timesOpened ?? '-'}</span>
+                  </div>
+                  <div className="p-1">
+                    <span className="text-gray-500 block text-[8px] uppercase">Times Present</span>
+                    <span className="font-black text-sm text-emerald-800">{data.attendanceSummary?.timesPresent ?? '-'}</span>
+                  </div>
+                  <div className="p-1">
+                    <span className="text-gray-500 block text-[8px] uppercase">Times Absent</span>
+                    <span className="font-black text-sm text-red-600">{data.attendanceSummary?.timesAbsent ?? '-'}</span>
+                  </div>
+                  <div className="p-1">
+                    <span className="text-gray-500 block text-[8px] uppercase">Attendance Rate</span>
+                    <span className="font-black text-sm text-indigo-900">
+                      {data.attendanceSummary?.timesOpened ? `${Math.round((data.attendanceSummary.timesPresent / data.attendanceSummary.timesOpened) * 100)}%` : '-'}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* RATING SCALE KEY */}
+              <div className="border border-black p-2 bg-gray-50 rounded-sm">
+                <div className="text-[9px] font-black uppercase text-gray-700 mb-1">RATING SCALE LEGEND:</div>
+                <div className="grid grid-cols-4 gap-1 text-[8px] font-bold text-center">
+                  <div className="bg-emerald-100 border border-emerald-400 text-emerald-900 p-1 rounded">A - Achieved Target</div>
+                  <div className="bg-blue-100 border border-blue-400 text-blue-900 p-1 rounded">P - Progressing Well</div>
+                  <div className="bg-amber-100 border border-amber-400 text-amber-900 p-1 rounded">W - Working Towards</div>
+                  <div className="bg-gray-100 border border-gray-400 text-gray-700 p-1 rounded">NA - Not Assessed Yet</div>
+                </div>
+              </div>
+
+              {/* ANNUAL DEVELOPMENT REMARKS */}
+              <div className="border border-black p-3 bg-white rounded-sm space-y-2">
+                <div>
+                  <span className="text-[9px] font-black uppercase text-gray-600 block mb-1">ANNUAL DEVELOPMENTAL PROGRESS REMARK:</span>
+                  <p className="text-xs font-medium italic text-gray-900 bg-gray-50 p-2 border border-gray-200 rounded min-h-[48px]">
+                    {data.overallRemark || data.earlyYearsComments?.overallRemark || 'The child has demonstrated satisfactory holistic growth across cognitive, socio-emotional, physical, and creative developmental domains over the academic session.'}
+                  </p>
+                </div>
+
+                {data.earlyYearsComments?.recommendedNextSteps && (
+                  <div>
+                    <span className="text-[9px] font-black uppercase text-gray-600 block mb-1">RECOMMENDED NEXT STEPS & SUPPORT AT HOME:</span>
+                    <p className="text-xs font-medium italic text-gray-900 bg-gray-50 p-2 border border-gray-200 rounded">
+                      {data.earlyYearsComments.recommendedNextSteps}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="border-2 border-black rounded-sm overflow-hidden">
+              <table className="w-full text-[10px] uppercase font-bold text-center border-collapse">
+                <thead className="bg-black text-white border-b-2 border-black" style={{ backgroundColor: '#000000' }}>
+                  <tr className="divide-x divide-white/20">
+                    <th className="p-0.5 text-left w-[35%] bg-emerald-900 border-r-2 border-black tracking-tight">SUBJECT</th>
+                    <th className="p-0.5 w-[12%] tracking-tight">1st TERM</th>
+                    <th className="p-0.5 w-[12%] tracking-tight">2nd TERM</th>
+                    <th className="p-0.5 w-[12%] tracking-tight">3rd TERM</th>
+                    <th className="p-0.5 w-[15%] bg-emerald-700 tracking-tight">ANNUAL AVG</th>
+                    <th className="p-0.5 w-[14%] bg-gray-900 border-l border-white/20 tracking-tight">GRADE</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-300">
+                  {(() => {
+                    const subs = data.subjects || [];
+                    return subs.map((sub, idx) => (
+                      <tr key={idx} className={`${idx % 2 === 1 ? 'bg-gray-50' : 'bg-white'} divide-x divide-gray-300`}>
+                        <td className="p-1 text-left pl-3 font-extrabold border-r-2 border-black text-[9px] h-5">{sub.isEmpty ? '\u00A0' : (sub.name || '')}</td>
+                        <td className="p-1 text-[9px] h-5">{sub.isEmpty ? '' : (sub.term1 !== null && sub.term1 !== undefined ? sub.term1 : '-')}</td>
+                        <td className="p-1 text-[9px] h-5">{sub.isEmpty ? '' : (sub.term2 !== null && sub.term2 !== undefined ? sub.term2 : '-')}</td>
+                        <td className="p-1 text-[9px] h-5">{sub.isEmpty ? '' : (sub.term3 !== null && sub.term3 !== undefined ? sub.term3 : '-')}</td>
+                        <td className="p-1 font-black bg-gray-50 text-[9px] h-5">{sub.isEmpty ? '' : (sub.average !== null && sub.average !== undefined ? sub.average.toFixed(1) : '-')}</td>
+                        <td className={`p-1 font-black text-[9px] h-5 ${sub.grade === 'F' ? 'text-red-600' : 'text-emerald-900'}`}>{sub.isEmpty ? '' : (sub.grade || '')}</td>
+                      </tr>
+                    ));
+                  })()}
+                </tbody>
+                <tfoot className="border-t-2 border-black bg-gray-200 divide-x divide-black">
+                  <tr className="font-black">
+                    <td className="p-2 text-right pr-6 uppercase border-r-2 border-black">ANNUAL PERFORMANCE SUMMARY</td>
+                    <td className="p-2" colSpan={3}>
+                      <div className="flex justify-around text-xs">
+                        <span>AVERAGE: {data.overallAverage !== null && data.overallAverage !== undefined ? `${data.overallAverage.toFixed(2)}%` : 'N/A'}</span>
+                      </div>
+                    </td>
+                    <td className="p-2 text-white text-xs border-l-2 border-black" colSpan={2} style={{ backgroundColor: data.overallGrade === 'N/A' ? '#6b7280' : (reportColor || '#064e3b') }}>
+                      OVERALL GRADE: {data.overallGrade || 'N/A'}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          )}
 
           {/* PROMOTION & SUMMARY */}
           <div className="grid grid-cols-[65%_34%] gap-2 mt-1">
@@ -401,32 +468,38 @@ const CumulativeReport = () => {
           </div>
 
           {/* FOOTER */}
-          <div className="pt-1 border-t border-gray-200 flex justify-between items-center bg-transparent">
-            <div className="flex items-center gap-4">
-              <div className="group/qr relative bg-white p-1 rounded-lg shadow-sm border border-gray-100 transition-all hover:shadow-md">
-                <QRCodeSVG 
-                  value={`${window.location.origin}/verify/cumulative/${data.student?.id}/${data.session?.id}`}
-                  size={45}
-                  level="H"
-                  includeMargin={false}
-                  className="grayscale hover:grayscale-0 transition-all duration-500 cursor-help"
-                />
-              </div>
-              <div className="space-y-0.5">
-                <div className="text-[8px] font-black text-slate-900 flex items-center gap-1 uppercase tracking-tighter">
-                  <svg className="w-2.5 h-2.5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M2.166 4.9L10 1.55l7.834 3.35a1 1 0 01.583.912v5.188a10 10 0 01-5.188 8.163l-3.229 1.737a1 1 0 01-.912 0l-3.229-1.737A10 10 0 011.583 11V5.812a1 1 0 01.583-.912z" clipRule="evenodd" />
-                  </svg>
-                  DIGITALLY VERIFIED REPORT
+          <div className="pt-2 border-t border-gray-300 space-y-1">
+            <div className="flex justify-between items-center bg-transparent">
+              <div className="flex items-center gap-4">
+                <div className="group/qr relative bg-white p-1 rounded-lg shadow-sm border border-gray-100 transition-all hover:shadow-md">
+                  <QRCodeSVG 
+                    value={`${window.location.origin}/verify/cumulative/${data.student?.id}/${data.session?.id}`}
+                    size={45}
+                    level="H"
+                    includeMargin={false}
+                    className="grayscale hover:grayscale-0 transition-all duration-500 cursor-help"
+                  />
                 </div>
-                <div className="text-[7px] font-bold text-gray-400 tracking-tight">SCAN TO AUTHENTICATE THIS DOCUMENT</div>
+                <div className="space-y-0.5">
+                  <div className="text-[8px] font-black text-slate-900 flex items-center gap-1 uppercase tracking-tighter">
+                    <svg className="w-2.5 h-2.5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M2.166 4.9L10 1.55l7.834 3.35a1 1 0 01.583.912v5.188a10 10 0 01-5.188 8.163l-3.229 1.737a1 1 0 01-.912 0l-3.229-1.737A10 10 0 011.583 11V5.812a1 1 0 01.583-.912z" clipRule="evenodd" />
+                    </svg>
+                    DIGITALLY VERIFIED REPORT
+                  </div>
+                  <div className="text-[7px] font-bold text-gray-400 tracking-tight">SCAN TO AUTHENTICATE THIS DOCUMENT</div>
+                </div>
+              </div>
+
+              <div className="text-right">
+                <div className="text-[8px] font-black text-slate-900 uppercase tracking-tighter">Academic Session</div>
+                <div className="text-[7px] font-bold text-gray-400">{data.session?.name} • GEN: {formatDateVerbose(new Date())}</div>
               </div>
             </div>
 
-            <div className="text-right">
-              <div className="text-[8px] font-black text-slate-900 uppercase tracking-tighter">Academic Session</div>
-              <div className="text-[7px] font-bold text-gray-400">{data.session?.name} • GEN: {formatDateVerbose(new Date())}</div>
-            </div>
+            <p className="text-[7px] text-gray-500 text-center font-medium leading-tight border-t border-gray-100 pt-1">
+              Report integrity: Published reports should be locked against unauthorised changes. Assessment templates and rating schemes should be configurable by school administrators.
+            </p>
           </div>
         </div>
       </div>
