@@ -934,9 +934,38 @@ const TermReportCard = () => {
                               </div>
                             </div>
 
-                            <p className="text-[10px] text-gray-500 pt-4 border-t border-gray-200">
+                            <p className="text-[10px] text-gray-500 text-center pt-3 border-t border-gray-200">
                               Report integrity: Published reports should be locked against unauthorised changes. Assessment templates and rating schemes should be configurable by school administrators.
                             </p>
+
+                            {/* DOCUMENT VERIFICATION FOOTER / QR CODE SCANNER */}
+                            <div className="mt-2 border-t border-gray-200 pt-1 flex justify-between items-center bg-transparent">
+                              <div className="flex items-center gap-3">
+                                <div className="group/qr relative bg-white p-1 rounded-lg shadow-sm border border-gray-100 transition-all hover:shadow-md">
+                                  <QRCodeSVG 
+                                    value={`${window.location.origin}/verify/term/${data.student?.id}/${selectedTerm}`}
+                                    size={42}
+                                    level="H"
+                                    includeMargin={false}
+                                    className="grayscale hover:grayscale-0 transition-all duration-500 cursor-help"
+                                  />
+                                </div>
+                                <div className="space-y-0.5">
+                                  <div className="text-[9px] font-black text-black flex items-center gap-1 uppercase tracking-tighter">
+                                    <svg className="w-2.5 h-2.5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
+                                      <path fillRule="evenodd" d="M2.166 4.9L10 1.55l7.834 3.35a1 1 0 01.583.912v5.188a10 10 0 01-5.188 8.163l-3.229 1.737a1 1 0 01-.912 0l-3.229-1.737A10 10 0 011.583 11V5.812a1 1 0 01.583-.912z" clipRule="evenodd" />
+                                    </svg>
+                                    DIGITALLY VERIFIED REPORT
+                                  </div>
+                                  <div className="text-[8px] font-bold text-black tracking-tight uppercase">Scan QR Code To Verify Authenticity</div>
+                                </div>
+                              </div>
+
+                              <div className="text-right">
+                                <div className="text-[9px] font-black text-black uppercase tracking-tighter">Early Years Verification</div>
+                                <div className="text-[8px] font-bold text-black uppercase">TERM: {data.term?.name?.toUpperCase()} • GEN: {formatDateVerbose(new Date())}</div>
+                              </div>
+                            </div>
 
                             <div className="flex justify-between text-[10px] text-gray-500 font-bold border-t pt-2">
                               <span>Early Years Assessment & Progress Report</span>
@@ -1259,9 +1288,38 @@ const TermReportCard = () => {
                           </div>
                         </div>
 
-                        <p className="text-[10px] text-gray-500 pt-4 border-t border-gray-200">
+                        <p className="text-[10px] text-gray-500 text-center pt-3 border-t border-gray-200">
                           Report integrity: Published reports should be locked against unauthorised changes. Assessment templates and rating schemes should be configurable by school administrators.
                         </p>
+
+                        {/* DOCUMENT VERIFICATION FOOTER / QR CODE SCANNER */}
+                        <div className="mt-2 border-t border-gray-200 pt-1 flex justify-between items-center bg-transparent">
+                          <div className="flex items-center gap-3">
+                            <div className="group/qr relative bg-white p-1 rounded-lg shadow-sm border border-gray-100 transition-all hover:shadow-md">
+                              <QRCodeSVG 
+                                value={`${window.location.origin}/verify/term/${data.student?.id}/${selectedTerm}`}
+                                size={42}
+                                level="H"
+                                includeMargin={false}
+                                className="grayscale hover:grayscale-0 transition-all duration-500 cursor-help"
+                              />
+                            </div>
+                            <div className="space-y-0.5">
+                              <div className="text-[9px] font-black text-black flex items-center gap-1 uppercase tracking-tighter">
+                                <svg className="w-2.5 h-2.5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M2.166 4.9L10 1.55l7.834 3.35a1 1 0 01.583.912v5.188a10 10 0 01-5.188 8.163l-3.229 1.737a1 1 0 01-.912 0l-3.229-1.737A10 10 0 011.583 11V5.812a1 1 0 01.583-.912z" clipRule="evenodd" />
+                                </svg>
+                                DIGITALLY VERIFIED REPORT
+                              </div>
+                              <div className="text-[8px] font-bold text-black tracking-tight uppercase">Scan QR Code To Verify Authenticity</div>
+                            </div>
+                          </div>
+
+                          <div className="text-right">
+                            <div className="text-[9px] font-black text-black uppercase tracking-tighter">Early Years Verification</div>
+                            <div className="text-[8px] font-bold text-black uppercase">TERM: {data.term?.name?.toUpperCase()} • GEN: {formatDateVerbose(new Date())}</div>
+                          </div>
+                        </div>
 
                         <div className="flex justify-between text-[10px] text-gray-500 font-bold border-t pt-2">
                           <span>Early Years Assessment & Progress Report</span>

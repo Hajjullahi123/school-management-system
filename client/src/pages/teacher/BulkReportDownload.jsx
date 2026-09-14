@@ -686,10 +686,38 @@ const BulkReportDownload = () => {
                                       </div>
                                     </div>
     
-                                    <p className="text-[8px] text-gray-500 pt-2 border-t border-gray-200">
+                                     <p className="text-[8px] text-gray-500 text-center pt-2 border-t border-gray-200">
                                       Report integrity: Published reports should be locked against unauthorised changes. Assessment templates and rating schemes should be configurable by school administrators.
                                     </p>
-    
+
+                                    {/* DOCUMENT VERIFICATION FOOTER / QR CODE SCANNER */}
+                                    <div className="mt-1 border-t border-gray-200 pt-1 flex justify-between items-center bg-transparent">
+                                      <div className="flex items-center gap-2">
+                                        <div className="bg-white p-0.5 rounded shadow-sm border border-gray-100">
+                                          <QRCodeSVG 
+                                            value={`${window.location.origin}/verify/term/${data.student?.id}/${selectedTerm}`}
+                                            size={32}
+                                            level="H"
+                                            includeMargin={false}
+                                          />
+                                        </div>
+                                        <div className="space-y-0.5">
+                                          <div className="text-[8px] font-black text-black flex items-center gap-1 uppercase tracking-tighter">
+                                            <svg className="w-2 h-2 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
+                                              <path fillRule="evenodd" d="M2.166 4.9L10 1.55l7.834 3.35a1 1 0 01.583.912v5.188a10 10 0 01-5.188 8.163l-3.229 1.737a1 1 0 01-.912 0l-3.229-1.737A10 10 0 011.583 11V5.812a1 1 0 01.583-.912z" clipRule="evenodd" />
+                                            </svg>
+                                            DIGITALLY VERIFIED REPORT
+                                          </div>
+                                          <div className="text-[7px] font-bold text-black tracking-tight uppercase">Scan QR Code To Verify Authenticity</div>
+                                        </div>
+                                      </div>
+
+                                      <div className="text-right">
+                                        <div className="text-[8px] font-black text-black uppercase tracking-tighter">Early Years Verification</div>
+                                        <div className="text-[7px] font-bold text-black uppercase">TERM: {data.term?.name?.toUpperCase()} • GEN: {formatDateVerbose(new Date())}</div>
+                                      </div>
+                                    </div>
+
                                     <div className="flex justify-between text-[9px] text-gray-500 font-bold border-t pt-1">
                                       <span>Early Years Assessment & Progress Report</span>
                                       <span>Confidential School Record</span>

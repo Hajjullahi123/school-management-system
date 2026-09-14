@@ -955,9 +955,15 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
                   </View>
 
                   {/* Footer Note */}
-                  <Text style={{ fontSize: 6.5, color: '#6B7280', marginTop: 5 }}>
+                  <Text style={{ fontSize: 6.5, color: '#6B7280', marginTop: 5, textAlign: 'center' }}>
                     Report integrity: Published reports should be locked against unauthorised changes. Assessment templates and rating schemes should be configurable by school administrators.
                   </Text>
+
+                  {/* Document Verification Footer */}
+                  <View style={[styles.footerBanner, { marginTop: 4 }]}>
+                    <Text style={styles.footerLeft}>[DIGITALLY VERIFIED REPORT] AUTHENTIC EDUCATIONAL CREDENTIAL</Text>
+                    <Text style={styles.footerRight}>EARLY YEARS EVALUATION {'\u2022'} GEN: {formatDateVerbose(new Date())}</Text>
+                  </View>
 
                   <View style={{ position: 'absolute', bottom: 15, left: 20, right: 20, flexDirection: 'row', justifyContent: 'space-between', fontSize: 7, color: '#6B7280' }}>
                     <Text>Early Years Assessment & Progress Report</Text>
@@ -1252,9 +1258,15 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
                   </View>
 
                   {/* Footer Note */}
-                  <Text style={{ fontSize: 7, color: '#6B7280', marginTop: 10 }}>
+                  <Text style={{ fontSize: 7, color: '#6B7280', marginTop: 10, textAlign: 'center' }}>
                     Report integrity: Published reports should be locked against unauthorised changes. Assessment templates and rating schemes should be configurable by school administrators.
                   </Text>
+
+                  {/* Document Verification Footer */}
+                  <View style={[styles.footerBanner, { marginTop: 6 }]}>
+                    <Text style={styles.footerLeft}>[DIGITALLY VERIFIED REPORT] AUTHENTIC EDUCATIONAL CREDENTIAL</Text>
+                    <Text style={styles.footerRight}>EARLY YEARS EVALUATION {'\u2022'} GEN: {formatDateVerbose(new Date())}</Text>
+                  </View>
 
                   <View style={{ position: 'absolute', bottom: 15, left: 25, right: 25, flexDirection: 'row', justifyContent: 'space-between', fontSize: 7, color: '#6B7280' }}>
                     <Text>Early Years Assessment & Progress Report</Text>
