@@ -1,7 +1,65 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { api, API_BASE_URL } from '../../api';
 import useSchoolSettings from '../../hooks/useSchoolSettings';
 import { useAuth } from '../../context/AuthContext';
+
+const QuickSelectMenu = ({ options, onSelect, placeholder = "Quick Select", buttonBg = "bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border-emerald-200/60" }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  return (
+    <div className="relative inline-block text-left" ref={menuRef}>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className={`px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs border ${buttonBg}`}
+      >
+        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
+        <span className="truncate max-w-[160px] sm:max-w-none">{placeholder}</span>
+        <svg className={`w-3.5 h-3.5 transition-transform duration-200 shrink-0 ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {isOpen && (
+        <div className="absolute right-0 mt-2 w-80 sm:w-96 rounded-2xl bg-white shadow-2xl border border-gray-100 z-[250] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
+          <div className="p-3 bg-gray-50/90 border-b border-gray-100 flex justify-between items-center">
+            <span className="text-[10px] font-black text-gray-500 uppercase tracking-wider">Select Pre-written Template ({options.length})</span>
+            <span className="text-[10px] text-gray-400 font-medium italic">Scroll to view all</span>
+          </div>
+          <div className="max-h-64 overflow-y-auto p-2 space-y-1.5 custom-scrollbar">
+            {options.map((option, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => {
+                  onSelect(option);
+                  setIsOpen(false);
+                }}
+                className="w-full text-left p-2.5 rounded-xl hover:bg-emerald-50/80 hover:text-emerald-950 transition-colors border border-transparent hover:border-emerald-200/50 text-xs font-medium text-gray-700 leading-relaxed flex items-start gap-2.5 group"
+              >
+                <span className="w-5 h-5 rounded-md bg-emerald-100 text-emerald-700 flex items-center justify-center font-black text-[10px] shrink-0 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+                  {idx + 1}
+                </span>
+                <span className="flex-1">{option}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const MyClass = () => {
   const [classData, setClassData] = useState(null);
@@ -690,13 +748,12 @@ const MyClass = () => {
                                 )}
                               </button>
                             </div>
-                            <select 
-                              onChange={(e) => setRemarks({ ...remarks, formMasterRemark: e.target.value })}
-                              className="text-xs border-none bg-gray-50 rounded-lg px-3 py-1.5 font-bold text-gray-500 focus:ring-0 cursor-pointer outline-none"
-                            >
-                              <option value="">-- Quick Select --</option>
-                              {predefinedRemarks.map((rem, i) => <option key={i} value={rem}>{rem}</option>)}
-                            </select>
+                            <QuickSelectMenu
+                              options={predefinedRemarks}
+                              onSelect={(val) => setRemarks(prev => ({ ...prev, formMasterRemark: val }))}
+                              placeholder="Quick Select Remark"
+                              buttonBg="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border-indigo-200/60"
+                            />
                           </div>
                           <textarea
                             placeholder="Provide a detailed assessment of the student's behavior and academic attitude..."
@@ -709,13 +766,12 @@ const MyClass = () => {
                         <div className="space-y-3">
                           <div className="flex justify-between items-center">
                             <label className="text-sm font-black text-gray-700 uppercase tracking-wider">Principal's Remark</label>
-                            <select 
-                              onChange={(e) => setRemarks({ ...remarks, principalRemark: e.target.value })}
-                              className="text-xs border-none bg-gray-50 rounded-lg px-3 py-1.5 font-bold text-gray-500 focus:ring-0 cursor-pointer outline-none"
-                            >
-                              <option value="">-- Quick Select --</option>
-                              {predefinedRemarks.map((rem, i) => <option key={i} value={rem}>{rem}</option>)}
-                            </select>
+                            <QuickSelectMenu
+                              options={predefinedRemarks}
+                              onSelect={(val) => setRemarks(prev => ({ ...prev, principalRemark: val }))}
+                              placeholder="Quick Select Remark"
+                              buttonBg="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border-indigo-200/60"
+                            />
                           </div>
                           <textarea
                             placeholder="Official headteacher's comment based on term performance..."
@@ -740,18 +796,12 @@ const MyClass = () => {
                         <div className="space-y-2">
                           <div className="flex justify-between items-center">
                             <label className="text-xs font-black text-gray-700 uppercase tracking-wider">Teacher's Overall Comment</label>
-                            <select 
-                              value=""
-                              onChange={(e) => {
-                                if (e.target.value) setDevelopmentPlan(prev => ({ ...prev, teacherComment: e.target.value }));
-                              }}
-                              className="text-xs border-none bg-emerald-50/70 rounded-lg px-3 py-1.5 font-bold text-emerald-800 focus:ring-0 cursor-pointer outline-none max-w-[220px] truncate"
-                            >
-                              <option value="">-- Quick Select Comment --</option>
-                              {earlyYearsPredefinedComments.teacherOverall.map((rem, i) => (
-                                <option key={i} value={rem}>{rem.length > 45 ? rem.substring(0, 45) + '...' : rem}</option>
-                              ))}
-                            </select>
+                            <QuickSelectMenu
+                              options={earlyYearsPredefinedComments.teacherOverall}
+                              onSelect={(val) => setDevelopmentPlan(prev => ({ ...prev, teacherComment: val }))}
+                              placeholder="Quick Select Comment"
+                              buttonBg="bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border-emerald-200/60"
+                            />
                           </div>
                           <textarea
                             placeholder="Overall assessment of energy, engagement, and term progress..."
@@ -764,18 +814,12 @@ const MyClass = () => {
                         <div className="space-y-2">
                           <div className="flex justify-between items-center">
                             <label className="text-xs font-black text-gray-700 uppercase tracking-wider">Literacy Development Comment</label>
-                            <select 
-                              value=""
-                              onChange={(e) => {
-                                if (e.target.value) setDevelopmentPlan(prev => ({ ...prev, literacyComment: e.target.value }));
-                              }}
-                              className="text-xs border-none bg-emerald-50/70 rounded-lg px-3 py-1.5 font-bold text-emerald-800 focus:ring-0 cursor-pointer outline-none max-w-[220px] truncate"
-                            >
-                              <option value="">-- Quick Select Comment --</option>
-                              {earlyYearsPredefinedComments.literacy.map((rem, i) => (
-                                <option key={i} value={rem}>{rem.length > 45 ? rem.substring(0, 45) + '...' : rem}</option>
-                              ))}
-                            </select>
+                            <QuickSelectMenu
+                              options={earlyYearsPredefinedComments.literacy}
+                              onSelect={(val) => setDevelopmentPlan(prev => ({ ...prev, literacyComment: val }))}
+                              placeholder="Quick Select Comment"
+                              buttonBg="bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border-emerald-200/60"
+                            />
                           </div>
                           <textarea
                             placeholder="Letter sound recognition, vocabulary, complete sentence development..."
@@ -788,18 +832,12 @@ const MyClass = () => {
                         <div className="space-y-2">
                           <div className="flex justify-between items-center">
                             <label className="text-xs font-black text-gray-700 uppercase tracking-wider">Numeracy Development Comment</label>
-                            <select 
-                              value=""
-                              onChange={(e) => {
-                                if (e.target.value) setDevelopmentPlan(prev => ({ ...prev, numeracyComment: e.target.value }));
-                              }}
-                              className="text-xs border-none bg-emerald-50/70 rounded-lg px-3 py-1.5 font-bold text-emerald-800 focus:ring-0 cursor-pointer outline-none max-w-[220px] truncate"
-                            >
-                              <option value="">-- Quick Select Comment --</option>
-                              {earlyYearsPredefinedComments.numeracy.map((rem, i) => (
-                                <option key={i} value={rem}>{rem.length > 45 ? rem.substring(0, 45) + '...' : rem}</option>
-                              ))}
-                            </select>
+                            <QuickSelectMenu
+                              options={earlyYearsPredefinedComments.numeracy}
+                              onSelect={(val) => setDevelopmentPlan(prev => ({ ...prev, numeracyComment: val }))}
+                              placeholder="Quick Select Comment"
+                              buttonBg="bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border-emerald-200/60"
+                            />
                           </div>
                           <textarea
                             placeholder="Counting, number recognition, basic concepts..."
@@ -813,18 +851,12 @@ const MyClass = () => {
                           <div className="space-y-2">
                             <div className="flex justify-between items-center">
                               <label className="text-xs font-black text-gray-700 uppercase tracking-wider">Recommended Next Step (At School)</label>
-                              <select 
-                                value=""
-                                onChange={(e) => {
-                                  if (e.target.value) setDevelopmentPlan(prev => ({ ...prev, atSchoolNextStep: e.target.value }));
-                                }}
-                                className="text-xs border-none bg-emerald-50/70 rounded-lg px-2.5 py-1 font-bold text-emerald-800 focus:ring-0 cursor-pointer outline-none max-w-[180px] truncate"
-                              >
-                                <option value="">-- Quick Select --</option>
-                                {earlyYearsPredefinedComments.atSchoolNextStep.map((rem, i) => (
-                                  <option key={i} value={rem}>{rem.length > 40 ? rem.substring(0, 40) + '...' : rem}</option>
-                                ))}
-                              </select>
+                              <QuickSelectMenu
+                                options={earlyYearsPredefinedComments.atSchoolNextStep}
+                                onSelect={(val) => setDevelopmentPlan(prev => ({ ...prev, atSchoolNextStep: val }))}
+                                placeholder="Quick Select"
+                                buttonBg="bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border-emerald-200/60"
+                              />
                             </div>
                             <textarea
                               placeholder="Guided literacy and numeracy practice, classroom routines..."
@@ -836,18 +868,12 @@ const MyClass = () => {
                           <div className="space-y-2">
                             <div className="flex justify-between items-center">
                               <label className="text-xs font-black text-gray-700 uppercase tracking-wider">Recommended Next Step (At Home)</label>
-                              <select 
-                                value=""
-                                onChange={(e) => {
-                                  if (e.target.value) setDevelopmentPlan(prev => ({ ...prev, atHomeNextStep: e.target.value }));
-                                }}
-                                className="text-xs border-none bg-emerald-50/70 rounded-lg px-2.5 py-1 font-bold text-emerald-800 focus:ring-0 cursor-pointer outline-none max-w-[180px] truncate"
-                              >
-                                <option value="">-- Quick Select --</option>
-                                {earlyYearsPredefinedComments.atHomeNextStep.map((rem, i) => (
-                                  <option key={i} value={rem}>{rem.length > 40 ? rem.substring(0, 40) + '...' : rem}</option>
-                                ))}
-                              </select>
+                              <QuickSelectMenu
+                                options={earlyYearsPredefinedComments.atHomeNextStep}
+                                onSelect={(val) => setDevelopmentPlan(prev => ({ ...prev, atHomeNextStep: val }))}
+                                placeholder="Quick Select"
+                                buttonBg="bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border-emerald-200/60"
+                              />
                             </div>
                             <textarea
                               placeholder="Read together, practise sounds and counting, sorting games..."
@@ -861,18 +887,12 @@ const MyClass = () => {
                         <div className="space-y-2">
                           <div className="flex justify-between items-center">
                             <label className="text-xs font-black text-gray-700 uppercase tracking-wider">Head Teacher's Comment</label>
-                            <select 
-                              value=""
-                              onChange={(e) => {
-                                if (e.target.value) setDevelopmentPlan(prev => ({ ...prev, headTeacherComment: e.target.value }));
-                              }}
-                              className="text-xs border-none bg-emerald-50/70 rounded-lg px-3 py-1.5 font-bold text-emerald-800 focus:ring-0 cursor-pointer outline-none max-w-[220px] truncate"
-                            >
-                              <option value="">-- Quick Select Comment --</option>
-                              {earlyYearsPredefinedComments.headTeacher.map((rem, i) => (
-                                <option key={i} value={rem}>{rem.length > 45 ? rem.substring(0, 45) + '...' : rem}</option>
-                              ))}
-                            </select>
+                            <QuickSelectMenu
+                              options={earlyYearsPredefinedComments.headTeacher}
+                              onSelect={(val) => setDevelopmentPlan(prev => ({ ...prev, headTeacherComment: val }))}
+                              placeholder="Quick Select Comment"
+                              buttonBg="bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border-emerald-200/60"
+                            />
                           </div>
                           <textarea
                             placeholder="Official headteacher's comment..."
