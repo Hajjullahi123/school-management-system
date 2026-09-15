@@ -502,26 +502,28 @@ const BulkReportDownload = () => {
                                       </tbody>
                                     </table>
     
-                                    <div className="border-2 border-black">
-                                      <div className="grid grid-cols-4 divide-x-2 divide-black text-center p-1">
-                                        <div>
-                                          <div className="text-lg font-black text-black">{data.attendance ? (data.attendance.present ?? 0) : 0}</div>
-                                          <div className="text-[9px] font-black uppercase text-gray-700">DAYS PRESENT</div>
-                                        </div>
-                                        <div>
-                                          <div className="text-lg font-black text-black">{data.attendance ? (data.attendance.absent ?? 0) : 0}</div>
-                                          <div className="text-[9px] font-black uppercase text-gray-700">DAYS ABSENT</div>
-                                        </div>
-                                        <div>
-                                          <div className="text-lg font-black text-black">{data.attendance ? `${data.attendance.percentage}%` : '0%'}</div>
-                                          <div className="text-[9px] font-black uppercase text-gray-700">ATTENDANCE</div>
-                                        </div>
-                                        <div>
-                                          <div className="text-lg font-black text-black">—</div>
-                                          <div className="text-[9px] font-black uppercase text-gray-700">NEXT TERM</div>
+                                    {data.attendance && (
+                                      <div className="border-2 border-black">
+                                        <div className="grid grid-cols-4 divide-x-2 divide-black text-center p-1">
+                                          <div>
+                                            <div className="text-lg font-black text-black">{data.attendance.present ?? 0}</div>
+                                            <div className="text-[9px] font-black uppercase text-gray-700">DAYS PRESENT</div>
+                                          </div>
+                                          <div>
+                                            <div className="text-lg font-black text-black">{data.attendance.absent ?? 0}</div>
+                                            <div className="text-[9px] font-black uppercase text-gray-700">DAYS ABSENT</div>
+                                          </div>
+                                          <div>
+                                            <div className="text-lg font-black text-black">{data.attendance.percentage}%</div>
+                                            <div className="text-[9px] font-black uppercase text-gray-700">ATTENDANCE</div>
+                                          </div>
+                                          <div>
+                                            <div className="text-lg font-black text-black">—</div>
+                                            <div className="text-[9px] font-black uppercase text-gray-700">NEXT TERM</div>
+                                          </div>
                                         </div>
                                       </div>
-                                    </div>
+                                    )}
                                     <p className="text-[10px] font-black text-black">
                                       Next term begins: <span className="underline">{data.term?.nextTermBegins ? formatDateVerbose(data.term.nextTermBegins) : '4 May 2026'}</span>
                                     </p>
@@ -849,26 +851,28 @@ const BulkReportDownload = () => {
                                     </tbody>
                                   </table>
   
-                                  <div className="border-2 border-black">
-                                    <div className="grid grid-cols-4 divide-x-2 divide-black text-center p-2">
-                                      <div>
-                                        <div className="text-xl font-black text-black">{data.attendance ? (data.attendance.present ?? 0) : 0}</div>
-                                        <div className="text-[10px] font-black uppercase text-gray-700">DAYS PRESENT</div>
-                                      </div>
-                                      <div>
-                                        <div className="text-xl font-black text-black">{data.attendance ? (data.attendance.absent ?? 0) : 0}</div>
-                                        <div className="text-[10px] font-black uppercase text-gray-700">DAYS ABSENT</div>
-                                      </div>
-                                      <div>
-                                        <div className="text-xl font-black text-black">{data.attendance ? `${data.attendance.percentage}%` : '0%'}</div>
-                                        <div className="text-[10px] font-black uppercase text-gray-700">ATTENDANCE</div>
-                                      </div>
-                                      <div>
-                                        <div className="text-xl font-black text-black">—</div>
-                                        <div className="text-[10px] font-black uppercase text-gray-700">NEXT TERM</div>
+                                  {data.attendance && (
+                                    <div className="border-2 border-black">
+                                      <div className="grid grid-cols-4 divide-x-2 divide-black text-center p-2">
+                                        <div>
+                                          <div className="text-xl font-black text-black">{data.attendance.present ?? 0}</div>
+                                          <div className="text-[10px] font-black uppercase text-gray-700">DAYS PRESENT</div>
+                                        </div>
+                                        <div>
+                                          <div className="text-xl font-black text-black">{data.attendance.absent ?? 0}</div>
+                                          <div className="text-[10px] font-black uppercase text-gray-700">DAYS ABSENT</div>
+                                        </div>
+                                        <div>
+                                          <div className="text-xl font-black text-black">{data.attendance.percentage}%</div>
+                                          <div className="text-[10px] font-black uppercase text-gray-700">ATTENDANCE</div>
+                                        </div>
+                                        <div>
+                                          <div className="text-xl font-black text-black">—</div>
+                                          <div className="text-[10px] font-black uppercase text-gray-700">NEXT TERM</div>
+                                        </div>
                                       </div>
                                     </div>
-                                  </div>
+                                  )}
                                   <p className="text-xs font-black text-black">
                                     Next term begins: <span className="underline">{data.term?.nextTermBegins ? formatDateVerbose(data.term.nextTermBegins) : '4 May 2026'}</span>
                                   </p>

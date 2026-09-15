@@ -780,24 +780,26 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
                   </View>
 
                   {/* Attendance Summary */}
-                  <View style={{ borderWidth: 1, borderColor: '#000000', marginBottom: 4, flexDirection: 'row' }}>
-                    <View style={{ flex: 1, alignItems: 'center', padding: 4, borderRightWidth: 1, borderColor: '#000000' }}>
-                      <Text style={{ fontSize: 13, fontWeight: 'bold' }}>{data.attendance ? (data.attendance.present ?? 0) : 0}</Text>
-                      <Text style={{ fontSize: 7, fontWeight: 'bold', marginTop: 1 }}>DAYS PRESENT</Text>
+                  {data.attendance ? (
+                    <View style={{ borderWidth: 1, borderColor: '#000000', marginBottom: 4, flexDirection: 'row' }}>
+                      <View style={{ flex: 1, alignItems: 'center', padding: 4, borderRightWidth: 1, borderColor: '#000000' }}>
+                        <Text style={{ fontSize: 13, fontWeight: 'bold' }}>{data.attendance.present ?? 0}</Text>
+                        <Text style={{ fontSize: 7, fontWeight: 'bold', marginTop: 1 }}>DAYS PRESENT</Text>
+                      </View>
+                      <View style={{ flex: 1, alignItems: 'center', padding: 4, borderRightWidth: 1, borderColor: '#000000' }}>
+                        <Text style={{ fontSize: 13, fontWeight: 'bold' }}>{data.attendance.absent ?? 0}</Text>
+                        <Text style={{ fontSize: 7, fontWeight: 'bold', marginTop: 1 }}>DAYS ABSENT</Text>
+                      </View>
+                      <View style={{ flex: 1, alignItems: 'center', padding: 4, borderRightWidth: 1, borderColor: '#000000' }}>
+                        <Text style={{ fontSize: 13, fontWeight: 'bold' }}>{data.attendance.percentage}%</Text>
+                        <Text style={{ fontSize: 7, fontWeight: 'bold', marginTop: 1 }}>ATTENDANCE</Text>
+                      </View>
+                      <View style={{ flex: 1, alignItems: 'center', padding: 4 }}>
+                        <Text style={{ fontSize: 13, fontWeight: 'bold' }}>—</Text>
+                        <Text style={{ fontSize: 7, fontWeight: 'bold', marginTop: 1 }}>NEXT TERM</Text>
+                      </View>
                     </View>
-                    <View style={{ flex: 1, alignItems: 'center', padding: 4, borderRightWidth: 1, borderColor: '#000000' }}>
-                      <Text style={{ fontSize: 13, fontWeight: 'bold' }}>{data.attendance ? (data.attendance.absent ?? 0) : 0}</Text>
-                      <Text style={{ fontSize: 7, fontWeight: 'bold', marginTop: 1 }}>DAYS ABSENT</Text>
-                    </View>
-                    <View style={{ flex: 1, alignItems: 'center', padding: 4, borderRightWidth: 1, borderColor: '#000000' }}>
-                      <Text style={{ fontSize: 13, fontWeight: 'bold' }}>{data.attendance ? `${data.attendance.percentage}%` : '0%'}</Text>
-                      <Text style={{ fontSize: 7, fontWeight: 'bold', marginTop: 1 }}>ATTENDANCE</Text>
-                    </View>
-                    <View style={{ flex: 1, alignItems: 'center', padding: 4 }}>
-                      <Text style={{ fontSize: 13, fontWeight: 'bold' }}>—</Text>
-                      <Text style={{ fontSize: 7, fontWeight: 'bold', marginTop: 1 }}>NEXT TERM</Text>
-                    </View>
-                  </View>
+                  ) : null}
                   <Text style={{ fontSize: 8, fontWeight: 'bold', marginBottom: 4 }}>
                     Next term begins: {term.nextTermBegins ? formatDateVerbose(term.nextTermBegins) : '4 May 2026'}
                   </Text>
@@ -1084,24 +1086,26 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
                   </View>
 
                   {/* Attendance Summary */}
-                  <View style={{ borderWidth: 1, borderColor: '#000000', marginBottom: 4, flexDirection: 'row' }}>
-                    <View style={{ flex: 1, alignItems: 'center', padding: 4, borderRightWidth: 1, borderColor: '#000000' }}>
-                      <Text style={{ fontSize: 13, fontWeight: 'bold' }}>{data.attendance ? (data.attendance.present ?? 0) : 0}</Text>
-                      <Text style={{ fontSize: 7, fontWeight: 'bold', marginTop: 1 }}>DAYS PRESENT</Text>
+                  {data.attendance ? (
+                    <View style={{ borderWidth: 1, borderColor: '#000000', marginBottom: 4, flexDirection: 'row' }}>
+                      <View style={{ flex: 1, alignItems: 'center', padding: 4, borderRightWidth: 1, borderColor: '#000000' }}>
+                        <Text style={{ fontSize: 13, fontWeight: 'bold' }}>{data.attendance.present ?? 0}</Text>
+                        <Text style={{ fontSize: 7, fontWeight: 'bold', marginTop: 1 }}>DAYS PRESENT</Text>
+                      </View>
+                      <View style={{ flex: 1, alignItems: 'center', padding: 4, borderRightWidth: 1, borderColor: '#000000' }}>
+                        <Text style={{ fontSize: 13, fontWeight: 'bold' }}>{data.attendance.absent ?? 0}</Text>
+                        <Text style={{ fontSize: 7, fontWeight: 'bold', marginTop: 1 }}>DAYS ABSENT</Text>
+                      </View>
+                      <View style={{ flex: 1, alignItems: 'center', padding: 4, borderRightWidth: 1, borderColor: '#000000' }}>
+                        <Text style={{ fontSize: 13, fontWeight: 'bold' }}>{data.attendance.percentage}%</Text>
+                        <Text style={{ fontSize: 7, fontWeight: 'bold', marginTop: 1 }}>ATTENDANCE</Text>
+                      </View>
+                      <View style={{ flex: 1, alignItems: 'center', padding: 4 }}>
+                        <Text style={{ fontSize: 13, fontWeight: 'bold' }}>—</Text>
+                        <Text style={{ fontSize: 7, fontWeight: 'bold', marginTop: 1 }}>NEXT TERM</Text>
+                      </View>
                     </View>
-                    <View style={{ flex: 1, alignItems: 'center', padding: 4, borderRightWidth: 1, borderColor: '#000000' }}>
-                      <Text style={{ fontSize: 13, fontWeight: 'bold' }}>{data.attendance ? (data.attendance.absent ?? 0) : 0}</Text>
-                      <Text style={{ fontSize: 7, fontWeight: 'bold', marginTop: 1 }}>DAYS ABSENT</Text>
-                    </View>
-                    <View style={{ flex: 1, alignItems: 'center', padding: 4, borderRightWidth: 1, borderColor: '#000000' }}>
-                      <Text style={{ fontSize: 13, fontWeight: 'bold' }}>{data.attendance ? `${data.attendance.percentage}%` : '0%'}</Text>
-                      <Text style={{ fontSize: 7, fontWeight: 'bold', marginTop: 1 }}>ATTENDANCE</Text>
-                    </View>
-                    <View style={{ flex: 1, alignItems: 'center', padding: 4 }}>
-                      <Text style={{ fontSize: 13, fontWeight: 'bold' }}>—</Text>
-                      <Text style={{ fontSize: 7, fontWeight: 'bold', marginTop: 1 }}>NEXT TERM</Text>
-                    </View>
-                  </View>
+                  ) : null}
                   <Text style={{ fontSize: 8, fontWeight: 'bold', marginBottom: 8 }}>
                     Next term begins: {term.nextTermBegins ? formatDateVerbose(term.nextTermBegins) : '4 May 2026'}
                   </Text>
