@@ -805,50 +805,89 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
                   {/* Assessment Key Banner */}
                   <View style={{ marginBottom: 4 }}>
                     <Text style={{ fontSize: 7, fontWeight: 'bold', textTransform: 'uppercase', marginBottom: 2 }}>ASSESSMENT KEY</Text>
-                    <View style={{ borderWidth: 1, borderColor: '#000000', flexDirection: 'row', backgroundColor: '#F9FAFB' }}>
-                      <View style={{ flex: 1, alignItems: 'center', padding: 4, borderRightWidth: 1, borderColor: '#000000' }}>
-                        <Text style={{ fontSize: 9, fontWeight: 'bold' }}>A</Text>
-                        <Text style={{ fontSize: 7 }}>Excellent</Text>
+                    <View style={{ borderWidth: 1, borderColor: '#000000', flexDirection: 'row' }}>
+                      <View style={{ flex: 1, alignItems: 'center', padding: 3, borderRightWidth: 1, borderColor: '#000000', backgroundColor: '#d1fae5' }}>
+                        <Text style={{ fontSize: 9, fontWeight: 'bold', color: '#065f46' }}>A</Text>
+                        <Text style={{ fontSize: 6.5, fontWeight: 'bold', color: '#065f46' }}>Achieved Target</Text>
                       </View>
-                      <View style={{ flex: 1, alignItems: 'center', padding: 4, borderRightWidth: 1, borderColor: '#000000' }}>
-                        <Text style={{ fontSize: 9, fontWeight: 'bold' }}>P</Text>
-                        <Text style={{ fontSize: 7 }}>Perfected</Text>
+                      <View style={{ flex: 1, alignItems: 'center', padding: 3, borderRightWidth: 1, borderColor: '#000000', backgroundColor: '#e0f2fe' }}>
+                        <Text style={{ fontSize: 9, fontWeight: 'bold', color: '#0369a1' }}>P</Text>
+                        <Text style={{ fontSize: 6.5, fontWeight: 'bold', color: '#0369a1' }}>Progressing Well</Text>
                       </View>
-                      <View style={{ flex: 1, alignItems: 'center', padding: 4, borderRightWidth: 1, borderColor: '#000000' }}>
-                        <Text style={{ fontSize: 9, fontWeight: 'bold' }}>W</Text>
-                        <Text style={{ fontSize: 7 }}>Working on It</Text>
+                      <View style={{ flex: 1, alignItems: 'center', padding: 3, borderRightWidth: 1, borderColor: '#000000', backgroundColor: '#fef3c7' }}>
+                        <Text style={{ fontSize: 9, fontWeight: 'bold', color: '#92400e' }}>W</Text>
+                        <Text style={{ fontSize: 6.5, fontWeight: 'bold', color: '#92400e' }}>Working Towards</Text>
                       </View>
-                      <View style={{ flex: 1, alignItems: 'center', padding: 4 }}>
-                        <Text style={{ fontSize: 9, fontWeight: 'bold' }}>NA</Text>
-                        <Text style={{ fontSize: 7 }}>Not Applicable</Text>
+                      <View style={{ flex: 1, alignItems: 'center', padding: 3, backgroundColor: '#f1f5f9' }}>
+                        <Text style={{ fontSize: 9, fontWeight: 'bold', color: '#334155' }}>NA</Text>
+                        <Text style={{ fontSize: 6.5, fontWeight: 'bold', color: '#334155' }}>Not Applicable</Text>
                       </View>
                     </View>
                   </View>
 
                   {/* All Domains */}
-                  {domains.map((domain, dIdx) => (
-                    <View key={dIdx} style={{ marginBottom: 4 }}>
-                      <Text style={{ fontSize: 8, fontWeight: 'bold', backgroundColor: primaryColor, color: '#FFFFFF', padding: 3, borderWidth: 1, borderColor: '#000000', textTransform: 'uppercase' }}>
-                        {domain.name}
-                      </Text>
-                      <View style={{ borderWidth: 1, borderTopWidth: 0, borderColor: '#000000' }}>
-                        <View style={{ flexDirection: 'row', backgroundColor: '#F9FAFB', borderBottomWidth: 1, borderColor: '#000000', fontWeight: 'bold', fontSize: 7, height: 14, alignItems: 'center' }}>
-                          <Text style={{ flex: 1, paddingLeft: 4 }}>Learning outcome / skill</Text>
-                          <Text style={{ width: 50, textAlign: 'center', borderLeftWidth: 1, borderColor: '#000000' }}>Current</Text>
-                          <Text style={{ width: 50, textAlign: 'center', borderLeftWidth: 1, borderColor: '#000000' }}>Previous</Text>
-                          <Text style={{ width: 75, textAlign: 'center', borderLeftWidth: 1, borderColor: '#000000' }}>Progress</Text>
-                        </View>
-                        {(domain.skills || []).map((skill, sIdx) => (
-                          <View key={sIdx} style={{ flexDirection: 'row', borderBottomWidth: sIdx === domain.skills.length - 1 ? 0 : 1, borderColor: '#E5E7EB', minHeight: 12, alignItems: 'center', fontSize: 7 }}>
-                            <Text style={{ flex: 1, paddingLeft: 4 }}>{skill.name}</Text>
-                            <Text style={{ width: 50, textAlign: 'center', fontWeight: 'bold', borderLeftWidth: 1, borderColor: '#000000' }}>{skill.current || 'A'}</Text>
-                            <Text style={{ width: 50, textAlign: 'center', borderLeftWidth: 1, borderColor: '#000000' }}>{skill.previous || 'A'}</Text>
-                            <Text style={{ width: 75, textAlign: 'center', borderLeftWidth: 1, borderColor: '#000000' }}>{skill.progress || 'Maintained'}</Text>
+                  {domains.map((domain, dIdx) => {
+                    const domainColors = ['#059669', '#4f46e5', '#7c3aed', '#d97706', '#0d9488', '#e11d48'];
+                    const headerBg = domainColors[dIdx % domainColors.length];
+                    return (
+                      <View key={dIdx} style={{ marginBottom: 4 }}>
+                        <Text style={{ fontSize: 8, fontWeight: 'bold', backgroundColor: headerBg, color: '#FFFFFF', padding: 3, borderWidth: 1, borderColor: '#000000', textTransform: 'uppercase' }}>
+                          {domain.name}
+                        </Text>
+                        <View style={{ borderWidth: 1, borderTopWidth: 0, borderColor: '#000000' }}>
+                          <View style={{ flexDirection: 'row', backgroundColor: '#F9FAFB', borderBottomWidth: 1, borderColor: '#000000', fontWeight: 'bold', fontSize: 7, height: 14, alignItems: 'center' }}>
+                            <Text style={{ flex: 1, paddingLeft: 4 }}>Learning outcome / skill</Text>
+                            <Text style={{ width: 50, textAlign: 'center', borderLeftWidth: 1, borderColor: '#000000' }}>Current</Text>
+                            <Text style={{ width: 50, textAlign: 'center', borderLeftWidth: 1, borderColor: '#000000' }}>Previous</Text>
+                            <Text style={{ width: 75, textAlign: 'center', borderLeftWidth: 1, borderColor: '#000000' }}>Progress</Text>
                           </View>
-                        ))}
+                          {(domain.skills || []).map((skill, sIdx) => {
+                            const curRating = (skill.current || 'A').toUpperCase();
+                            const prevRating = (skill.previous || 'A').toUpperCase();
+                            const progVal = (skill.progress || 'Maintained').trim();
+
+                            const getBadgeStyle = (val) => {
+                              if (val === 'A') return { bg: '#059669', color: '#FFFFFF' };
+                              if (val === 'P') return { bg: '#0284c7', color: '#FFFFFF' };
+                              if (val === 'W') return { bg: '#d97706', color: '#FFFFFF' };
+                              return { bg: '#64748b', color: '#FFFFFF' };
+                            };
+
+                            const getProgStyle = (val) => {
+                              if (val.toLowerCase().includes('improv')) return { bg: '#d1fae5', color: '#065f46', label: '↑ Improved' };
+                              if (val.toLowerCase().includes('maintain')) return { bg: '#e0f2fe', color: '#0369a1', label: '→ Maintained' };
+                              return { bg: '#fef3c7', color: '#92400e', label: '⚡ Needs Support' };
+                            };
+
+                            const curStyle = getBadgeStyle(curRating);
+                            const prevStyle = getBadgeStyle(prevRating);
+                            const progStyle = getProgStyle(progVal);
+
+                            return (
+                              <View key={sIdx} style={{ flexDirection: 'row', borderBottomWidth: sIdx === domain.skills.length - 1 ? 0 : 1, borderColor: '#E5E7EB', minHeight: 14, alignItems: 'center', fontSize: 7 }}>
+                                <Text style={{ flex: 1, paddingLeft: 4, fontWeight: 'bold' }}>{skill.name}</Text>
+                                <View style={{ width: 50, borderLeftWidth: 1, borderColor: '#000000', alignItems: 'center', justifyContent: 'center' }}>
+                                  <View style={{ backgroundColor: curStyle.bg, borderRadius: 2, paddingHorizontal: 4, paddingVertical: 1 }}>
+                                    <Text style={{ color: curStyle.color, fontWeight: 'bold', fontSize: 6.5 }}>{curRating}</Text>
+                                  </View>
+                                </View>
+                                <View style={{ width: 50, borderLeftWidth: 1, borderColor: '#000000', alignItems: 'center', justifyContent: 'center' }}>
+                                  <View style={{ backgroundColor: prevStyle.bg, borderRadius: 2, paddingHorizontal: 4, paddingVertical: 1 }}>
+                                    <Text style={{ color: prevStyle.color, fontWeight: 'bold', fontSize: 6.5 }}>{prevRating}</Text>
+                                  </View>
+                                </View>
+                                <View style={{ width: 75, borderLeftWidth: 1, borderColor: '#000000', alignItems: 'center', justifyContent: 'center' }}>
+                                  <View style={{ backgroundColor: progStyle.bg, borderRadius: 6, paddingHorizontal: 5, paddingVertical: 1 }}>
+                                    <Text style={{ color: progStyle.color, fontWeight: 'bold', fontSize: 6 }}>{progStyle.label}</Text>
+                                  </View>
+                                </View>
+                              </View>
+                            );
+                          })}
+                        </View>
                       </View>
-                    </View>
-                  ))}
+                    );
+                  })}
 
                   <View style={{ position: 'absolute', bottom: 15, left: 20, right: 20, flexDirection: 'row', justifyContent: 'space-between', fontSize: 7, color: '#6B7280' }}>
                     <Text>Early Years Assessment & Progress Report</Text>

@@ -720,8 +720,108 @@ const MyClass = () => {
                     </div>
                   </div>
 
-                  {/* Standard Academic Remarks Section (Standard Mode Only) */}
-                  {!isEarlyYearsMode && (
+                  {/* SECTION 01: SKILL RATINGS (EARLY YEARS) OR ACADEMIC REMARKS (STANDARD) */}
+                  {isEarlyYearsMode ? (
+                    <div className="space-y-6">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-4">
+                        <div className="flex items-center gap-3">
+                          <span className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-black text-sm">01</span>
+                          <h4 className="font-black text-gray-900 uppercase tracking-tighter text-lg">
+                            Early Years Developmental Domains & Skills
+                          </h4>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setAllEarlyYearsSkills('A')}
+                            className="px-3 py-1 bg-emerald-100 text-emerald-800 text-xs font-bold rounded-lg hover:bg-emerald-200 transition-colors"
+                          >
+                            Mark All Achieved (A)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setPsychomotorRatings([])}
+                            className="px-3 py-1 bg-gray-100 text-gray-600 text-xs font-bold rounded-lg hover:bg-gray-200 transition-colors"
+                          >
+                            Reset
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Rating Legend Key */}
+                      <div className="p-3 bg-gradient-to-r from-emerald-50 via-teal-50 to-blue-50 border border-emerald-200 rounded-xl text-xs font-bold text-gray-700 flex flex-wrap items-center justify-between gap-2">
+                        <span className="text-gray-500 uppercase tracking-wider text-[10px] font-black">Rating Scale:</span>
+                        <div className="flex items-center gap-3 flex-wrap">
+                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-emerald-600 text-white rounded font-bold"><span className="font-black">A</span> Achieved</span>
+                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-blue-600 text-white rounded font-bold"><span className="font-black">P</span> Progressing</span>
+                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-amber-500 text-white rounded font-bold"><span className="font-black">W</span> Working on It</span>
+                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-gray-400 text-white rounded font-bold"><span className="font-black">NA</span> Not Assessed</span>
+                        </div>
+                      </div>
+
+                      {/* Domains & Sub-Skills */}
+                      {earlyYearsDomains.length === 0 ? (
+                        <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 text-amber-700 text-sm font-medium">
+                          Early Years domains loading or not configured.
+                        </div>
+                      ) : (
+                        earlyYearsDomains.map((domain, dIdx) => {
+                          const domainGradients = [
+                            'from-emerald-600 to-teal-700',
+                            'from-indigo-600 to-blue-700',
+                            'from-purple-600 to-pink-700',
+                            'from-amber-500 to-orange-600',
+                            'from-teal-600 to-cyan-700',
+                            'from-rose-600 to-red-700'
+                          ];
+                          const headerGradient = domainGradients[dIdx % domainGradients.length];
+                          return (
+                            <div key={domain.id} className="border-2 border-gray-200 rounded-2xl overflow-hidden shadow-sm bg-white">
+                              <div className={`bg-gradient-to-r ${headerGradient} px-4 py-2.5 text-white font-black text-xs uppercase tracking-wider flex justify-between items-center shadow-xs`}>
+                                <div className="flex items-center gap-2">
+                                  <span className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-[10px] font-black">{dIdx + 1}</span>
+                                  <span>{domain.name}</span>
+                                </div>
+                                <span className="text-[10px] font-bold bg-black/20 px-2 py-0.5 rounded-full">{(domain.skills || []).length} Skills</span>
+                              </div>
+                              <div className="divide-y divide-gray-100">
+                                {(domain.skills || []).map((skill) => {
+                                  const currentRating = getSkillRating(skill);
+                                  return (
+                                    <div key={skill.id} className="p-3 hover:bg-gray-50/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2 transition-colors">
+                                      <span className="text-xs font-semibold text-gray-800 flex-1">{skill.name}</span>
+                                      <div className="flex items-center gap-1.5 shrink-0">
+                                        {[
+                                          { code: 'A', label: 'A', title: 'A - Achieved Target', bgSelected: 'bg-emerald-500 text-white border-emerald-500 ring-2 ring-emerald-300' },
+                                          { code: 'P', label: 'P', title: 'P - Progressing Well', bgSelected: 'bg-sky-500 text-white border-sky-500 ring-2 ring-sky-300' },
+                                          { code: 'W', label: 'W', title: 'W - Working Towards', bgSelected: 'bg-amber-500 text-white border-amber-500 ring-2 ring-amber-300' },
+                                          { code: 'NA', label: 'NA', title: 'NA - Not Assessed', bgSelected: 'bg-slate-500 text-white border-slate-500 ring-2 ring-slate-300' }
+                                        ].map((opt) => (
+                                          <button
+                                            key={opt.code}
+                                            type="button"
+                                            title={opt.title}
+                                            onClick={() => handleSkillRate(skill, opt.code)}
+                                            className={`w-8 h-8 rounded-lg text-xs font-black border transition-all ${
+                                              currentRating === opt.code
+                                                ? `${opt.bgSelected} shadow-sm scale-110`
+                                                : 'border-gray-200 text-gray-500 bg-gray-50 hover:bg-gray-100 hover:text-gray-900'
+                                            }`}
+                                          >
+                                            {opt.label}
+                                          </button>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  ) : (
                     <div className="space-y-6">
                       <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
                          <span className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-black text-sm">01</span>
@@ -784,11 +884,11 @@ const MyClass = () => {
                     </div>
                   )}
 
-                  {/* EARLY YEARS COMMENTS & DEVELOPMENT PLAN */}
-                  {isEarlyYearsMode && (
-                    <div className="space-y-6 pt-4 border-t border-gray-100">
+                  {/* SECTION 02: COMMENTS & DEVELOPMENT PLAN (EARLY YEARS) OR PSYCHOMOTOR (STANDARD) */}
+                  {isEarlyYearsMode ? (
+                    <div className="space-y-6 pt-6 border-t border-gray-100">
                       <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
-                        <span className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-black text-sm">EY</span>
+                        <span className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-black text-sm">02</span>
                         <h4 className="font-black text-gray-900 uppercase tracking-tighter text-lg">Early Years Comments & Development Plan</h4>
                       </div>
 
@@ -903,100 +1003,14 @@ const MyClass = () => {
                         </div>
                       </div>
                     </div>
-                  )}
-
-                  {/* Psychomotor / Early Years Domain Assessment */}
-                  <div className="space-y-6">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-4">
-                       <div className="flex items-center gap-3">
-                         <span className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-black text-sm">02</span>
-                         <h4 className="font-black text-gray-900 uppercase tracking-tighter text-lg">
-                           {isEarlyYearsMode 
-                             ? "Early Years Developmental Domains & Skills" 
-                             : "Affective & Psychomotor Assessment"}
-                         </h4>
-                       </div>
-                       {isEarlyYearsMode && (
-                         <div className="flex items-center gap-2">
-                           <button
-                             type="button"
-                             onClick={() => setAllEarlyYearsSkills('A')}
-                             className="px-3 py-1 bg-emerald-100 text-emerald-800 text-xs font-bold rounded-lg hover:bg-emerald-200 transition-colors"
-                           >
-                             Mark All Achieved (A)
-                           </button>
-                           <button
-                             type="button"
-                             onClick={() => setPsychomotorRatings([])}
-                             className="px-3 py-1 bg-gray-100 text-gray-600 text-xs font-bold rounded-lg hover:bg-gray-200 transition-colors"
-                           >
-                             Reset
-                           </button>
-                         </div>
-                       )}
-                    </div>
-
-                    {isEarlyYearsMode ? (
-                      <div className="space-y-6">
-                        {/* Rating Legend Key */}
-                        <div className="p-3 bg-gradient-to-r from-emerald-50 via-teal-50 to-blue-50 border border-emerald-200 rounded-xl text-xs font-bold text-gray-700 flex flex-wrap items-center justify-between gap-2">
-                          <span className="text-gray-500 uppercase tracking-wider text-[10px] font-black">Rating Scale:</span>
-                          <div className="flex items-center gap-3 flex-wrap">
-                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-emerald-600 text-white rounded font-bold"><span className="font-black">A</span> Achieved</span>
-                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-blue-600 text-white rounded font-bold"><span className="font-black">P</span> Progressing</span>
-                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-amber-500 text-white rounded font-bold"><span className="font-black">W</span> Working on It</span>
-                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-gray-400 text-white rounded font-bold"><span className="font-black">NA</span> Not Assessed</span>
-                          </div>
+                  ) : (
+                    <div className="space-y-6 pt-6 border-t border-gray-100">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-4">
+                        <div className="flex items-center gap-3">
+                          <span className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-black text-sm">02</span>
+                          <h4 className="font-black text-gray-900 uppercase tracking-tighter text-lg">Affective & Psychomotor Assessment</h4>
                         </div>
-
-                        {/* Domains & Sub-Skills */}
-                        {earlyYearsDomains.length === 0 ? (
-                          <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 text-amber-700 text-sm font-medium">
-                            Early Years domains loading or not configured.
-                          </div>
-                        ) : (
-                          earlyYearsDomains.map((domain) => (
-                            <div key={domain.id} className="border border-gray-200 rounded-2xl overflow-hidden shadow-sm bg-white">
-                              <div className="bg-gradient-to-r from-gray-900 to-gray-800 px-4 py-2.5 text-white font-black text-xs uppercase tracking-wider flex justify-between items-center">
-                                <span>{domain.name}</span>
-                                <span className="text-[10px] font-medium text-gray-300">{(domain.skills || []).length} Skills</span>
-                              </div>
-                              <div className="divide-y divide-gray-100">
-                                {(domain.skills || []).map((skill) => {
-                                  const currentRating = getSkillRating(skill);
-                                  return (
-                                    <div key={skill.id} className="p-3 hover:bg-gray-50/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2 transition-colors">
-                                      <span className="text-xs font-semibold text-gray-800 flex-1">{skill.name}</span>
-                                      <div className="flex items-center gap-1 shrink-0">
-                                        {[
-                                          { code: 'A', label: 'A', bgSelected: 'bg-emerald-600 text-white border-emerald-600' },
-                                          { code: 'P', label: 'P', bgSelected: 'bg-blue-600 text-white border-blue-600' },
-                                          { code: 'W', label: 'W', bgSelected: 'bg-amber-500 text-white border-amber-500' },
-                                          { code: 'NA', label: 'NA', bgSelected: 'bg-gray-500 text-white border-gray-500' }
-                                        ].map((opt) => (
-                                          <button
-                                            key={opt.code}
-                                            type="button"
-                                            onClick={() => handleSkillRate(skill, opt.code)}
-                                            className={`w-8 h-8 rounded-lg text-xs font-black border transition-all ${
-                                              currentRating === opt.code
-                                                ? `${opt.bgSelected} shadow-sm scale-105`
-                                                : 'border-gray-200 text-gray-500 bg-gray-50 hover:bg-gray-100 hover:text-gray-900'
-                                            }`}
-                                          >
-                                            {opt.label}
-                                          </button>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          ))
-                        )}
                       </div>
-                    ) : (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {domains.length === 0 ? (
                           <div className="col-span-full p-4 bg-amber-50 rounded-2xl border border-amber-100 text-amber-700 text-sm font-medium">
@@ -1038,8 +1052,8 @@ const MyClass = () => {
                           })
                         )}
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* RIGHT: LIVE REPORT PREVIEW */}

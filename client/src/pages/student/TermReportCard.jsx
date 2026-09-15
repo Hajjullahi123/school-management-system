@@ -769,54 +769,101 @@ const TermReportCard = () => {
                             {/* Assessment Key Banner */}
                             <div>
                               <p className="text-xs font-black uppercase mb-1 text-black">ASSESSMENT KEY</p>
-                              <div className="grid grid-cols-4 border-2 border-black divide-x-2 divide-black bg-gray-50 text-center p-2 text-xs">
-                                <div>
-                                  <span className="font-black text-sm block text-black">A</span>
-                                  <span className="text-[10px] font-bold text-gray-700">Excellent</span>
+                              <div className="grid grid-cols-4 border-2 border-black divide-x-2 divide-black text-center p-1.5 text-xs font-black">
+                                <div className="bg-emerald-100 p-1 text-emerald-900 border-r border-black">
+                                  <span className="font-black text-sm block text-emerald-800">A</span>
+                                  <span className="text-[10px] font-bold">Achieved Target</span>
                                 </div>
-                                <div>
-                                  <span className="font-black text-sm block text-black">P</span>
-                                  <span className="text-[10px] font-bold text-gray-700">Perfected</span>
+                                <div className="bg-sky-100 p-1 text-sky-900 border-r border-black">
+                                  <span className="font-black text-sm block text-sky-800">P</span>
+                                  <span className="text-[10px] font-bold">Progressing Well</span>
                                 </div>
-                                <div>
-                                  <span className="font-black text-sm block text-black">W</span>
-                                  <span className="text-[10px] font-bold text-gray-700">Working on It</span>
+                                <div className="bg-amber-100 p-1 text-amber-900 border-r border-black">
+                                  <span className="font-black text-sm block text-amber-800">W</span>
+                                  <span className="text-[10px] font-bold">Working Towards</span>
                                 </div>
-                                <div>
-                                  <span className="font-black text-sm block text-black">NA</span>
-                                  <span className="text-[10px] font-bold text-gray-700">Not Applicable</span>
+                                <div className="bg-slate-100 p-1 text-slate-700">
+                                  <span className="font-black text-sm block text-slate-700">NA</span>
+                                  <span className="text-[10px] font-bold">Not Applicable</span>
                                 </div>
                               </div>
                             </div>
 
                             {/* Page 1 Domains (ALL Domains for 2-page) */}
-                            {allDomains.map((domain, dIdx) => (
-                              <div key={dIdx} className="border-2 border-black overflow-hidden">
-                                <div className="px-3 py-1 font-black text-[11px] uppercase border-b-2 border-black text-white" style={{ backgroundColor: currentReportColor }}>
-                                  {domain.name}
-                                </div>
-                                <table className="w-full border-collapse text-xs">
-                                  <thead>
-                                    <tr className="bg-gray-100 border-b border-black text-[10px] font-black uppercase text-black">
-                                      <th className="p-1 text-left border-r border-black">Learning outcome / skill</th>
-                                      <th className="p-1 text-center w-16 border-r border-black">Current</th>
-                                      <th className="p-1 text-center w-16 border-r border-black">Previous</th>
-                                      <th className="p-1 text-center w-24">Progress</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {(domain.skills || []).map((skill, sIdx) => (
-                                      <tr key={sIdx} className="border-b border-gray-200 last:border-b-0 h-5 font-medium text-black text-[11px]">
-                                        <td className="p-1 border-r border-black font-bold">{skill.name}</td>
-                                        <td className="p-1 text-center font-black border-r border-black">{skill.current || 'A'}</td>
-                                        <td className="p-1 text-center border-r border-black">{skill.previous || 'A'}</td>
-                                        <td className="p-1 text-center font-bold">{skill.progress || 'Maintained'}</td>
+                            {allDomains.map((domain, dIdx) => {
+                              const headerColors = [
+                                'bg-emerald-600 text-white',
+                                'bg-indigo-600 text-white',
+                                'bg-purple-600 text-white',
+                                'bg-amber-600 text-white',
+                                'bg-teal-600 text-white',
+                                'bg-rose-600 text-white'
+                              ];
+                              const domainHeaderBg = headerColors[dIdx % headerColors.length];
+                              return (
+                                <div key={dIdx} className="border-2 border-black overflow-hidden shadow-xs">
+                                  <div className={`px-3 py-1 font-black text-[11px] uppercase border-b-2 border-black flex justify-between items-center ${domainHeaderBg}`}>
+                                    <span>{domain.name}</span>
+                                    <span className="text-[9px] font-bold opacity-80">Domain {dIdx + 1}</span>
+                                  </div>
+                                  <table className="w-full border-collapse text-xs">
+                                    <thead>
+                                      <tr className="bg-gray-100 border-b border-black text-[10px] font-black uppercase text-black">
+                                        <th className="p-1 text-left border-r border-black">Learning outcome / skill</th>
+                                        <th className="p-1 text-center w-16 border-r border-black">Current</th>
+                                        <th className="p-1 text-center w-16 border-r border-black">Previous</th>
+                                        <th className="p-1 text-center w-28">Progress</th>
                                       </tr>
-                                    ))}
-                                  </tbody>
-                                </table>
-                              </div>
-                            ))}
+                                    </thead>
+                                    <tbody>
+                                      {(domain.skills || []).map((skill, sIdx) => {
+                                        const curVal = (skill.current || 'A').toUpperCase();
+                                        const prevVal = (skill.previous || 'A').toUpperCase();
+                                        const progVal = (skill.progress || 'Maintained').trim();
+
+                                        const renderGradeBadge = (val) => {
+                                          if (val === 'A') return <span className="inline-block px-2 py-0.5 rounded font-black text-xs bg-emerald-500 text-white shadow-2xs">A</span>;
+                                          if (val === 'P') return <span className="inline-block px-2 py-0.5 rounded font-black text-xs bg-sky-500 text-white shadow-2xs">P</span>;
+                                          if (val === 'W') return <span className="inline-block px-2 py-0.5 rounded font-black text-xs bg-amber-500 text-white shadow-2xs">W</span>;
+                                          return <span className="inline-block px-2 py-0.5 rounded font-black text-xs bg-slate-400 text-white">NA</span>;
+                                        };
+
+                                        const renderProgressBadge = (val) => {
+                                          if (val.toLowerCase().includes('improv')) {
+                                            return (
+                                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-bold text-[10px] bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                                <span className="font-black text-emerald-600">↑</span> Improved
+                                              </span>
+                                            );
+                                          }
+                                          if (val.toLowerCase().includes('maintain')) {
+                                            return (
+                                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-bold text-[10px] bg-sky-100 text-sky-800 border border-sky-300">
+                                                <span className="font-black text-sky-600">→</span> Maintained
+                                              </span>
+                                            );
+                                          }
+                                          return (
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-bold text-[10px] bg-amber-100 text-amber-800 border border-amber-300">
+                                              <span className="font-black text-amber-600">⚡</span> Needs Support
+                                            </span>
+                                          );
+                                        };
+
+                                        return (
+                                          <tr key={sIdx} className="border-b border-gray-200 last:border-b-0 h-6 font-medium text-black text-[11px] hover:bg-gray-50/50">
+                                            <td className="p-1 border-r border-black font-bold">{skill.name}</td>
+                                            <td className="p-1 text-center border-r border-black">{renderGradeBadge(curVal)}</td>
+                                            <td className="p-1 text-center border-r border-black">{renderGradeBadge(prevVal)}</td>
+                                            <td className="p-1 text-center">{renderProgressBadge(progVal)}</td>
+                                          </tr>
+                                        );
+                                      })}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              );
+                            })}
                             <div className="flex justify-between text-[10px] text-gray-500 font-bold border-t pt-2">
                               <span>Early Years Assessment & Progress Report</span>
                               <span>Confidential School Record</span>
@@ -831,16 +878,17 @@ const TermReportCard = () => {
                             </div>
 
                             {/* PROGRESS AT A GLANCE TABLE */}
-                            <div className="border-2 border-black overflow-hidden">
-                              <div className="bg-black text-white px-3 py-1 font-black text-xs uppercase tracking-wider">
-                                PROGRESS AT A GLANCE
+                            <div className="border-2 border-black overflow-hidden shadow-xs">
+                              <div className="bg-gradient-to-r from-indigo-900 via-purple-900 to-pink-900 text-white px-3 py-1 font-black text-xs uppercase tracking-wider flex justify-between items-center">
+                                <span>PROGRESS AT A GLANCE</span>
+                                <span className="text-[10px] font-bold text-pink-200">DEVELOPMENT SUMMARY</span>
                               </div>
                               <table className="w-full border-collapse text-xs">
                                 <thead>
-                                  <tr className="bg-gray-100 border-b border-black font-black uppercase text-black text-[11px]">
-                                    <th className="p-1.5 text-left w-1/4 border-r border-black">AREA</th>
-                                    <th className="p-1.5 text-left w-3/8 border-r border-black">WHAT IS GOING WELL</th>
-                                    <th className="p-1.5 text-left w-3/8">NEXT FOCUS</th>
+                                  <tr className="bg-gray-100 border-b-2 border-black font-black uppercase text-black text-[11px]">
+                                    <th className="p-1.5 text-left w-1/4 border-r border-black">DEVELOPMENT AREA</th>
+                                    <th className="p-1.5 text-left w-3/8 border-r border-black text-emerald-900">WHAT IS GOING WELL</th>
+                                    <th className="p-1.5 text-left w-3/8 text-indigo-900">NEXT FOCUS & GOALS</th>
                                   </tr>
                                 </thead>
                                 <tbody>
@@ -849,13 +897,25 @@ const TermReportCard = () => {
                                     { area: 'Numeracy', goingWell: 'Counting, number recognition and basic concepts.', nextFocus: 'Reinforce number concepts through daily practice.' },
                                     { area: 'Physical', goingWell: 'Fine-motor control, organised play and safety.', nextFocus: 'Maintain regular pencil, crayon and scissors activities.' },
                                     { area: 'Social / Emotional', goingWell: 'Self-control, confidence and participation.', nextFocus: 'Continue positive reinforcement and independence.' }
-                                  ]).map((row, rIdx) => (
-                                    <tr key={rIdx} className="border-b border-black last:border-b-0 font-medium text-black">
-                                      <td className="p-1.5 border-r border-black font-black">{row.area}</td>
-                                      <td className="p-1.5 border-r border-black">{row.goingWell}</td>
-                                      <td className="p-1.5">{row.nextFocus}</td>
-                                    </tr>
-                                  ))}
+                                  ]).map((row, rIdx) => {
+                                    const areaPillColors = [
+                                      'bg-emerald-100 text-emerald-900 border-emerald-300',
+                                      'bg-sky-100 text-sky-900 border-sky-300',
+                                      'bg-purple-100 text-purple-900 border-purple-300',
+                                      'bg-amber-100 text-amber-900 border-amber-300'
+                                    ];
+                                    return (
+                                      <tr key={rIdx} className="border-b border-gray-300 last:border-b-0 font-medium text-black hover:bg-gray-50">
+                                        <td className="p-1.5 border-r border-black font-black">
+                                          <span className={`inline-block px-2 py-0.5 rounded border text-[11px] font-black ${areaPillColors[rIdx % areaPillColors.length]}`}>
+                                            {row.area}
+                                          </span>
+                                        </td>
+                                        <td className="p-1.5 border-r border-black bg-emerald-50/20">{row.goingWell}</td>
+                                        <td className="p-1.5 bg-indigo-50/20">{row.nextFocus}</td>
+                                      </tr>
+                                    );
+                                  })}
                                 </tbody>
                               </table>
                             </div>
@@ -1079,54 +1139,97 @@ const TermReportCard = () => {
                         {/* Assessment Key Banner */}
                         <div>
                           <p className="text-xs font-black uppercase mb-1 text-black">ASSESSMENT KEY</p>
-                          <div className="grid grid-cols-4 border-2 border-black divide-x-2 divide-black bg-gray-50 text-center p-2 text-xs">
-                            <div>
-                              <span className="font-black text-sm block text-black">A</span>
-                              <span className="text-[10px] font-bold text-gray-700">Excellent</span>
+                          <div className="grid grid-cols-4 border-2 border-black divide-x-2 divide-black text-center p-1.5 text-xs font-black">
+                            <div className="bg-emerald-100 p-1 text-emerald-900 border-r border-black">
+                              <span className="font-black text-sm block text-emerald-800">A</span>
+                              <span className="text-[10px] font-bold">Achieved Target</span>
                             </div>
-                            <div>
-                              <span className="font-black text-sm block text-black">P</span>
-                              <span className="text-[10px] font-bold text-gray-700">Perfected</span>
+                            <div className="bg-sky-100 p-1 text-sky-900 border-r border-black">
+                              <span className="font-black text-sm block text-sky-800">P</span>
+                              <span className="text-[10px] font-bold">Progressing Well</span>
                             </div>
-                            <div>
-                              <span className="font-black text-sm block text-black">W</span>
-                              <span className="text-[10px] font-bold text-gray-700">Working on It</span>
+                            <div className="bg-amber-100 p-1 text-amber-900 border-r border-black">
+                              <span className="font-black text-sm block text-amber-800">W</span>
+                              <span className="text-[10px] font-bold">Working Towards</span>
                             </div>
-                            <div>
-                              <span className="font-black text-sm block text-black">NA</span>
-                              <span className="text-[10px] font-bold text-gray-700">Not Applicable</span>
+                            <div className="bg-slate-100 p-1 text-slate-700">
+                              <span className="font-black text-sm block text-slate-700">NA</span>
+                              <span className="text-[10px] font-bold">Not Applicable</span>
                             </div>
                           </div>
                         </div>
 
                         {/* Page 1 Domains (01 & 02) */}
-                        {(data.earlyYearsDomains || []).filter(d => (d.name || '').startsWith('01') || (d.name || '').startsWith('02')).map((domain, dIdx) => (
-                          <div key={dIdx} className="border-2 border-black overflow-hidden">
-                            <div className="bg-gray-200 px-3 py-1 font-black text-xs uppercase border-b-2 border-black text-black">
-                              {domain.name}
-                            </div>
-                            <table className="w-full border-collapse text-xs">
-                              <thead>
-                                <tr className="bg-gray-100 border-b border-black text-[11px] font-black uppercase text-black">
-                                  <th className="p-1.5 text-left border-r border-black">Learning outcome / skill</th>
-                                  <th className="p-1.5 text-center w-20 border-r border-black">Current</th>
-                                  <th className="p-1.5 text-center w-20 border-r border-black">Previous</th>
-                                  <th className="p-1.5 text-center w-28">Progress</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {(domain.skills || []).map((skill, sIdx) => (
-                                  <tr key={sIdx} className="border-b border-gray-200 last:border-b-0 h-6 font-medium text-black">
-                                    <td className="p-1.5 border-r border-black font-bold">{skill.name}</td>
-                                    <td className="p-1.5 text-center font-black border-r border-black">{skill.current || 'A'}</td>
-                                    <td className="p-1.5 text-center border-r border-black">{skill.previous || 'A'}</td>
-                                    <td className="p-1.5 text-center font-bold">{skill.progress || 'Maintained'}</td>
+                        {(data.earlyYearsDomains || []).filter(d => (d.name || '').startsWith('01') || (d.name || '').startsWith('02')).map((domain, dIdx) => {
+                          const headerColors = [
+                            'bg-emerald-600 text-white',
+                            'bg-indigo-600 text-white'
+                          ];
+                          const domainHeaderBg = headerColors[dIdx % headerColors.length];
+                          return (
+                            <div key={dIdx} className="border-2 border-black overflow-hidden shadow-xs">
+                              <div className={`px-3 py-1 font-black text-xs uppercase border-b-2 border-black flex justify-between items-center ${domainHeaderBg}`}>
+                                <span>{domain.name}</span>
+                                <span className="text-[9px] font-bold opacity-80">Domain {dIdx + 1}</span>
+                              </div>
+                              <table className="w-full border-collapse text-xs">
+                                <thead>
+                                  <tr className="bg-gray-100 border-b border-black text-[11px] font-black uppercase text-black">
+                                    <th className="p-1.5 text-left border-r border-black">Learning outcome / skill</th>
+                                    <th className="p-1.5 text-center w-20 border-r border-black">Current</th>
+                                    <th className="p-1.5 text-center w-20 border-r border-black">Previous</th>
+                                    <th className="p-1.5 text-center w-28">Progress</th>
                                   </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        ))}
+                                </thead>
+                                <tbody>
+                                  {(domain.skills || []).map((skill, sIdx) => {
+                                    const curVal = (skill.current || 'A').toUpperCase();
+                                    const prevVal = (skill.previous || 'A').toUpperCase();
+                                    const progVal = (skill.progress || 'Maintained').trim();
+
+                                    const renderGradeBadge = (val) => {
+                                      if (val === 'A') return <span className="inline-block px-2 py-0.5 rounded font-black text-xs bg-emerald-500 text-white shadow-2xs">A</span>;
+                                      if (val === 'P') return <span className="inline-block px-2 py-0.5 rounded font-black text-xs bg-sky-500 text-white shadow-2xs">P</span>;
+                                      if (val === 'W') return <span className="inline-block px-2 py-0.5 rounded font-black text-xs bg-amber-500 text-white shadow-2xs">W</span>;
+                                      return <span className="inline-block px-2 py-0.5 rounded font-black text-xs bg-slate-400 text-white">NA</span>;
+                                    };
+
+                                    const renderProgressBadge = (val) => {
+                                      if (val.toLowerCase().includes('improv')) {
+                                        return (
+                                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-bold text-[10px] bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                            <span className="font-black text-emerald-600">↑</span> Improved
+                                          </span>
+                                        );
+                                      }
+                                      if (val.toLowerCase().includes('maintain')) {
+                                        return (
+                                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-bold text-[10px] bg-sky-100 text-sky-800 border border-sky-300">
+                                            <span className="font-black text-sky-600">→</span> Maintained
+                                          </span>
+                                        );
+                                      }
+                                      return (
+                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-bold text-[10px] bg-amber-100 text-amber-800 border border-amber-300">
+                                          <span className="font-black text-amber-600">⚡</span> Needs Support
+                                        </span>
+                                      );
+                                    };
+
+                                    return (
+                                      <tr key={sIdx} className="border-b border-gray-200 last:border-b-0 h-6 font-medium text-black hover:bg-gray-50/50">
+                                        <td className="p-1.5 border-r border-black font-bold">{skill.name}</td>
+                                        <td className="p-1.5 text-center border-r border-black">{renderGradeBadge(curVal)}</td>
+                                        <td className="p-1.5 text-center border-r border-black">{renderGradeBadge(prevVal)}</td>
+                                        <td className="p-1.5 text-center">{renderProgressBadge(progVal)}</td>
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
+                            </div>
+                          );
+                        })}
                         <div className="flex justify-between text-[10px] text-gray-500 font-bold border-t pt-2">
                           <span>Early Years Assessment & Progress Report</span>
                           <span>Confidential School Record</span>
@@ -1144,33 +1247,78 @@ const TermReportCard = () => {
                         {((data.earlyYearsDomains || []).filter(d => !(d.name || '').startsWith('01') && !(d.name || '').startsWith('02')).length > 0
                           ? (data.earlyYearsDomains || []).filter(d => !(d.name || '').startsWith('01') && !(d.name || '').startsWith('02'))
                           : (data.earlyYearsDomains || [])
-                        ).map((domain, dIdx) => (
-                          <div key={dIdx} className="border-2 border-black overflow-hidden">
-                            <div className="bg-gray-200 px-3 py-1 font-black text-xs uppercase border-b-2 border-black text-black">
-                              {domain.name}
-                            </div>
-                            <table className="w-full border-collapse text-xs">
-                              <thead>
-                                <tr className="bg-gray-100 border-b border-black text-[11px] font-black uppercase text-black">
-                                  <th className="p-1.5 text-left border-r border-black">Learning outcome / skill</th>
-                                  <th className="p-1.5 text-center w-20 border-r border-black">Current</th>
-                                  <th className="p-1.5 text-center w-20 border-r border-black">Previous</th>
-                                  <th className="p-1.5 text-center w-28">Progress</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {(domain.skills || []).map((skill, sIdx) => (
-                                  <tr key={sIdx} className="border-b border-gray-200 last:border-b-0 h-6 font-medium text-black">
-                                    <td className="p-1.5 border-r border-black font-bold">{skill.name}</td>
-                                    <td className="p-1.5 text-center font-black border-r border-black">{skill.current || 'A'}</td>
-                                    <td className="p-1.5 text-center border-r border-black">{skill.previous || 'A'}</td>
-                                    <td className="p-1.5 text-center font-bold">{skill.progress || 'Maintained'}</td>
+                        ).map((domain, dIdx) => {
+                          const headerColors = [
+                            'bg-purple-600 text-white',
+                            'bg-amber-600 text-white',
+                            'bg-teal-600 text-white',
+                            'bg-rose-600 text-white'
+                          ];
+                          const domainHeaderBg = headerColors[dIdx % headerColors.length];
+                          return (
+                            <div key={dIdx} className="border-2 border-black overflow-hidden shadow-xs">
+                              <div className={`px-3 py-1 font-black text-xs uppercase border-b-2 border-black flex justify-between items-center ${domainHeaderBg}`}>
+                                <span>{domain.name}</span>
+                                <span className="text-[9px] font-bold opacity-80">Domain {dIdx + 3}</span>
+                              </div>
+                              <table className="w-full border-collapse text-xs">
+                                <thead>
+                                  <tr className="bg-gray-100 border-b border-black text-[11px] font-black uppercase text-black">
+                                    <th className="p-1.5 text-left border-r border-black">Learning outcome / skill</th>
+                                    <th className="p-1.5 text-center w-20 border-r border-black">Current</th>
+                                    <th className="p-1.5 text-center w-20 border-r border-black">Previous</th>
+                                    <th className="p-1.5 text-center w-28">Progress</th>
                                   </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        ))}
+                                </thead>
+                                <tbody>
+                                  {(domain.skills || []).map((skill, sIdx) => {
+                                    const curVal = (skill.current || 'A').toUpperCase();
+                                    const prevVal = (skill.previous || 'A').toUpperCase();
+                                    const progVal = (skill.progress || 'Maintained').trim();
+
+                                    const renderGradeBadge = (val) => {
+                                      if (val === 'A') return <span className="inline-block px-2 py-0.5 rounded font-black text-xs bg-emerald-500 text-white shadow-2xs">A</span>;
+                                      if (val === 'P') return <span className="inline-block px-2 py-0.5 rounded font-black text-xs bg-sky-500 text-white shadow-2xs">P</span>;
+                                      if (val === 'W') return <span className="inline-block px-2 py-0.5 rounded font-black text-xs bg-amber-500 text-white shadow-2xs">W</span>;
+                                      return <span className="inline-block px-2 py-0.5 rounded font-black text-xs bg-slate-400 text-white">NA</span>;
+                                    };
+
+                                    const renderProgressBadge = (val) => {
+                                      if (val.toLowerCase().includes('improv')) {
+                                        return (
+                                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-bold text-[10px] bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                            <span className="font-black text-emerald-600">↑</span> Improved
+                                          </span>
+                                        );
+                                      }
+                                      if (val.toLowerCase().includes('maintain')) {
+                                        return (
+                                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-bold text-[10px] bg-sky-100 text-sky-800 border border-sky-300">
+                                            <span className="font-black text-sky-600">→</span> Maintained
+                                          </span>
+                                        );
+                                      }
+                                      return (
+                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-bold text-[10px] bg-amber-100 text-amber-800 border border-amber-300">
+                                          <span className="font-black text-amber-600">⚡</span> Needs Support
+                                        </span>
+                                      );
+                                    };
+
+                                    return (
+                                      <tr key={sIdx} className="border-b border-gray-200 last:border-b-0 h-6 font-medium text-black hover:bg-gray-50/50">
+                                        <td className="p-1.5 border-r border-black font-bold">{skill.name}</td>
+                                        <td className="p-1.5 text-center border-r border-black">{renderGradeBadge(curVal)}</td>
+                                        <td className="p-1.5 text-center border-r border-black">{renderGradeBadge(prevVal)}</td>
+                                        <td className="p-1.5 text-center">{renderProgressBadge(progVal)}</td>
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
+                            </div>
+                          );
+                        })}
 
                         {/* PROGRESS AT A GLANCE TABLE */}
                         <div className="border-2 border-black overflow-hidden">
