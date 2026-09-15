@@ -84,6 +84,12 @@ const MyClass = () => {
     atHomeNextStep: '',
     headTeacherComment: ''
   });
+  const [manualAttendance, setManualAttendance] = useState({
+    enabled: false,
+    presentDays: '',
+    absentDays: '',
+    totalDays: ''
+  });
   const [psychomotorRatings, setPsychomotorRatings] = useState([]);
   const [domains, setDomains] = useState([]);
   const [earlyYearsDomains, setEarlyYearsDomains] = useState([]);
@@ -270,6 +276,7 @@ const MyClass = () => {
     setReportPreview(null);
     setRemarks({ formMasterRemark: '', principalRemark: '' });
     setPsychomotorRatings([]);
+    setManualAttendance({ enabled: false, presentDays: '', absentDays: '', totalDays: '' });
 
     try {
       // Parallel fetch for speed
@@ -285,6 +292,14 @@ const MyClass = () => {
           principalRemark: data.principalRemark || ''
         });
         setPsychomotorRatings(Array.isArray(data.psychomotorRatings) ? data.psychomotorRatings : []);
+        if (data.attendanceOverride) {
+          setManualAttendance({
+            enabled: data.attendanceOverride.enabled ?? true,
+            presentDays: data.attendanceOverride.presentDays ?? '',
+            absentDays: data.attendanceOverride.absentDays ?? '',
+            totalDays: data.attendanceOverride.totalDays ?? ''
+          });
+        }
         if (data.developmentPlan) {
           setDevelopmentPlan({
             teacherComment: data.developmentPlan.teacherComment || data.formMasterRemark || '',
@@ -328,7 +343,8 @@ const MyClass = () => {
         formMasterRemark: developmentPlan.teacherComment || remarks.formMasterRemark,
         principalRemark: developmentPlan.headTeacherComment || remarks.principalRemark,
         psychomotorRatings,
-        developmentPlan
+        developmentPlan,
+        attendanceOverride: manualAttendance.enabled ? manualAttendance : null
       };
 
       const res = await api.post('/api/report-extras/save', payload);
@@ -1054,6 +1070,94 @@ const MyClass = () => {
                       </div>
                     </div>
                   )}
+
+                  {/* SECTION 03: PHYSICAL REGISTER ATTENDANCE OVERRIDE */}
+                  <div className="space-y-4 pt-6 border-t border-gray-100">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-100 pb-3">
+                      <div className="flex items-center gap-3">
+                        <span className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-black text-sm">03</span>
+                        <div>
+                          <h4 className="font-black text-gray-900 uppercase tracking-tighter text-sm">Physical Register Attendance</h4>
+                          <p className="text-[11px] text-gray-500 font-medium">Override auto-calculated attendance for schools using physical registers.</p>
+                        </div>
+                      </div>
+                      {reportPreview?.attendance && (
+                        <span className="text-[10px] font-bold bg-gray-100 text-gray-700 px-2 py-1 rounded self-start sm:self-center">
+                          System Auto-Count: {reportPreview.attendance.present || 0} / {reportPreview.attendance.total || 0} Days ({reportPreview.attendance.percentage || 0}%)
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="p-4 bg-gray-50/80 rounded-2xl border border-gray-200/80 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <label className="flex items-center gap-2 cursor-pointer text-xs font-black text-gray-800 uppercase tracking-wider">
+                          <input
+                            type="checkbox"
+                            checked={manualAttendance.enabled}
+                            onChange={(e) => {
+                              const isChecked = e.target.checked;
+                              setManualAttendance(prev => ({
+                                ...prev,
+                                enabled: isChecked,
+                                presentDays: isChecked ? (prev.presentDays !== '' ? prev.presentDays : (reportPreview?.attendance?.present ?? '')) : prev.presentDays,
+                                absentDays: isChecked ? (prev.absentDays !== '' ? prev.absentDays : (reportPreview?.attendance?.absent ?? '')) : prev.absentDays,
+                                totalDays: isChecked ? (prev.totalDays !== '' ? prev.totalDays : (reportPreview?.attendance?.total ?? '')) : prev.totalDays
+                              }));
+                            }}
+                            className="w-4 h-4 text-primary rounded border-gray-300 focus:ring-primary"
+                          />
+                          <span>Override Attendance with Physical Register Record</span>
+                        </label>
+                        {manualAttendance.enabled && (
+                          <button
+                            type="button"
+                            onClick={() => setManualAttendance({ enabled: false, presentDays: '', absentDays: '', totalDays: '' })}
+                            className="text-[10px] font-bold text-gray-500 hover:text-red-600 underline"
+                          >
+                            Reset to Auto-Count
+                          </button>
+                        )}
+                      </div>
+
+                      {manualAttendance.enabled && (
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                          <div>
+                            <label className="block text-[10px] font-black text-gray-600 uppercase mb-1">Days Present</label>
+                            <input
+                              type="number"
+                              min="0"
+                              placeholder="e.g. 58"
+                              value={manualAttendance.presentDays}
+                              onChange={(e) => setManualAttendance({ ...manualAttendance, presentDays: e.target.value })}
+                              className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 text-xs font-bold text-gray-800 focus:border-primary outline-none bg-white"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-black text-gray-600 uppercase mb-1">Days Absent</label>
+                            <input
+                              type="number"
+                              min="0"
+                              placeholder="e.g. 2"
+                              value={manualAttendance.absentDays}
+                              onChange={(e) => setManualAttendance({ ...manualAttendance, absentDays: e.target.value })}
+                              className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 text-xs font-bold text-gray-800 focus:border-primary outline-none bg-white"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-black text-gray-600 uppercase mb-1">Total Term Days</label>
+                            <input
+                              type="number"
+                              min="0"
+                              placeholder="e.g. 60"
+                              value={manualAttendance.totalDays}
+                              onChange={(e) => setManualAttendance({ ...manualAttendance, totalDays: e.target.value })}
+                              className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 text-xs font-bold text-gray-800 focus:border-primary outline-none bg-white"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 {/* RIGHT: LIVE REPORT PREVIEW */}

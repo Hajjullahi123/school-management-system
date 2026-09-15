@@ -187,6 +187,7 @@ router.get('/:studentId/:termId', authenticate, async (req, res) => {
     let ratings = [];
     let developmentPlan = null;
     let progressAtAGlance = null;
+    let attendanceOverride = null;
 
     if (reportExtras.psychomotorRatings) {
       try {
@@ -197,6 +198,7 @@ router.get('/:studentId/:termId', authenticate, async (req, res) => {
           ratings = Array.isArray(parsed.ratings) ? parsed.ratings : [];
           developmentPlan = parsed.developmentPlan || null;
           progressAtAGlance = parsed.progressAtAGlance || null;
+          attendanceOverride = parsed.attendanceOverride || null;
         }
       } catch (e) {
         ratings = [];
@@ -207,7 +209,8 @@ router.get('/:studentId/:termId', authenticate, async (req, res) => {
       ...reportExtras,
       psychomotorRatings: ratings,
       developmentPlan,
-      progressAtAGlance
+      progressAtAGlance,
+      attendanceOverride
     });
   } catch (error) {
     console.error(error);
@@ -226,7 +229,8 @@ router.post('/save', authenticate, authorize(['admin', 'teacher', 'principal', '
       principalRemark,
       psychomotorRatings,
       developmentPlan,
-      progressAtAGlance
+      progressAtAGlance,
+      attendanceOverride
     } = req.body;
 
     // Get Term to find Session Id
@@ -239,10 +243,11 @@ router.post('/save', authenticate, authorize(['admin', 'teacher', 'principal', '
 
     if (!term) return res.status(404).json({ error: 'Term not found' });
 
-    const payloadToStore = (developmentPlan || progressAtAGlance) ? {
+    const payloadToStore = (developmentPlan || progressAtAGlance || attendanceOverride) ? {
       ratings: Array.isArray(psychomotorRatings) ? psychomotorRatings : [],
       developmentPlan: developmentPlan || null,
-      progressAtAGlance: progressAtAGlance || null
+      progressAtAGlance: progressAtAGlance || null,
+      attendanceOverride: attendanceOverride || null
     } : psychomotorRatings;
 
     // Upsert

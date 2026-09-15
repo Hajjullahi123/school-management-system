@@ -475,6 +475,7 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
     let ratings = [];
     let devPlanFromRatings = null;
     let progressFromRatings = null;
+    let manualAttendanceFromRatings = null;
     try {
       if (reportExtras?.psychomotorRatings) {
         const parsed = JSON.parse(reportExtras.psychomotorRatings);
@@ -484,6 +485,7 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
           ratings = Array.isArray(parsed.ratings) ? parsed.ratings : [];
           devPlanFromRatings = parsed.developmentPlan || null;
           progressFromRatings = parsed.progressAtAGlance || null;
+          manualAttendanceFromRatings = parsed.attendanceOverride || null;
         }
       }
     } catch (e) {
@@ -625,13 +627,21 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
           exam: schoolSettings.examWeight
         }
       },
-      attendance: (schoolSettings.showAttendanceOnReport && (student.classModel?.showAttendanceOnReport !== false)) ? {
-        present: presentAttendanceDays,
-        absent: absentAttendanceDays,
-        unmarked: unmarkedAttendanceDays > 0 ? unmarkedAttendanceDays : 0,
-        total: totalAttendanceDays,
-        percentage: totalAttendanceDays > 0 ? ((presentAttendanceDays / totalAttendanceDays) * 100).toFixed(1) : 0
-      } : null,
+      attendance: (schoolSettings.showAttendanceOnReport && (student.classModel?.showAttendanceOnReport !== false)) ? (() => {
+        const isManual = manualAttendanceFromRatings && manualAttendanceFromRatings.enabled;
+        const p = isManual ? (parseInt(manualAttendanceFromRatings.presentDays) || 0) : presentAttendanceDays;
+        const a = isManual ? (parseInt(manualAttendanceFromRatings.absentDays) || 0) : absentAttendanceDays;
+        const t = isManual ? (parseInt(manualAttendanceFromRatings.totalDays) || (p + a)) : totalAttendanceDays;
+        const u = isManual ? Math.max(0, t - (p + a)) : (unmarkedAttendanceDays > 0 ? unmarkedAttendanceDays : 0);
+        const perc = t > 0 ? ((p / t) * 100).toFixed(1) : 0;
+        return {
+          present: p,
+          absent: a,
+          unmarked: u,
+          total: t,
+          percentage: perc
+        };
+      })() : null,
       subjects: (() => {
         const uniqueSubjects = new Map();
         classSubjects.forEach(cs => uniqueSubjects.set(cs.subjectId, { id: cs.subjectId, name: cs.subject?.name }));
@@ -1384,20 +1394,34 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
       const termPosition = positionMap[student.id] || '-';
 
       let ratings = [];
+      let manualAttendance = null;
       try {
-        const parsed = reportExtras?.psychomotorRatings ? JSON.parse(reportExtras.psychomotorRatings) : [];
-        ratings = Array.isArray(parsed) ? parsed : [];
+        const parsed = reportExtras?.psychomotorRatings ? JSON.parse(reportExtras.psychomotorRatings) : null;
+        if (Array.isArray(parsed)) {
+          ratings = parsed;
+        } else if (parsed && typeof parsed === 'object') {
+          ratings = Array.isArray(parsed.ratings) ? parsed.ratings : [];
+          manualAttendance = parsed.attendanceOverride || null;
+        }
       } catch (e) { ratings = []; }
 
       const feeSummary = feeMap[student.id];
 
-      const studentAttendance = (schoolSettings.showAttendanceOnReport && (classInfo?.showAttendanceOnReport !== false)) ? {
-        present: attendanceMap[student.id] || 0,
-        absent: absentMap[student.id] || 0,
-        unmarked: Math.max(0, totalAttendanceDays - (totalRecordedMap[student.id] || 0)),
-        total: totalAttendanceDays,
-        percentage: totalAttendanceDays > 0 ? (((attendanceMap[student.id] || 0) / totalAttendanceDays) * 100).toFixed(1) : 0
-      } : null;
+      const studentAttendance = (schoolSettings.showAttendanceOnReport && (classInfo?.showAttendanceOnReport !== false)) ? (() => {
+        const isManual = manualAttendance && manualAttendance.enabled;
+        const p = isManual ? (parseInt(manualAttendance.presentDays) || 0) : (attendanceMap[student.id] || 0);
+        const a = isManual ? (parseInt(manualAttendance.absentDays) || 0) : (absentMap[student.id] || 0);
+        const t = isManual ? (parseInt(manualAttendance.totalDays) || (p + a)) : totalAttendanceDays;
+        const u = isManual ? Math.max(0, t - (p + a)) : Math.max(0, totalAttendanceDays - (totalRecordedMap[student.id] || 0));
+        const perc = t > 0 ? ((p / t) * 100).toFixed(1) : 0;
+        return {
+          present: p,
+          absent: a,
+          unmarked: u,
+          total: t,
+          percentage: perc
+        };
+      })() : null;
 
       return {
         student: {
