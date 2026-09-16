@@ -398,7 +398,9 @@ const ProgressiveReport = () => {
               const reportFont = rs.reportFontFamily || ss?.reportFontFamily || 'sans-serif';
               const showPosition = rs.showPositionOnReport !== undefined ? rs.showPositionOnReport : ss?.showPositionOnReport !== false;
               const showAttendance = (ss?.showAttendanceOnReport !== false) && (rs.showAttendanceOnReport !== false);
-              const layout = rs.reportLayout || ss?.reportLayout || 'classic';
+              const layoutRaw = rs.reportLayout || ss?.reportLayout || 'classic';
+              const isEarlyYears = layoutRaw.startsWith('early_years');
+              const layout = isEarlyYears ? 'early_years' : layoutRaw;
               const borderStyleCss = layout === 'minimal' ? 'border-[1px] border-gray-300' : layout === 'modern' ? 'border-[6px] rounded-2xl' : 'border-4 border-double';
               const logoUri = ss?.logoUrl
                 ? (ss.logoUrl.startsWith('http') || ss.logoUrl.startsWith('data:') ? ss.logoUrl : `${API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL}${ss.logoUrl.startsWith('/') ? ss.logoUrl : '/' + ss.logoUrl}`)

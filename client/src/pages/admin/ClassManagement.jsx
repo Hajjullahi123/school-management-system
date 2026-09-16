@@ -595,7 +595,10 @@ const ClassManagement = () => {
                           <option value="classic">Classic Professional</option>
                           <option value="modern">Modern Gradient</option>
                           <option value="minimal">Minimalist Business</option>
-                          <option value="early_years">Early Years Progress Report (Nursery / Creche / KG)</option>
+                          <option value="early_years">Early Years Progress Report (School Default)</option>
+                          <option value="early_years_1-page">Early Years Progress Report (1-Page)</option>
+                          <option value="early_years_2-page">Early Years Progress Report (2-Page)</option>
+                          <option value="early_years_3-page">Early Years Progress Report (3-Page)</option>
                         </select>
                       </div>
                     </div>

@@ -680,7 +680,10 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
         const showAttendance = ((data.schoolSettings || schoolSettings)?.showAttendanceOnReport !== false) && (data.reportSettings?.showAttendanceOnReport !== false);
         
         // Layout: Strictly default to 'classic' to mirror web behavior
-        const layout = data.student?.classModel?.reportLayout || data.reportSettings?.reportLayout || (data.schoolSettings || schoolSettings)?.reportLayout || 'classic';
+        const layoutRaw = data.student?.classModel?.reportLayout || data.reportSettings?.reportLayout || (data.schoolSettings || schoolSettings)?.reportLayout || 'classic';
+        const isEarlyYears = layoutRaw.startsWith('early_years');
+        const layout = isEarlyYears ? 'early_years' : layoutRaw;
+        
         const reportColor = data.reportSettings?.reportColorScheme || (data.schoolSettings || schoolSettings)?.reportColorScheme || (data.schoolSettings || schoolSettings)?.primaryColor || '#1e40af';
 
         const logoUrl = resolveImageUrl(schoolSettings.logoUrl);
@@ -701,7 +704,10 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
             { area: 'Social / Emotional', goingWell: 'Self-control, confidence and participation.', nextFocus: 'Continue positive reinforcement and independence.' }
           ];
           const devPlan = data.developmentPlan || {};
-          const earlyYearsPageFormat = data.reportSettings?.earlyYearsPageFormat || '3-page';
+          let earlyYearsPageFormat = data.reportSettings?.earlyYearsPageFormat || '3-page';
+          if (layoutRaw === 'early_years_1-page') earlyYearsPageFormat = '1-page';
+          if (layoutRaw === 'early_years_2-page') earlyYearsPageFormat = '2-page';
+          if (layoutRaw === 'early_years_3-page') earlyYearsPageFormat = '3-page';
 
           // Filter domains into Page 1 (01, 02) and Page 2 (03, 04, 05, 06+)
           const page1Domains = domains.filter(d => (d.name || '').startsWith('01') || (d.name || '').startsWith('02'));

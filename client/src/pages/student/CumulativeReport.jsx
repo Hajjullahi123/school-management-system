@@ -229,7 +229,9 @@ const CumulativeReport = () => {
     const isLast = index === total - 1;
     const reportColor = rs.reportColorScheme || ss?.reportColorScheme || ss?.primaryColor;
     const reportFont = rs.reportFontFamily || ss?.reportFontFamily || 'serif';
-    const layout = rs.reportLayout || ss?.reportLayout || 'classic';
+    const layoutRaw = rs.reportLayout || ss?.reportLayout || 'classic';
+    const isEarlyYears = layoutRaw.startsWith('early_years');
+    const layout = isEarlyYears ? 'early_years' : layoutRaw;
     const isEarlyYearsReport = layout === 'early_years' || /early|nursery|kg|kindergarten|reception|playgroup|toddler|creche|pre-k|ركن|الركن|روضة|الروضة|تمهيدي|حضانة/i.test(data.student?.class || '');
     const showPosition = rs.showPositionOnReport !== undefined ? rs.showPositionOnReport : ss?.showPositionOnReport !== false;
     const borderStyle = layout === 'minimal' ? 'border-[2px] border-gray-400' : layout === 'modern' ? 'border-[6px] rounded-2xl' : 'border-[12px]';

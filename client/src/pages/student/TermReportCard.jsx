@@ -620,7 +620,9 @@ const TermReportCard = () => {
             const showPosition = data.reportSettings?.showPositionOnReport !== undefined ? data.reportSettings.showPositionOnReport : ((data.schoolSettings || schoolSettings)?.showPositionOnReport !== false);
             const showFees = data.reportSettings?.showFeesOnReport !== undefined ? data.reportSettings.showFeesOnReport : ((data.schoolSettings || schoolSettings)?.showFeesOnReport !== false);
             const showAttendance = ((data.schoolSettings || schoolSettings)?.showAttendanceOnReport !== false) && (data.reportSettings?.showAttendanceOnReport !== false);
-            const layout = (data.student?.classModel?.reportLayout && data.student.classModel.reportLayout.trim() !== '') ? data.student.classModel.reportLayout : ((data.reportSettings?.reportLayout && data.reportSettings.reportLayout.trim() !== '') ? data.reportSettings.reportLayout : ((data.schoolSettings || schoolSettings)?.reportLayout || 'classic'));
+            const layoutRaw = (data.student?.classModel?.reportLayout && data.student.classModel.reportLayout.trim() !== '') ? data.student.classModel.reportLayout : ((data.reportSettings?.reportLayout && data.reportSettings.reportLayout.trim() !== '') ? data.reportSettings.reportLayout : ((data.schoolSettings || schoolSettings)?.reportLayout || 'classic'));
+            const isEarlyYears = layoutRaw.startsWith('early_years');
+            const layout = isEarlyYears ? 'early_years' : layoutRaw;
             const borderStyle = layout === 'minimal' ? 'border-[2px] border-gray-400' : layout === 'modern' ? 'border-[6px] rounded-2xl' : 'border-[12px]';
 
             const domainSplit = splitDomains(data.psychomotorRatings);
@@ -657,7 +659,10 @@ const TermReportCard = () => {
 
                 <div className="relative z-10 space-y-2 print:space-y-1">
                   {layout === 'early_years' ? (() => {
-                    const earlyYearsPageFormat = data.reportSettings?.earlyYearsPageFormat || '3-page';
+                    let earlyYearsPageFormat = data.reportSettings?.earlyYearsPageFormat || '3-page';
+                    if (layoutRaw === 'early_years_1-page') earlyYearsPageFormat = '1-page';
+                    if (layoutRaw === 'early_years_2-page') earlyYearsPageFormat = '2-page';
+                    if (layoutRaw === 'early_years_3-page') earlyYearsPageFormat = '3-page';
                     const allDomains = data.earlyYearsDomains || [];
                     const ss = data.schoolSettings || schoolSettings;
                     const logoUrl = ss?.logoUrl;
