@@ -11,6 +11,9 @@ cd server
 mkdir -p logs uploads uploads/students uploads/teachers uploads/documents uploads/certificates uploads/gallery uploads/news
 echo "[DEBUG] Server directories ensured (server/logs, server/uploads)."
 
+echo ">>> Syncing production database schema..."
+npx prisma db push --schema=prisma/schema.prisma --accept-data-loss || echo "!!! DB Push failed (continuing)"
+
 echo ">>> Seeding/Updating production users..."
 node prisma/seed-production.js || echo "!!! Seed production failed (continuing)"
 
