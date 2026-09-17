@@ -768,6 +768,19 @@ const ClassManagement = () => {
                           <option value="early_years_2-page">Early Years Progress Report (2-Page)</option>
                           <option value="early_years_3-page">Early Years Progress Report (3-Page)</option>
                         </select>
+
+                        {editingClass && (
+                          <button
+                            type="button"
+                            onClick={() => openEarlyYearsModal(editingClass)}
+                            className="mt-3 w-full py-2 px-3 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1.5 shadow-sm"
+                          >
+                            <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                            </svg>
+                            Configure EY Domains & Skills for {editingClass.name}
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
