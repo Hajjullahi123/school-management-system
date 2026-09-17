@@ -545,11 +545,13 @@ const ClassManagement = () => {
 
                     <div className="flex gap-1.5 pt-2 border-t flex-wrap">
                       <button
+                        type="button"
                         onClick={(e) => {
+                          e.preventDefault();
                           e.stopPropagation();
                           openEarlyYearsModal(cls);
                         }}
-                        className="flex-1 min-w-[100px] text-xs text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 py-1.5 px-2 rounded font-semibold transition-colors"
+                        className="flex-1 min-w-[100px] text-xs text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 py-1.5 px-2 rounded font-semibold transition-colors cursor-pointer"
                         title="Configure Early Years Domains for this class"
                       >
                         EY Domains
@@ -772,10 +774,14 @@ const ClassManagement = () => {
                         {editingClass && (
                           <button
                             type="button"
-                            onClick={() => openEarlyYearsModal(editingClass)}
-                            className="mt-3 w-full py-2 px-3 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1.5 shadow-sm"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              openEarlyYearsModal(editingClass);
+                            }}
+                            className="mt-3 w-full py-2.5 px-3 bg-purple-100 hover:bg-purple-200 text-purple-900 border border-purple-300 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
                           >
-                            <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-4 h-4 text-purple-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
                             </svg>
                             Configure EY Domains & Skills for {editingClass.name}
@@ -1283,7 +1289,7 @@ const ClassManagement = () => {
 
       {/* Early Years Domains Modal */}
       {earlyYearsClass && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[99999] overflow-y-auto bg-black/75 backdrop-blur-md flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden border border-purple-200">
             {/* Header */}
             <div className="bg-gradient-to-r from-purple-700 via-purple-600 to-indigo-700 text-white p-5 flex items-center justify-between">
