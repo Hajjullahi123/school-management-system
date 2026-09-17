@@ -483,9 +483,9 @@ const MyClass = () => {
   const activeStudents = classData?.students?.filter(s => s.user?.isActive !== false) || [];
 
   const isEarlyYearsClass = Boolean(
-    classData?.reportLayout === 'early_years' ||
-    reportPreview?.reportSettings?.reportLayout === 'early_years' ||
-    schoolSettings?.reportLayout === 'early_years' ||
+    classData?.reportLayout?.startsWith('early_years') ||
+    reportPreview?.reportSettings?.reportLayout?.startsWith('early_years') ||
+    schoolSettings?.reportLayout?.startsWith('early_years') ||
     (classData?.name && /early|nursery|kg|kindergarten|reception|playgroup|toddler|creche|pre-k|ركن|الركن|روضة|الروضة|تمهيدي|حضانة/i.test(classData.name)) ||
     (reportPreview?.student?.class && /early|nursery|kg|kindergarten|reception|playgroup|toddler|creche|pre-k|ركن|الركن|روضة|الروضة|تمهيدي|حضانة/i.test(reportPreview.student.class))
   );

@@ -1109,6 +1109,7 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
         reportLayout: true,
         reportColorScheme: true,
         reportFontFamily: true,
+        earlyYearsPageFormat: true,
         name: true,
         logoUrl: true,
         address: true,
@@ -1563,7 +1564,8 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
           showAttendanceOnReport: schoolSettings.showAttendanceOnReport && (classInfo?.showAttendanceOnReport !== false),
           reportLayout: classInfo?.reportLayout ?? (schoolSettings.reportLayout || 'classic'),
           reportColorScheme: schoolSettings.reportColorScheme,
-          reportFontFamily: schoolSettings.reportFontFamily
+          reportFontFamily: schoolSettings.reportFontFamily,
+          earlyYearsPageFormat: schoolSettings.earlyYearsPageFormat || '3-page'
         }
       };
       } catch (err) {
@@ -1763,7 +1765,8 @@ router.get('/bulk-cumulative/:classId/:sessionId', authenticate, authorize(['adm
         reportSettings: {
           reportLayout: student.classModel?.reportLayout || schoolSettings.reportLayout || 'classic',
           reportColorScheme: schoolSettings.reportColorScheme,
-          reportFontFamily: schoolSettings.reportFontFamily
+          reportFontFamily: schoolSettings.reportFontFamily,
+          earlyYearsPageFormat: schoolSettings.earlyYearsPageFormat || '3-page'
         }
       };
     });
@@ -2130,7 +2133,8 @@ router.get('/cumulative/:studentId/:sessionId', authenticate, async (req, res) =
         showAttendanceOnReport: schoolSettings.showAttendanceOnReport && (student.classModel?.showAttendanceOnReport !== false),
         reportLayout: student.classModel?.reportLayout ?? (schoolSettings.reportLayout || 'classic'),
         reportColorScheme: schoolSettings.reportColorScheme,
-        reportFontFamily: schoolSettings.reportFontFamily
+        reportFontFamily: schoolSettings.reportFontFamily,
+        earlyYearsPageFormat: schoolSettings.earlyYearsPageFormat || '3-page'
       }
     });
 
@@ -2414,7 +2418,8 @@ router.get('/bulk-cumulative/:classId/:sessionId', authenticate, authorize(['adm
           showAttendanceOnReport: schoolSettings.showAttendanceOnReport && (classInfo?.showAttendanceOnReport !== false),
           reportLayout: classInfo?.reportLayout ?? (schoolSettings.reportLayout || 'classic'),
           reportColorScheme: schoolSettings.reportColorScheme,
-          reportFontFamily: schoolSettings.reportFontFamily
+          reportFontFamily: schoolSettings.reportFontFamily,
+          earlyYearsPageFormat: schoolSettings.earlyYearsPageFormat || '3-page'
         }
       });
     }

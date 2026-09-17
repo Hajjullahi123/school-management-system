@@ -714,6 +714,150 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
           const page2Domains = domains.filter(d => !(d.name || '').startsWith('01') && !(d.name || '').startsWith('02'));
           const finalPage2Domains = page2Domains.length > 0 ? page2Domains : domains;
 
+          if (earlyYearsPageFormat === '1-page') {
+            return (
+              <React.Fragment key={student.id || index}>
+                <Page size="A4" style={[styles.page, { padding: 15 }]}>
+                  {/* Header */}
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4, paddingBottom: 4, borderBottomWidth: 1, borderColor: '#000000' }}>
+                    <View style={{ width: 45, height: 45, justifyContent: 'center', alignItems: 'center' }}>
+                      {logoUrl ? (
+                        <Image src={logoUrl} style={{ width: 40, height: 40, objectFit: 'contain' }} />
+                      ) : (
+                        <Text style={{ fontSize: 6, color: '#9ca3af', textAlign: 'center' }}>NO LOGO</Text>
+                      )}
+                    </View>
+                    <View style={{ flex: 1, textAlign: 'center', paddingHorizontal: 4 }}>
+                      <Text style={{ fontSize: 11, fontWeight: 'bold', textTransform: 'uppercase', color: primaryColor }}>
+                        {schoolSettings.name || schoolSettings.schoolName || 'AL-BAYYINAH BASIC / TAHFEEDH SCHOOL'}
+                      </Text>
+                      {schoolSettings.motto && (
+                        <Text style={{ fontSize: 6, fontStyle: 'italic', marginTop: 1, textTransform: 'uppercase', color: '#374151' }}>
+                          "{schoolSettings.motto}"
+                        </Text>
+                      )}
+                      <Text style={{ fontSize: 6, color: '#4b5563', marginTop: 1 }}>
+                        {schoolSettings.address || 'Kano, Nigeria'}
+                      </Text>
+                    </View>
+                    <View style={{ width: 40, height: 40, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#d1d5db' }}>
+                      {photoUrl ? (
+                        <Image src={photoUrl} style={{ width: 38, height: 38, objectFit: 'cover' }} />
+                      ) : (
+                        <Text style={{ fontSize: 6, color: '#9ca3af' }}>PHOTO</Text>
+                      )}
+                    </View>
+                  </View>
+
+                  {/* Title Banner */}
+                  <View style={{ backgroundColor: primaryColor, paddingVertical: 2, marginBottom: 4, textAlign: 'center' }}>
+                    <Text style={{ color: '#ffffff', fontSize: 9, fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                      EARLY YEARS PROGRESS REPORT
+                    </Text>
+                  </View>
+
+                  {/* Student Info Table */}
+                  <View style={{ borderWidth: 1, borderColor: '#000000', marginBottom: 4, fontSize: 7.5 }}>
+                    <View style={{ flexDirection: 'row', borderBottomWidth: 1, borderColor: '#000000', height: 13, alignItems: 'center' }}>
+                      <Text style={{ width: '12%', fontWeight: 'bold', paddingLeft: 4, borderRightWidth: 1, borderColor: '#000000' }}>NAME:</Text>
+                      <Text style={{ width: '38%', fontWeight: 'bold', paddingLeft: 4, borderRightWidth: 1, borderColor: '#000000' }}>{studentName}</Text>
+                      <Text style={{ width: '15%', fontWeight: 'bold', paddingLeft: 4, borderRightWidth: 1, borderColor: '#000000' }}>GENDER:</Text>
+                      <Text style={{ width: '35%', paddingLeft: 4 }}>{student.gender || '-'}</Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', borderBottomWidth: 1, borderColor: '#000000', height: 13, alignItems: 'center' }}>
+                      <Text style={{ width: '12%', fontWeight: 'bold', paddingLeft: 4, borderRightWidth: 1, borderColor: '#000000' }}>CLASS:</Text>
+                      <Text style={{ width: '38%', paddingLeft: 4, borderRightWidth: 1, borderColor: '#000000' }}>{className}</Text>
+                      <Text style={{ width: '15%', fontWeight: 'bold', paddingLeft: 4, borderRightWidth: 1, borderColor: '#000000' }}>SESSION/TERM:</Text>
+                      <Text style={{ width: '35%', paddingLeft: 4 }}>{term.session} - {term.name}</Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', height: 13, alignItems: 'center' }}>
+                      <Text style={{ width: '12%', fontWeight: 'bold', paddingLeft: 4, borderRightWidth: 1, borderColor: '#000000' }}>ADM NO:</Text>
+                      <Text style={{ width: '38%', paddingLeft: 4, borderRightWidth: 1, borderColor: '#000000' }}>{student.admissionNumber || '-'}</Text>
+                      <Text style={{ width: '15%', fontWeight: 'bold', paddingLeft: 4, borderRightWidth: 1, borderColor: '#000000' }}>ATTENDANCE:</Text>
+                      <Text style={{ width: '35%', paddingLeft: 4 }}>{attendance.present} / {attendance.total} DAYS ({attendance.percentage}%)</Text>
+                    </View>
+                  </View>
+
+                  {/* Key Banner */}
+                  <View style={{ backgroundColor: '#F3F4F6', borderWidth: 1, borderColor: '#000000', padding: 2, marginBottom: 4, flexDirection: 'row', justifyContent: 'space-around', fontSize: 6.5, fontWeight: 'bold' }}>
+                    <Text>5 / EX: EXCEEDING</Text>
+                    <Text>4 / MT: MEETING</Text>
+                    <Text>3 / DV: DEVELOPING</Text>
+                    <Text>2 / EM: EMERGING</Text>
+                    <Text>1 / NT: NOT TAUGHT</Text>
+                  </View>
+
+                  {/* All Domains Table */}
+                  <View style={{ marginBottom: 4 }}>
+                    <Text style={{ fontSize: 7.5, fontWeight: 'bold', textTransform: 'uppercase', marginBottom: 2 }}>DEVELOPMENTAL DOMAINS EVALUATION</Text>
+                    <View style={{ borderWidth: 1, borderColor: '#000000' }}>
+                      {domains.map((domain, dIdx) => (
+                        <View key={dIdx} style={{ borderBottomWidth: dIdx === domains.length - 1 ? 0 : 1, borderColor: '#000000' }}>
+                          <View style={{ backgroundColor: '#E5E7EB', paddingHorizontal: 4, paddingVertical: 1, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: (domain.skills || []).length > 0 ? 1 : 0, borderColor: '#000000' }}>
+                            <Text style={{ fontSize: 7, fontWeight: 'bold', textTransform: 'uppercase' }}>{domain.name}</Text>
+                            <Text style={{ fontSize: 6, color: '#374151' }}>5  4  3  2  1</Text>
+                          </View>
+                          {(domain.skills || []).map((skill, sIdx) => {
+                            const score = Math.round(skill.score || 0);
+                            return (
+                              <View key={sIdx} style={{ flexDirection: 'row', alignItems: 'center', borderBottomWidth: sIdx === domain.skills.length - 1 ? 0 : 1, borderColor: '#E5E7EB', minHeight: 11, paddingHorizontal: 4 }}>
+                                <Text style={{ flex: 1, fontSize: 6.5 }}>{skill.name}</Text>
+                                <View style={{ flexDirection: 'row', gap: 3 }}>
+                                  {[5, 4, 3, 2, 1].map(val => (
+                                    <Text key={val} style={{ fontSize: 6, fontWeight: score === val ? 'bold' : 'normal', color: score === val ? primaryColor : '#D1D5DB' }}>
+                                      {score === val ? `[${val}]` : '-'}
+                                    </Text>
+                                  ))}
+                                </View>
+                              </View>
+                            );
+                          })}
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+
+                  {/* Teacher & Head Teacher Comments */}
+                  <View style={{ flexDirection: 'row', gap: 4, marginBottom: 4 }}>
+                    <View style={{ flex: 1, borderWidth: 1, borderColor: '#000000', padding: 4, minHeight: 22 }}>
+                      <Text style={{ fontSize: 6.5, fontWeight: 'bold', textTransform: 'uppercase', marginBottom: 1 }}>TEACHER'S COMMENT</Text>
+                      <Text style={{ fontSize: 6.5, fontStyle: 'italic', lineHeight: 1.2 }}>
+                        "{devPlan.teacherComment || 'The student is an energetic and engaged learner who has made good progress this term.'}"
+                      </Text>
+                    </View>
+                    <View style={{ flex: 1, borderWidth: 1, borderColor: '#000000', padding: 4, minHeight: 22 }}>
+                      <Text style={{ fontSize: 6.5, fontWeight: 'bold', textTransform: 'uppercase', marginBottom: 1 }}>HEAD TEACHER'S COMMENT</Text>
+                      <Text style={{ fontSize: 6.5, fontStyle: 'italic', lineHeight: 1.2 }}>
+                        "{devPlan.headTeacherComment || 'Has shown encouraging progress this term. Should continue to practise consistently.'}"
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* Signatures */}
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginTop: 4, marginBottom: 4 }}>
+                    <View style={{ width: '35%', alignItems: 'center' }}>
+                      <Text style={{ fontSize: 6.5, fontWeight: 'bold', textTransform: 'uppercase', marginBottom: 8 }}>CLASS TEACHER</Text>
+                      <View style={{ width: '100%', borderBottomWidth: 1, borderColor: '#000000', marginBottom: 2 }} />
+                      <Text style={{ fontSize: 6 }}>Date: ______________</Text>
+                    </View>
+                    <View style={{ width: '35%', alignItems: 'center' }}>
+                      <Text style={{ fontSize: 6.5, fontWeight: 'bold', textTransform: 'uppercase', marginBottom: 8 }}>HEAD TEACHER</Text>
+                      <View style={{ width: '100%', borderBottomWidth: 1, borderColor: '#000000', marginBottom: 2 }} />
+                      <Text style={{ fontSize: 6 }}>Date: ______________</Text>
+                    </View>
+                  </View>
+
+                  {/* Document Footer */}
+                  <View style={{ position: 'absolute', bottom: 10, left: 15, right: 15, flexDirection: 'row', justifyContent: 'space-between', fontSize: 6.5, color: '#6B7280' }}>
+                    <Text>Early Years Progress Report</Text>
+                    <Text>Confidential School Record</Text>
+                    <Text>Page 1 of 1</Text>
+                  </View>
+                </Page>
+              </React.Fragment>
+            );
+          }
+
           if (earlyYearsPageFormat === '2-page') {
             return (
               <React.Fragment key={student.id || index}>

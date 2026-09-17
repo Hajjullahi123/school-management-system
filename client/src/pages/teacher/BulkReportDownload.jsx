@@ -390,7 +390,9 @@ const BulkReportDownload = () => {
               const showPosition = data.reportSettings?.showPositionOnReport !== undefined ? data.reportSettings.showPositionOnReport : (schoolSettings?.showPositionOnReport !== false);
               const showFees = data.reportSettings?.showFeesOnReport !== undefined ? data.reportSettings.showFeesOnReport : (schoolSettings?.showFeesOnReport !== false);
               const showAttendance = (schoolSettings?.showAttendanceOnReport !== false) && (data.reportSettings?.showAttendanceOnReport !== false);
-              const layout = data.student?.classModel?.reportLayout || data.reportSettings?.reportLayout || schoolSettings?.reportLayout || 'classic';
+              const layoutRaw = data.student?.classModel?.reportLayout || data.reportSettings?.reportLayout || schoolSettings?.reportLayout || 'classic';
+              const isEarlyYears = layoutRaw.startsWith('early_years');
+              const layout = isEarlyYears ? 'early_years' : layoutRaw;
               const borderStyle = layout === 'minimal' ? 'border-[2px] border-gray-400' : layout === 'modern' ? 'border-[6px] rounded-2xl' : 'border-[12px]';
 
               return (
@@ -420,7 +422,10 @@ const BulkReportDownload = () => {
 
                         <div className="relative z-10 space-y-3 print:space-y-2">
                           {layout === 'early_years' ? (() => {
-                            const earlyYearsPageFormat = data.reportSettings?.earlyYearsPageFormat || '3-page';
+                            let earlyYearsPageFormat = data.reportSettings?.earlyYearsPageFormat || '3-page';
+                            if (layoutRaw === 'early_years_1-page') earlyYearsPageFormat = '1-page';
+                            if (layoutRaw === 'early_years_2-page') earlyYearsPageFormat = '2-page';
+                            if (layoutRaw === 'early_years_3-page') earlyYearsPageFormat = '3-page';
                             const allDomains = data.earlyYearsDomains || [];
                             const ss = data.schoolSettings || schoolSettings;
                             const logoUrl = ss?.logoUrl;
@@ -428,6 +433,146 @@ const BulkReportDownload = () => {
                             const studentPhoto = data.student?.user?.photoUrl || data.student?.photoUrl;
                             const photoUri = studentPhoto ? (studentPhoto.startsWith('data:') || studentPhoto.startsWith('http') ? studentPhoto : `${API_BASE_URL}${studentPhoto}`) : null;
                             const currentReportColor = reportColor || ss?.reportColorScheme || ss?.primaryColor || '#065f46';
+                            
+                            if (earlyYearsPageFormat === '1-page') {
+                              return (
+                                <div className="bg-white border-4 p-3 space-y-2 print:p-2 print:space-y-1" style={{ borderColor: currentReportColor }}>
+                                  {/* Header */}
+                                  <div className="grid grid-cols-[64px_1fr_64px] items-center gap-2 mb-1 pb-1 border-b-2 border-black">
+                                    <div className="w-16 h-16 flex-shrink-0 flex items-center justify-center">
+                                      {logoUri ? (
+                                        <img src={logoUri} alt="School Logo" className="w-full h-full object-contain" />
+                                      ) : (
+                                        <div className="w-14 h-14 bg-gray-100 border border-gray-300 rounded flex items-center justify-center text-[9px] text-gray-400 font-bold uppercase text-center p-1">No Logo</div>
+                                      )}
+                                    </div>
+                                    <div className="flex flex-col items-center justify-center text-center space-y-0.5 w-full mx-auto">
+                                      <h1 className="text-lg font-black uppercase tracking-wider leading-tight text-center mx-auto" style={{ color: currentReportColor }}>
+                                        {ss?.name || ss?.schoolName || 'AL-BAYYINAH BASIC / TAHFEEDH SCHOOL'}
+                                      </h1>
+                                      {ss?.motto && (
+                                        <p className="text-[10px] font-black italic text-gray-800 uppercase tracking-wide text-center mx-auto">
+                                          "{ss.motto}"
+                                        </p>
+                                      )}
+                                      <p className="text-[9px] font-bold text-gray-700 leading-tight text-center mx-auto">
+                                        {ss?.address || 'Kano, Nigeria'}
+                                      </p>
+                                    </div>
+                                    <div className="w-16 h-16 flex-shrink-0 flex items-center justify-center">
+                                      {photoUri ? (
+                                        <img src={photoUri} alt="Student" className="w-14 h-14 object-cover rounded border border-gray-300" />
+                                      ) : (
+                                        <div className="w-14 h-14 bg-gray-100 border border-gray-300 rounded flex items-center justify-center text-[9px] text-gray-400 font-bold uppercase text-center p-1">Photo</div>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  <div className="text-center py-0.5 font-black uppercase text-xs tracking-wider text-white" style={{ backgroundColor: currentReportColor }}>
+                                    EARLY YEARS PROGRESS REPORT
+                                  </div>
+
+                                  {/* Student Info Table */}
+                                  <table className="w-full border-2 border-black border-collapse text-[10px] font-bold uppercase">
+                                    <tbody>
+                                      <tr className="border-b border-black">
+                                        <td className="border-r border-black p-0.5 w-[12%] text-[9px]">NAME:</td>
+                                        <td className="border-r border-black p-0.5 w-[38%] font-black text-black">{getStudentDisplayName(data.student)}</td>
+                                        <td className="border-r border-black p-0.5 w-[15%] text-[9px]">GENDER:</td>
+                                        <td className="p-0.5 w-[35%]">{data.student?.gender}</td>
+                                      </tr>
+                                      <tr className="border-b border-black">
+                                        <td className="border-r border-black p-0.5">CLASS:</td>
+                                        <td className="border-r border-black p-0.5">{data.student?.class}</td>
+                                        <td className="border-r border-black p-0.5">TERM:</td>
+                                        <td className="p-0.5">{data.term?.session} - {data.term?.name}</td>
+                                      </tr>
+                                      <tr>
+                                        <td className="border-r border-black p-0.5">ADM NO:</td>
+                                        <td className="border-r border-black p-0.5">{data.student?.admissionNumber}</td>
+                                        <td className="border-r border-black p-0.5">ATTENDANCE:</td>
+                                        <td className="p-0.5">{data.attendance?.present} / {data.attendance?.total} DAYS ({data.attendance?.percentage}%)</td>
+                                      </tr>
+                                    </tbody>
+                                  </table>
+
+                                  {/* Key Banner */}
+                                  <div className="bg-gray-100 border border-black p-1 text-[8px] font-bold text-center uppercase tracking-wide flex justify-around">
+                                    <span>5 / EX: EXCEEDING</span>
+                                    <span>4 / MT: MEETING</span>
+                                    <span>3 / DV: DEVELOPING</span>
+                                    <span>2 / EM: EMERGING</span>
+                                    <span>1 / NT: NOT TAUGHT</span>
+                                  </div>
+
+                                  {/* Domains & Skills */}
+                                  <div className="border-2 border-black">
+                                    {allDomains.map((domain, dIdx) => (
+                                      <div key={dIdx} className="border-b last:border-b-0 border-black">
+                                        <div className="bg-gray-200 px-2 py-0.5 font-black uppercase text-[9px] border-b border-black flex justify-between items-center">
+                                          <span>{domain.name}</span>
+                                          <span className="text-[7.5px] font-mono">5  4  3  2  1</span>
+                                        </div>
+                                        <table className="w-full border-collapse text-[8.5px]">
+                                          <tbody>
+                                            {(domain.skills || []).map((skill, sIdx) => {
+                                              const score = Math.round(skill.score || 0);
+                                              return (
+                                                <tr key={sIdx} className="border-b last:border-b-0 border-gray-200">
+                                                  <td className="p-1 pl-2 font-medium">{skill.name}</td>
+                                                  <td className="p-1 w-24 text-right pr-2">
+                                                    <div className="flex justify-end gap-1 font-mono text-[8px]">
+                                                      {[5, 4, 3, 2, 1].map(val => (
+                                                        <span key={val} className={`w-3.5 text-center ${score === val ? 'font-bold text-black bg-gray-300 rounded-sm' : 'text-gray-300'}`}>
+                                                          {score === val ? val : '·'}
+                                                        </span>
+                                                      ))}
+                                                    </div>
+                                                  </td>
+                                                </tr>
+                                              );
+                                            })}
+                                          </tbody>
+                                        </table>
+                                      </div>
+                                    ))}
+                                  </div>
+
+                                  {/* Comments */}
+                                  <div className="grid grid-cols-2 gap-2 text-[9px]">
+                                    <div className="border border-black p-1.5 min-h-[30px]">
+                                      <p className="font-bold text-[8px] uppercase mb-0.5">TEACHER'S COMMENT</p>
+                                      <p className="italic text-[8.5px]">"{data.developmentPlan?.teacherComment || 'The student is an energetic and engaged learner who has made good progress this term.'}"</p>
+                                    </div>
+                                    <div className="border border-black p-1.5 min-h-[30px]">
+                                      <p className="font-bold text-[8px] uppercase mb-0.5">HEAD TEACHER'S COMMENT</p>
+                                      <p className="italic text-[8.5px]">"{data.developmentPlan?.headTeacherComment || 'Has shown encouraging progress this term. Should continue to practise consistently.'}"</p>
+                                    </div>
+                                  </div>
+
+                                  {/* Signatures */}
+                                  <div className="grid grid-cols-2 gap-8 pt-2 px-8 text-center text-[8px] uppercase font-bold">
+                                    <div>
+                                      <p className="mb-4">CLASS TEACHER</p>
+                                      <div className="border-b border-black w-full mb-1"></div>
+                                      <p className="text-[7px]">DATE: ______________</p>
+                                    </div>
+                                    <div>
+                                      <p className="mb-4">HEAD TEACHER</p>
+                                      <div className="border-b border-black w-full mb-1"></div>
+                                      <p className="text-[7px]">DATE: ______________</p>
+                                    </div>
+                                  </div>
+
+                                  {/* Footer */}
+                                  <div className="flex justify-between items-center text-[7.5px] text-gray-500 pt-1 border-t border-gray-300">
+                                    <span>Early Years Progress Report</span>
+                                    <span>Confidential School Record</span>
+                                    <span>Page 1 of 1</span>
+                                  </div>
+                                </div>
+                              );
+                            }
                             
                             if (earlyYearsPageFormat === '2-page') {
                               return (

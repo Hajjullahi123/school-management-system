@@ -879,6 +879,7 @@ const AcademicSetup = () => {
                     >
                       <option value="3-page">3-Page Spacious (Default)</option>
                       <option value="2-page">2-Page Compact (Single Sheet)</option>
+                      <option value="1-page">1-Page Ultra-Compact (Single Page)</option>
                     </select>
                   </div>
 
