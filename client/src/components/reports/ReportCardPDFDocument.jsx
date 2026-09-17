@@ -678,6 +678,7 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
         const showFees = data.reportSettings?.showFeesOnReport !== false && feeSummary;
         const showPosition = data.reportSettings?.showPositionOnReport !== false && (data.schoolSettings || schoolSettings)?.showPositionOnReport !== false;
         const showAttendance = ((data.schoolSettings || schoolSettings)?.showAttendanceOnReport !== false) && (data.reportSettings?.showAttendanceOnReport !== false);
+        const attendance = data.attendance || { present: 0, total: 0, percentage: 0 };
         
         // Layout: Strictly default to 'classic' to mirror web behavior
         const layoutRaw = data.student?.classModel?.reportLayout || data.reportSettings?.reportLayout || (data.schoolSettings || schoolSettings)?.reportLayout || 'classic';
@@ -728,7 +729,7 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
                       )}
                     </View>
                     <View style={{ flex: 1, textAlign: 'center', paddingHorizontal: 4 }}>
-                      <Text style={{ fontSize: 11, fontWeight: 'bold', textTransform: 'uppercase', color: primaryColor }}>
+                      <Text style={{ fontSize: 11, fontWeight: 'bold', textTransform: 'uppercase', color: reportColor }}>
                         {schoolSettings.name || schoolSettings.schoolName || 'AL-BAYYINAH BASIC / TAHFEEDH SCHOOL'}
                       </Text>
                       {schoolSettings.motto && (
@@ -750,7 +751,7 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
                   </View>
 
                   {/* Title Banner */}
-                  <View style={{ backgroundColor: primaryColor, paddingVertical: 2, marginBottom: 4, textAlign: 'center' }}>
+                  <View style={{ backgroundColor: reportColor, paddingVertical: 2, marginBottom: 4, textAlign: 'center' }}>
                     <Text style={{ color: '#ffffff', fontSize: 9, fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 0.5 }}>
                       EARLY YEARS PROGRESS REPORT
                     </Text>
@@ -804,7 +805,7 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
                                 <Text style={{ flex: 1, fontSize: 6.5 }}>{skill.name}</Text>
                                 <View style={{ flexDirection: 'row', gap: 3 }}>
                                   {[5, 4, 3, 2, 1].map(val => (
-                                    <Text key={val} style={{ fontSize: 6, fontWeight: score === val ? 'bold' : 'normal', color: score === val ? primaryColor : '#D1D5DB' }}>
+                                    <Text key={val} style={{ fontSize: 6, fontWeight: score === val ? 'bold' : 'normal', color: score === val ? reportColor : '#D1D5DB' }}>
                                       {score === val ? `[${val}]` : '-'}
                                     </Text>
                                   ))}
@@ -876,7 +877,7 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
 
                     {/* Center Info */}
                     <View style={{ flex: 1, textAlign: 'center', paddingHorizontal: 6 }}>
-                      <Text style={{ fontSize: 13, fontWeight: 'bold', textTransform: 'uppercase', color: primaryColor }}>
+                      <Text style={{ fontSize: 13, fontWeight: 'bold', textTransform: 'uppercase', color: reportColor }}>
                         {schoolSettings.name || schoolSettings.schoolName || 'AL-BAYYINAH BASIC / TAHFEEDH SCHOOL'}
                       </Text>
                       {schoolSettings.motto && (
@@ -892,7 +893,7 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
                           {schoolSettings.phone ? `TEL: ${schoolSettings.phone}` : ''} {schoolSettings.phone && schoolSettings.email ? ' • ' : ''} {schoolSettings.email ? `EMAIL: ${schoolSettings.email}` : ''}
                         </Text>
                       )}
-                      <Text style={{ fontSize: 9, fontWeight: 'bold', textTransform: 'uppercase', marginTop: 4, backgroundColor: primaryColor, color: '#FFFFFF', paddingVertical: 2, paddingHorizontal: 8, borderRadius: 2, alignSelf: 'center' }}>
+                      <Text style={{ fontSize: 9, fontWeight: 'bold', textTransform: 'uppercase', marginTop: 4, backgroundColor: reportColor, color: '#FFFFFF', paddingVertical: 2, paddingHorizontal: 8, borderRadius: 2, alignSelf: 'center' }}>
                         EARLY YEARS PROGRESS REPORT
                       </Text>
                     </View>
@@ -1182,7 +1183,7 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
 
                     {/* Center Info */}
                     <View style={{ flex: 1, textAlign: 'center', paddingHorizontal: 6 }}>
-                      <Text style={{ fontSize: 13, fontWeight: 'bold', textTransform: 'uppercase', color: primaryColor }}>
+                      <Text style={{ fontSize: 13, fontWeight: 'bold', textTransform: 'uppercase', color: reportColor }}>
                         {schoolSettings.name || schoolSettings.schoolName || 'AL-BAYYINAH BASIC / TAHFEEDH SCHOOL'}
                       </Text>
                       {schoolSettings.motto && (
@@ -1198,7 +1199,7 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
                           {schoolSettings.phone ? `TEL: ${schoolSettings.phone}` : ''} {schoolSettings.phone && schoolSettings.email ? ' • ' : ''} {schoolSettings.email ? `EMAIL: ${schoolSettings.email}` : ''}
                         </Text>
                       )}
-                      <Text style={{ fontSize: 9, fontWeight: 'bold', textTransform: 'uppercase', marginTop: 4, backgroundColor: primaryColor, color: '#FFFFFF', paddingVertical: 2, paddingHorizontal: 8, borderRadius: 2, alignSelf: 'center' }}>
+                      <Text style={{ fontSize: 9, fontWeight: 'bold', textTransform: 'uppercase', marginTop: 4, backgroundColor: reportColor, color: '#FFFFFF', paddingVertical: 2, paddingHorizontal: 8, borderRadius: 2, alignSelf: 'center' }}>
                         EARLY YEARS PROGRESS REPORT
                       </Text>
                     </View>
