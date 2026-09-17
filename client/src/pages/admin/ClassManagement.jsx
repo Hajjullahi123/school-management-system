@@ -455,6 +455,257 @@ const ClassManagement = () => {
     }
   };
 
+  // Early Years Modal Renderer
+  const renderEarlyYearsModal = () => {
+    if (!earlyYearsClass) return null;
+    return (
+      <div className="fixed inset-0 z-[99999] overflow-y-auto bg-black/75 backdrop-blur-md flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden border border-purple-200">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-purple-700 via-purple-600 to-indigo-700 text-white p-5 flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-3">
+                <h2 className="text-xl font-bold">
+                  Early Years Domains: {earlyYearsClass.name}{earlyYearsClass.arm ? ` ${earlyYearsClass.arm}` : ''}
+                </h2>
+                <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${earlyYearsConfig.isCustomized ? 'bg-amber-400 text-amber-950' : 'bg-white/20 text-white'}`}>
+                  {earlyYearsConfig.isCustomized ? 'Class Custom Overrides Active' : 'Using School Default Template'}
+                </span>
+              </div>
+              <p className="text-xs text-purple-100 mt-1">
+                Customize developmental domains & skills for this specific class.
+              </p>
+            </div>
+            <button
+              onClick={() => setEarlyYearsClass(null)}
+              className="text-purple-200 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Action Bar */}
+          <div className="bg-purple-50 p-4 border-b border-purple-100 flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setAddingDomain(true)}
+                className="px-3 py-1.5 bg-purple-700 text-white text-xs font-bold rounded-lg hover:bg-purple-800 transition-colors flex items-center gap-1 shadow-sm"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                </svg>
+                Add Custom Domain
+              </button>
+            </div>
+            {earlyYearsConfig.isCustomized && (
+              <button
+                onClick={handleResetEarlyYearsClassDomains}
+                className="px-3 py-1.5 bg-white text-red-600 border border-red-200 text-xs font-bold rounded-lg hover:bg-red-50 transition-colors flex items-center gap-1"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Reset to School Defaults
+              </button>
+            )}
+          </div>
+
+          {/* Add Domain Inline Form */}
+          {addingDomain && (
+            <div className="p-4 bg-amber-50 border-b border-amber-200 flex items-end gap-3">
+              <div className="flex-1">
+                <label className="block text-xs font-bold text-gray-700 mb-1">Domain Name</label>
+                <input
+                  type="text"
+                  placeholder="e.g. 07 MOTOR COORDINATION & AGILITY"
+                  value={newDomain.name}
+                  onChange={e => setNewDomain(prev => ({ ...prev, name: e.target.value }))}
+                  className="w-full px-3 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+              <div className="w-24">
+                <label className="block text-xs font-bold text-gray-700 mb-1">Code</label>
+                <input
+                  type="text"
+                  placeholder="07"
+                  value={newDomain.code}
+                  onChange={e => setNewDomain(prev => ({ ...prev, code: e.target.value }))}
+                  className="w-full px-3 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+              <button
+                onClick={handleAddDomain}
+                className="px-3 py-1.5 bg-purple-700 text-white text-xs font-bold rounded-lg hover:bg-purple-800"
+              >
+                Add
+              </button>
+              <button
+                onClick={() => setAddingDomain(false)}
+                className="px-3 py-1.5 bg-gray-200 text-gray-700 text-xs font-bold rounded-lg hover:bg-gray-300"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+
+          {/* Content Body */}
+          <div className="p-6 overflow-y-auto flex-1 space-y-4">
+            {loadingEarlyYearsConfig ? (
+              <div className="py-12 text-center text-gray-500 font-medium animate-pulse">
+                Loading Early Years domains...
+              </div>
+            ) : (earlyYearsConfig.domains || []).length === 0 ? (
+              <div className="py-12 text-center text-gray-500 space-y-4">
+                <p className="font-semibold text-sm">No Early Years domains configured for this class yet.</p>
+                <p className="text-xs text-gray-400 max-w-sm mx-auto">
+                  You can restore standard template defaults (01 General Info, 02 Language, 03 Numeracy, etc.) or create custom domains.
+                </p>
+                <div className="flex justify-center gap-3 pt-2">
+                  <button
+                    onClick={() => setAddingDomain(true)}
+                    className="px-4 py-2 bg-purple-700 text-white text-xs font-bold rounded-lg hover:bg-purple-800 shadow transition-colors"
+                  >
+                    + Add Custom Domain
+                  </button>
+                  <button
+                    onClick={handleResetEarlyYearsClassDomains}
+                    className="px-4 py-2 bg-amber-600 text-white text-xs font-bold rounded-lg hover:bg-amber-700 shadow transition-colors"
+                  >
+                    Restore School Default Template
+                  </button>
+                </div>
+              </div>
+            ) : (
+              (earlyYearsConfig.domains || []).map((domain, dIdx) => (
+                <div
+                  key={dIdx}
+                  className={`border rounded-xl p-4 transition-all ${domain.isActive ? 'bg-white border-purple-200 shadow-sm' : 'bg-gray-50 border-gray-200 opacity-60'}`}
+                >
+                  <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-100">
+                    <div className="flex items-center gap-3">
+                      <span className="w-7 h-7 rounded-lg bg-purple-100 text-purple-800 font-black text-xs flex items-center justify-center">
+                        {domain.code || dIdx + 1}
+                      </span>
+                      <input
+                        type="text"
+                        value={domain.name}
+                        onChange={e => {
+                          const val = e.target.value;
+                          setEarlyYearsConfig(prev => {
+                            const domains = [...prev.domains];
+                            domains[dIdx] = { ...domains[dIdx], name: val };
+                            return { ...prev, domains };
+                          });
+                        }}
+                        className="font-bold text-sm text-gray-900 border-b border-transparent hover:border-gray-300 focus:border-purple-600 focus:outline-none px-1 py-0.5"
+                      />
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <label className="flex items-center gap-1.5 cursor-pointer text-xs font-semibold text-gray-600">
+                        <input
+                          type="checkbox"
+                          checked={!!domain.isActive}
+                          onChange={() => toggleDomainActive(dIdx)}
+                          className="rounded text-purple-600 focus:ring-purple-500"
+                        />
+                        Active
+                      </label>
+                      <button
+                        onClick={() => deleteDomain(dIdx)}
+                        className="text-red-500 hover:text-red-700 p-1 text-xs font-bold"
+                        title="Delete Domain"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Sub-skills */}
+                  <div className="pl-4 space-y-2">
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-purple-900/70">Sub-Skills / Rating Items ({domain.skills?.length || 0})</p>
+                    {(domain.skills || []).map((skill, sIdx) => (
+                      <div key={sIdx} className="flex items-center justify-between bg-gray-50 hover:bg-purple-50/50 px-3 py-1.5 rounded-lg border border-gray-200 text-xs">
+                        <input
+                          type="text"
+                          value={skill.name}
+                          onChange={e => {
+                            const val = e.target.value;
+                            setEarlyYearsConfig(prev => {
+                              const domains = [...prev.domains];
+                              const skills = [...domains[dIdx].skills];
+                              skills[sIdx] = { ...skills[sIdx], name: val };
+                              domains[dIdx] = { ...domains[dIdx], skills };
+                              return { ...prev, domains };
+                            });
+                          }}
+                          className="flex-1 font-medium text-gray-800 border-b border-transparent hover:border-gray-300 focus:border-purple-600 focus:outline-none px-1 py-0.5 mr-2"
+                        />
+                        <div className="flex items-center gap-2">
+                          <label className="flex items-center gap-1 cursor-pointer text-[11px] text-gray-500">
+                            <input
+                              type="checkbox"
+                              checked={!!skill.isActive}
+                              onChange={() => toggleSkillActive(dIdx, sIdx)}
+                              className="rounded text-purple-600 focus:ring-purple-500"
+                            />
+                            Active
+                          </label>
+                          <button
+                            onClick={() => deleteSkill(dIdx, sIdx)}
+                            className="text-red-400 hover:text-red-600 px-1 font-bold"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+
+                    {/* Add Skill Input */}
+                    <div className="flex items-center gap-2 pt-1">
+                      <input
+                        type="text"
+                        placeholder="+ Add new skill for this domain..."
+                        value={newSkill[dIdx] || ''}
+                        onChange={e => setNewSkill(prev => ({ ...prev, [dIdx]: e.target.value }))}
+                        onKeyDown={e => { if (e.key === 'Enter') handleAddSkill(dIdx); }}
+                        className="flex-1 px-3 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                      />
+                      <button
+                        onClick={() => handleAddSkill(dIdx)}
+                        className="px-3 py-1.5 bg-purple-100 text-purple-800 hover:bg-purple-200 text-xs font-bold rounded-lg transition-colors"
+                      >
+                        Add Skill
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Footer */}
+          <div className="p-4 bg-gray-50 border-t border-gray-200 flex justify-end gap-3">
+            <button
+              onClick={() => setEarlyYearsClass(null)}
+              className="px-4 py-2 border border-gray-300 rounded-lg text-xs font-bold text-gray-700 hover:bg-gray-100 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSaveEarlyYearsClassDomains}
+              disabled={savingEarlyYearsConfig}
+              className="px-5 py-2 bg-purple-700 text-white rounded-lg text-xs font-bold hover:bg-purple-800 disabled:opacity-50 transition-colors shadow-md flex items-center gap-1.5"
+            >
+              {savingEarlyYearsConfig ? 'Saving...' : 'Save Class Domains'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // Main view - Class Cards
   if (!selectedClass) {
     return (
@@ -841,6 +1092,9 @@ const ClassManagement = () => {
             </div>
           </div>
         </div>
+
+        {/* Early Years Domains Modal */}
+        {renderEarlyYearsModal()}
       </div>
     );
   }
@@ -1288,254 +1542,10 @@ const ClassManagement = () => {
       }
 
       {/* Early Years Domains Modal */}
-      {earlyYearsClass && (
-        <div className="fixed inset-0 z-[99999] overflow-y-auto bg-black/75 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden border border-purple-200">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-purple-700 via-purple-600 to-indigo-700 text-white p-5 flex items-center justify-between">
-              <div>
-                <div className="flex items-center gap-3">
-                  <h2 className="text-xl font-bold">
-                    Early Years Domains: {earlyYearsClass.name}{earlyYearsClass.arm ? ` ${earlyYearsClass.arm}` : ''}
-                  </h2>
-                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${earlyYearsConfig.isCustomized ? 'bg-amber-400 text-amber-950' : 'bg-white/20 text-white'}`}>
-                    {earlyYearsConfig.isCustomized ? 'Class Custom Overrides Active' : 'Using School Default Template'}
-                  </span>
-                </div>
-                <p className="text-xs text-purple-100 mt-1">
-                  Customize developmental domains & skills for this specific class.
-                </p>
-              </div>
-              <button
-                onClick={() => setEarlyYearsClass(null)}
-                className="text-purple-200 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            {/* Action Bar */}
-            <div className="bg-purple-50 p-4 border-b border-purple-100 flex items-center justify-between flex-wrap gap-2">
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setAddingDomain(true)}
-                  className="px-3 py-1.5 bg-purple-700 text-white text-xs font-bold rounded-lg hover:bg-purple-800 transition-colors flex items-center gap-1 shadow-sm"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-                  </svg>
-                  Add Custom Domain
-                </button>
-              </div>
-              {earlyYearsConfig.isCustomized && (
-                <button
-                  onClick={handleResetEarlyYearsClassDomains}
-                  className="px-3 py-1.5 bg-white text-red-600 border border-red-200 text-xs font-bold rounded-lg hover:bg-red-50 transition-colors flex items-center gap-1"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                  Reset to School Defaults
-                </button>
-              )}
-            </div>
-
-            {/* Add Domain Inline Form */}
-            {addingDomain && (
-              <div className="p-4 bg-amber-50 border-b border-amber-200 flex items-end gap-3">
-                <div className="flex-1">
-                  <label className="block text-xs font-bold text-gray-700 mb-1">Domain Name</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. 07 MOTOR COORDINATION & AGILITY"
-                    value={newDomain.name}
-                    onChange={e => setNewDomain(prev => ({ ...prev, name: e.target.value }))}
-                    className="w-full px-3 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-                  />
-                </div>
-                <div className="w-24">
-                  <label className="block text-xs font-bold text-gray-700 mb-1">Code</label>
-                  <input
-                    type="text"
-                    placeholder="07"
-                    value={newDomain.code}
-                    onChange={e => setNewDomain(prev => ({ ...prev, code: e.target.value }))}
-                    className="w-full px-3 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-                  />
-                </div>
-                <button
-                  onClick={handleAddDomain}
-                  className="px-3 py-1.5 bg-purple-700 text-white text-xs font-bold rounded-lg hover:bg-purple-800"
-                >
-                  Add
-                </button>
-                <button
-                  onClick={() => setAddingDomain(false)}
-                  className="px-3 py-1.5 bg-gray-200 text-gray-700 text-xs font-bold rounded-lg hover:bg-gray-300"
-                >
-                  Cancel
-                </button>
-              </div>
-            )}
-
-            {/* Content Body */}
-            <div className="p-6 overflow-y-auto flex-1 space-y-4">
-              {loadingEarlyYearsConfig ? (
-                <div className="py-12 text-center text-gray-500 font-medium animate-pulse">
-                  Loading Early Years domains...
-                </div>
-              ) : (earlyYearsConfig.domains || []).length === 0 ? (
-                <div className="py-12 text-center text-gray-500 space-y-4">
-                  <p className="font-semibold text-sm">No Early Years domains configured for this class yet.</p>
-                  <p className="text-xs text-gray-400 max-w-sm mx-auto">
-                    You can restore standard template defaults (01 General Info, 02 Language, 03 Numeracy, etc.) or create custom domains.
-                  </p>
-                  <div className="flex justify-center gap-3 pt-2">
-                    <button
-                      onClick={() => setAddingDomain(true)}
-                      className="px-4 py-2 bg-purple-700 text-white text-xs font-bold rounded-lg hover:bg-purple-800 shadow transition-colors"
-                    >
-                      + Add Custom Domain
-                    </button>
-                    <button
-                      onClick={handleResetEarlyYearsClassDomains}
-                      className="px-4 py-2 bg-amber-600 text-white text-xs font-bold rounded-lg hover:bg-amber-700 shadow transition-colors"
-                    >
-                      Restore School Default Template
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                (earlyYearsConfig.domains || []).map((domain, dIdx) => (
-                  <div
-                    key={dIdx}
-                    className={`border rounded-xl p-4 transition-all ${domain.isActive ? 'bg-white border-purple-200 shadow-sm' : 'bg-gray-50 border-gray-200 opacity-60'}`}
-                  >
-                    <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-100">
-                      <div className="flex items-center gap-3">
-                        <span className="w-7 h-7 rounded-lg bg-purple-100 text-purple-800 font-black text-xs flex items-center justify-center">
-                          {domain.code || dIdx + 1}
-                        </span>
-                        <input
-                          type="text"
-                          value={domain.name}
-                          onChange={e => {
-                            const val = e.target.value;
-                            setEarlyYearsConfig(prev => {
-                              const domains = [...prev.domains];
-                              domains[dIdx] = { ...domains[dIdx], name: val };
-                              return { ...prev, domains };
-                            });
-                          }}
-                          className="font-bold text-sm text-gray-900 border-b border-transparent hover:border-gray-300 focus:border-purple-600 focus:outline-none px-1 py-0.5"
-                        />
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <label className="flex items-center gap-1.5 cursor-pointer text-xs font-semibold text-gray-600">
-                          <input
-                            type="checkbox"
-                            checked={!!domain.isActive}
-                            onChange={() => toggleDomainActive(dIdx)}
-                            className="rounded text-purple-600 focus:ring-purple-500"
-                          />
-                          Active
-                        </label>
-                        <button
-                          onClick={() => deleteDomain(dIdx)}
-                          className="text-red-500 hover:text-red-700 p-1 text-xs font-bold"
-                          title="Delete Domain"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Sub-skills */}
-                    <div className="pl-4 space-y-2">
-                      <p className="text-[11px] font-bold uppercase tracking-wider text-purple-900/70">Sub-Skills / Rating Items ({domain.skills?.length || 0})</p>
-                      {(domain.skills || []).map((skill, sIdx) => (
-                        <div key={sIdx} className="flex items-center justify-between bg-gray-50 hover:bg-purple-50/50 px-3 py-1.5 rounded-lg border border-gray-200 text-xs">
-                          <input
-                            type="text"
-                            value={skill.name}
-                            onChange={e => {
-                              const val = e.target.value;
-                              setEarlyYearsConfig(prev => {
-                                const domains = [...prev.domains];
-                                const skills = [...domains[dIdx].skills];
-                                skills[sIdx] = { ...skills[sIdx], name: val };
-                                domains[dIdx] = { ...domains[dIdx], skills };
-                                return { ...prev, domains };
-                              });
-                            }}
-                            className="flex-1 font-medium text-gray-800 border-b border-transparent hover:border-gray-300 focus:border-purple-600 focus:outline-none px-1 py-0.5 mr-2"
-                          />
-                          <div className="flex items-center gap-2">
-                            <label className="flex items-center gap-1 cursor-pointer text-[11px] text-gray-500">
-                              <input
-                                type="checkbox"
-                                checked={!!skill.isActive}
-                                onChange={() => toggleSkillActive(dIdx, sIdx)}
-                                className="rounded text-purple-600 focus:ring-purple-500"
-                              />
-                              Active
-                            </label>
-                            <button
-                              onClick={() => deleteSkill(dIdx, sIdx)}
-                              className="text-red-400 hover:text-red-600 px-1 font-bold"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-
-                      {/* Add Skill Input */}
-                      <div className="flex items-center gap-2 pt-1">
-                        <input
-                          type="text"
-                          placeholder="+ Add new skill for this domain..."
-                          value={newSkill[dIdx] || ''}
-                          onChange={e => setNewSkill(prev => ({ ...prev, [dIdx]: e.target.value }))}
-                          onKeyDown={e => { if (e.key === 'Enter') handleAddSkill(dIdx); }}
-                          className="flex-1 px-3 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-                        />
-                        <button
-                          onClick={() => handleAddSkill(dIdx)}
-                          className="px-3 py-1.5 bg-purple-100 text-purple-800 hover:bg-purple-200 text-xs font-bold rounded-lg transition-colors"
-                        >
-                          Add Skill
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-
-            {/* Footer */}
-            <div className="p-4 bg-gray-50 border-t border-gray-200 flex justify-end gap-3">
-              <button
-                onClick={() => setEarlyYearsClass(null)}
-                className="px-4 py-2 border border-gray-300 rounded-lg text-xs font-bold text-gray-700 hover:bg-gray-100 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSaveEarlyYearsClassDomains}
-                disabled={savingEarlyYearsConfig}
-                className="px-5 py-2 bg-purple-700 text-white rounded-lg text-xs font-bold hover:bg-purple-800 disabled:opacity-50 transition-colors shadow-md flex items-center gap-1.5"
-              >
-                {savingEarlyYearsConfig ? 'Saving...' : 'Save Class Domains'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div >
+      {renderEarlyYearsModal()}
+    </div>
   );
 };
 
 export default ClassManagement;
+
