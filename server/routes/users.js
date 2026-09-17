@@ -135,15 +135,16 @@ router.post('/', authenticate, authorize(['admin', 'sub_admin', 'principal', 'ac
           lastName,
           new Date().getFullYear()
         );
-      } else if (['admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin'].includes(role)) {
+      } else if (['admin', 'sub_admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin'].includes(role)) {
         const schoolInitials = school?.name
           ? school.name.split(' ').filter(word => word.length > 0).map(word => word[0].toUpperCase()).join('').substring(0, 3)
           : (school?.code || 'SCH');
 
-        // e.g., principal/AMA@123 or exam_off/AMA@123
+        // e.g., principal/AMA@123 or exam_off/AMA@123 or sub_admin/AMA@123
         let position = role.toLowerCase();
         if (role === 'examination_officer') position = 'exam_off';
         if (role === 'attendance_admin') position = 'attend_off';
+        if (role === 'sub_admin') position = 'sub_admin';
 
         let usernameExists = true;
         while (usernameExists) {
@@ -184,7 +185,7 @@ router.post('/', authenticate, authorize(['admin', 'sub_admin', 'principal', 'ac
 
     // Password is now optional for all roles - will be auto-generated if not provided
 
-    if (!['admin', 'teacher', 'student', 'accountant', 'principal', 'examination_officer', 'attendance_admin', 'higher_student'].includes(role)) {
+    if (!['admin', 'sub_admin', 'teacher', 'student', 'accountant', 'principal', 'examination_officer', 'attendance_admin', 'higher_student'].includes(role)) {
       return res.status(400).json({ error: 'Invalid role' });
     }
 
@@ -401,7 +402,7 @@ router.post('/', authenticate, authorize(['admin', 'sub_admin', 'principal', 'ac
       user.generatedCredentials = {
         password: password || generatedPassword,
         username: finalUsername,
-        role: role === 'examination_officer' ? 'Examination Officer' : (role === 'admin' ? 'System Admin' : (role === 'principal' ? 'School Principal' : role.charAt(0).toUpperCase() + role.slice(1)))
+        role: role === 'sub_admin' ? 'Sub Admin' : (role === 'examination_officer' ? 'Examination Officer' : (role === 'admin' ? 'System Admin' : (role === 'principal' ? 'School Principal' : role.charAt(0).toUpperCase() + role.slice(1))))
       };
     }
 
@@ -509,7 +510,7 @@ router.put('/:id', authenticate, authorize(['admin', 'sub_admin', 'principal', '
     };
 
     if (role) {
-      if (!['admin', 'teacher', 'student', 'accountant', 'principal', 'examination_officer', 'attendance_admin', 'higher_student'].includes(role)) {
+      if (!['admin', 'sub_admin', 'teacher', 'student', 'accountant', 'principal', 'examination_officer', 'attendance_admin', 'higher_student'].includes(role)) {
         return res.status(400).json({ error: 'Invalid role' });
       }
       updateData.role = role;
