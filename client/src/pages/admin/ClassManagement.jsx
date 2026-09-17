@@ -53,7 +53,10 @@ const ClassManagement = () => {
       const res = await api.get(`/api/early-years/class/${cls.id}/domains`);
       if (res.ok) {
         const data = await res.json();
-        setEarlyYearsConfig(data);
+        setEarlyYearsConfig({
+          isCustomized: !!data.isCustomized,
+          domains: Array.isArray(data.domains) ? data.domains : []
+        });
       } else {
         alert("Failed to load Early Years domains for class.");
       }
@@ -70,11 +73,14 @@ const ClassManagement = () => {
     setSavingEarlyYearsConfig(true);
     try {
       const res = await api.post(`/api/early-years/class/${earlyYearsClass.id}/domains`, {
-        domains: earlyYearsConfig.domains
+        domains: earlyYearsConfig.domains || []
       });
       if (res.ok) {
         const data = await res.json();
-        setEarlyYearsConfig(data);
+        setEarlyYearsConfig({
+          isCustomized: !!data.isCustomized,
+          domains: Array.isArray(data.domains) ? data.domains : []
+        });
         alert(`Early Years domains saved for ${earlyYearsClass.name}!`);
         setEarlyYearsClass(null);
       } else {
@@ -98,7 +104,10 @@ const ClassManagement = () => {
       const res = await api.post(`/api/early-years/class/${earlyYearsClass.id}/domains/reset`);
       if (res.ok) {
         const data = await res.json();
-        setEarlyYearsConfig(data);
+        setEarlyYearsConfig({
+          isCustomized: !!data.isCustomized,
+          domains: Array.isArray(data.domains) ? data.domains : []
+        });
         alert(`Domains for ${earlyYearsClass.name} reset to school defaults.`);
       } else {
         alert("Failed to reset class domains.");
@@ -1359,8 +1368,25 @@ const ClassManagement = () => {
                   Loading Early Years domains...
                 </div>
               ) : (earlyYearsConfig.domains || []).length === 0 ? (
-                <div className="py-12 text-center text-gray-400">
-                  No domains configured. Click "+ Add Custom Domain" or reset to defaults.
+                <div className="py-12 text-center text-gray-500 space-y-4">
+                  <p className="font-semibold text-sm">No Early Years domains configured for this class yet.</p>
+                  <p className="text-xs text-gray-400 max-w-sm mx-auto">
+                    You can restore standard template defaults (01 General Info, 02 Language, 03 Numeracy, etc.) or create custom domains.
+                  </p>
+                  <div className="flex justify-center gap-3 pt-2">
+                    <button
+                      onClick={() => setAddingDomain(true)}
+                      className="px-4 py-2 bg-purple-700 text-white text-xs font-bold rounded-lg hover:bg-purple-800 shadow transition-colors"
+                    >
+                      + Add Custom Domain
+                    </button>
+                    <button
+                      onClick={handleResetEarlyYearsClassDomains}
+                      className="px-4 py-2 bg-amber-600 text-white text-xs font-bold rounded-lg hover:bg-amber-700 shadow transition-colors"
+                    >
+                      Restore School Default Template
+                    </button>
+                  </div>
                 </div>
               ) : (
                 (earlyYearsConfig.domains || []).map((domain, dIdx) => (

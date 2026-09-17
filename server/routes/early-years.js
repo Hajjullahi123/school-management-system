@@ -88,7 +88,10 @@ const DEFAULT_EARLY_YEARS_DOMAINS = [
 ];
 
 // Helper to seed defaults for a school
-async function seedDefaultEarlyYearsDomains(schoolId) {
+async function seedDefaultEarlyYearsDomains(rawSchoolId) {
+  const schoolId = parseInt(rawSchoolId);
+  if (!schoolId || isNaN(schoolId)) return;
+
   for (const domainData of DEFAULT_EARLY_YEARS_DOMAINS) {
     const createdDomain = await prisma.earlyYearsDomain.create({
       data: {
@@ -118,12 +121,13 @@ async function seedDefaultEarlyYearsDomains(schoolId) {
 // GET /api/early-years/domains - List domains (supports optional ?classId=X)
 router.get('/domains', authenticate, async (req, res) => {
   try {
+    const schoolId = parseInt(req.schoolId);
     const classId = req.query.classId ? parseInt(req.query.classId) : null;
     let domains = [];
 
     if (classId) {
       domains = await prisma.earlyYearsDomain.findMany({
-        where: { schoolId: req.schoolId, classId },
+        where: { schoolId, classId },
         include: {
           skills: { orderBy: { sortOrder: 'asc' } }
         },
@@ -133,7 +137,7 @@ router.get('/domains', authenticate, async (req, res) => {
 
     if (!domains || domains.length === 0) {
       domains = await prisma.earlyYearsDomain.findMany({
-        where: { schoolId: req.schoolId, classId: null },
+        where: { schoolId, classId: null },
         include: {
           skills: { orderBy: { sortOrder: 'asc' } }
         },
@@ -142,9 +146,9 @@ router.get('/domains', authenticate, async (req, res) => {
     }
 
     if (domains.length === 0) {
-      await seedDefaultEarlyYearsDomains(req.schoolId);
+      await seedDefaultEarlyYearsDomains(schoolId);
       domains = await prisma.earlyYearsDomain.findMany({
-        where: { schoolId: req.schoolId, classId: null },
+        where: { schoolId, classId: null },
         include: {
           skills: { orderBy: { sortOrder: 'asc' } }
         },
@@ -163,8 +167,10 @@ router.get('/domains', authenticate, async (req, res) => {
 router.get('/class/:classId/domains', authenticate, async (req, res) => {
   try {
     const classId = parseInt(req.params.classId);
+    const schoolId = parseInt(req.schoolId);
+
     let classDomains = await prisma.earlyYearsDomain.findMany({
-      where: { schoolId: req.schoolId, classId },
+      where: { schoolId, classId },
       include: {
         skills: { orderBy: { sortOrder: 'asc' } }
       },
@@ -175,7 +181,7 @@ router.get('/class/:classId/domains', authenticate, async (req, res) => {
 
     if (!isCustomized) {
       classDomains = await prisma.earlyYearsDomain.findMany({
-        where: { schoolId: req.schoolId, classId: null },
+        where: { schoolId, classId: null },
         include: {
           skills: { orderBy: { sortOrder: 'asc' } }
         },
@@ -183,9 +189,9 @@ router.get('/class/:classId/domains', authenticate, async (req, res) => {
       });
 
       if (classDomains.length === 0) {
-        await seedDefaultEarlyYearsDomains(req.schoolId);
+        await seedDefaultEarlyYearsDomains(schoolId);
         classDomains = await prisma.earlyYearsDomain.findMany({
-          where: { schoolId: req.schoolId, classId: null },
+          where: { schoolId, classId: null },
           include: {
             skills: { orderBy: { sortOrder: 'asc' } }
           },
@@ -205,6 +211,7 @@ router.get('/class/:classId/domains', authenticate, async (req, res) => {
 router.post('/class/:classId/domains', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const classId = parseInt(req.params.classId);
+    const schoolId = parseInt(req.schoolId);
     const { domains } = req.body;
 
     if (!Array.isArray(domains)) {
@@ -213,10 +220,10 @@ router.post('/class/:classId/domains', authenticate, authorize(['admin', 'princi
 
     // Delete existing class-specific domains & skills
     await prisma.earlyYearsSkill.deleteMany({
-      where: { schoolId: req.schoolId, classId }
+      where: { schoolId, classId }
     });
     await prisma.earlyYearsDomain.deleteMany({
-      where: { schoolId: req.schoolId, classId }
+      where: { schoolId, classId }
     });
 
     // Create new class-specific domains & skills
@@ -224,7 +231,7 @@ router.post('/class/:classId/domains', authenticate, authorize(['admin', 'princi
       const d = domains[dIdx];
       const createdDomain = await prisma.earlyYearsDomain.create({
         data: {
-          schoolId: req.schoolId,
+          schoolId,
           classId,
           name: d.name.trim(),
           code: d.code ? d.code.trim() : null,
@@ -238,7 +245,7 @@ router.post('/class/:classId/domains', authenticate, authorize(['admin', 'princi
           const s = d.skills[sIdx];
           await prisma.earlyYearsSkill.create({
             data: {
-              schoolId: req.schoolId,
+              schoolId,
               classId,
               domainId: createdDomain.id,
               name: s.name.trim(),
@@ -252,7 +259,7 @@ router.post('/class/:classId/domains', authenticate, authorize(['admin', 'princi
     }
 
     logAction({
-      schoolId: req.schoolId,
+      schoolId,
       userId: req.user.id,
       action: 'UPDATE',
       resource: 'CLASS_EARLY_YEARS_DOMAINS',
@@ -261,7 +268,7 @@ router.post('/class/:classId/domains', authenticate, authorize(['admin', 'princi
     });
 
     const updatedDomains = await prisma.earlyYearsDomain.findMany({
-      where: { schoolId: req.schoolId, classId },
+      where: { schoolId, classId },
       include: { skills: { orderBy: { sortOrder: 'asc' } } },
       orderBy: { sortOrder: 'asc' }
     });
@@ -277,22 +284,32 @@ router.post('/class/:classId/domains', authenticate, authorize(['admin', 'princi
 router.post('/class/:classId/domains/reset', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const classId = parseInt(req.params.classId);
+    const schoolId = parseInt(req.schoolId);
 
     await prisma.earlyYearsSkill.deleteMany({
-      where: { schoolId: req.schoolId, classId }
+      where: { schoolId, classId }
     });
     await prisma.earlyYearsDomain.deleteMany({
-      where: { schoolId: req.schoolId, classId }
+      where: { schoolId, classId }
     });
 
-    const defaultDomains = await prisma.earlyYearsDomain.findMany({
-      where: { schoolId: req.schoolId, classId: null },
+    let defaultDomains = await prisma.earlyYearsDomain.findMany({
+      where: { schoolId, classId: null },
       include: { skills: { orderBy: { sortOrder: 'asc' } } },
       orderBy: { sortOrder: 'asc' }
     });
 
+    if (defaultDomains.length === 0) {
+      await seedDefaultEarlyYearsDomains(schoolId);
+      defaultDomains = await prisma.earlyYearsDomain.findMany({
+        where: { schoolId, classId: null },
+        include: { skills: { orderBy: { sortOrder: 'asc' } } },
+        orderBy: { sortOrder: 'asc' }
+      });
+    }
+
     logAction({
-      schoolId: req.schoolId,
+      schoolId,
       userId: req.user.id,
       action: 'RESET',
       resource: 'CLASS_EARLY_YEARS_DOMAINS',
@@ -310,17 +327,19 @@ router.post('/class/:classId/domains/reset', authenticate, authorize(['admin', '
 // POST /api/early-years/domains/reset - Reset to standard default template domains
 router.post('/domains/reset', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
+    const schoolId = parseInt(req.schoolId);
+
     await prisma.earlyYearsSkill.deleteMany({
-      where: { schoolId: req.schoolId }
+      where: { schoolId, classId: null }
     });
     await prisma.earlyYearsDomain.deleteMany({
-      where: { schoolId: req.schoolId }
+      where: { schoolId, classId: null }
     });
 
-    await seedDefaultEarlyYearsDomains(req.schoolId);
+    await seedDefaultEarlyYearsDomains(schoolId);
 
     const domains = await prisma.earlyYearsDomain.findMany({
-      where: { schoolId: req.schoolId },
+      where: { schoolId, classId: null },
       include: {
         skills: {
           orderBy: { sortOrder: 'asc' }
