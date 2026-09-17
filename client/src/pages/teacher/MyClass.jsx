@@ -180,6 +180,11 @@ const MyClass = () => {
     }
   }, [classData?.id, currentTerm?.id]);
 
+  useEffect(() => {
+    const targetClassId = classData?.id || selectedClassId;
+    fetchEarlyYearsDomains(targetClassId);
+  }, [classData?.id, selectedClassId]);
+
   const fetchDomains = async () => {
     try {
       const res = await api.get('/api/report-extras/domains');
@@ -190,9 +195,10 @@ const MyClass = () => {
     } catch (e) { console.error("Failed to fetch domains", e); }
   };
 
-  const fetchEarlyYearsDomains = async () => {
+  const fetchEarlyYearsDomains = async (classId) => {
     try {
-      const res = await api.get('/api/early-years/domains');
+      const url = classId ? `/api/early-years/domains?classId=${classId}` : '/api/early-years/domains';
+      const res = await api.get(url);
       if (res.ok) {
         const data = await res.json();
         setEarlyYearsDomains(Array.isArray(data) ? data : []);

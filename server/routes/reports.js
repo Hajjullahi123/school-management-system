@@ -28,6 +28,35 @@ const formatEarlyYearsCode = (scoreOrRating) => {
   return 'A';
 };
 
+async function getEarlyYearsDomainsForClass(schoolId, classId) {
+  let domains = [];
+  if (classId) {
+    domains = await prisma.earlyYearsDomain.findMany({
+      where: { schoolId, classId: parseInt(classId), isActive: true },
+      include: {
+        skills: {
+          where: { isActive: true },
+          orderBy: { sortOrder: 'asc' }
+        }
+      },
+      orderBy: { sortOrder: 'asc' }
+    });
+  }
+  if (!domains || domains.length === 0) {
+    domains = await prisma.earlyYearsDomain.findMany({
+      where: { schoolId, classId: null, isActive: true },
+      include: {
+        skills: {
+          where: { isActive: true },
+          orderBy: { sortOrder: 'asc' }
+        }
+      },
+      orderBy: { sortOrder: 'asc' }
+    });
+  }
+  return domains;
+}
+
 // Generate PDF from HTML payload using warm Puppeteer Pool and multi-tiered Cache
 router.post('/generate-pdf', async (req, res) => {
   try {
@@ -453,16 +482,7 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
       orderBy: { name: 'asc' }
     });
 
-    const earlyYearsDomains = await prisma.earlyYearsDomain.findMany({
-      where: { schoolId: req.schoolId, isActive: true },
-      include: {
-        skills: {
-          where: { isActive: true },
-          orderBy: { sortOrder: 'asc' }
-        }
-      },
-      orderBy: { sortOrder: 'asc' }
-    });
+    const earlyYearsDomains = await getEarlyYearsDomainsForClass(req.schoolId, student?.classId);
 
     // Fetch fee summary for the financial section of the report
     const feeSummary = await getStudentFeeSummary(
@@ -1996,16 +2016,7 @@ router.get('/cumulative/:studentId/:sessionId', authenticate, async (req, res) =
     };
 
     // Early Years Domains & Skills with ratings per term
-    const rawEarlyYearsDomains = await prisma.earlyYearsDomain.findMany({
-      where: { schoolId: req.schoolId, isActive: true },
-      include: {
-        skills: {
-          where: { isActive: true },
-          orderBy: { sortOrder: 'asc' }
-        }
-      },
-      orderBy: { sortOrder: 'asc' }
-    });
+    const rawEarlyYearsDomains = await getEarlyYearsDomainsForClass(req.schoolId, student?.classId);
 
     const studentReportCards = await prisma.studentReportCard.findMany({
       where: {
@@ -2216,16 +2227,7 @@ router.get('/bulk-cumulative/:classId/:sessionId', authenticate, authorize(['adm
       include: { subject: true }
     });
 
-    const rawEarlyYearsDomains = await prisma.earlyYearsDomain.findMany({
-      where: { schoolId: req.schoolId, isActive: true },
-      include: {
-        skills: {
-          where: { isActive: true },
-          orderBy: { sortOrder: 'asc' }
-        }
-      },
-      orderBy: { sortOrder: 'asc' }
-    });
+    const rawEarlyYearsDomains = await getEarlyYearsDomainsForClass(req.schoolId, classId);
 
     const allStudentReportCards = await prisma.studentReportCard.findMany({
       where: {
@@ -2849,16 +2851,7 @@ router.get('/progressive-enhanced/:studentId/:termId', authenticate, async (req,
     };
 
     // Fetch early years domains and student reportExtra for Early Years progressive reports
-    const earlyYearsDomains = await prisma.earlyYearsDomain.findMany({
-      where: { schoolId: req.schoolId, isActive: true },
-      include: {
-        skills: {
-          where: { isActive: true },
-          orderBy: { sortOrder: 'asc' }
-        }
-      },
-      orderBy: { sortOrder: 'asc' }
-    });
+    const earlyYearsDomains = await getEarlyYearsDomainsForClass(req.schoolId, student?.classId);
 
     const reportExtra = await prisma.studentReportCard.findFirst({
       where: {
@@ -3033,16 +3026,7 @@ router.get('/bulk-progressive/:classId/:termId', authenticate, authorize(['admin
       include: { subject: true }
     });
 
-    const earlyYearsDomains = await prisma.earlyYearsDomain.findMany({
-      where: { schoolId: req.schoolId, isActive: true },
-      include: {
-        skills: {
-          where: { isActive: true },
-          orderBy: { sortOrder: 'asc' }
-        }
-      },
-      orderBy: { sortOrder: 'asc' }
-    });
+    const earlyYearsDomains = await getEarlyYearsDomainsForClass(req.schoolId, classId);
 
     const reportExtras = await prisma.studentReportCard.findMany({
       where: {

@@ -115,27 +115,38 @@ async function seedDefaultEarlyYearsDomains(schoolId) {
   }
 }
 
-// GET /api/early-years/domains - List all domains and sub-domains
+// GET /api/early-years/domains - List domains (supports optional ?classId=X)
 router.get('/domains', authenticate, async (req, res) => {
   try {
-    let domains = await prisma.earlyYearsDomain.findMany({
-      where: { schoolId: req.schoolId },
-      include: {
-        skills: {
-          orderBy: { sortOrder: 'asc' }
-        }
-      },
-      orderBy: { sortOrder: 'asc' }
-    });
+    const classId = req.query.classId ? parseInt(req.query.classId) : null;
+    let domains = [];
+
+    if (classId) {
+      domains = await prisma.earlyYearsDomain.findMany({
+        where: { schoolId: req.schoolId, classId },
+        include: {
+          skills: { orderBy: { sortOrder: 'asc' } }
+        },
+        orderBy: { sortOrder: 'asc' }
+      });
+    }
+
+    if (!domains || domains.length === 0) {
+      domains = await prisma.earlyYearsDomain.findMany({
+        where: { schoolId: req.schoolId, classId: null },
+        include: {
+          skills: { orderBy: { sortOrder: 'asc' } }
+        },
+        orderBy: { sortOrder: 'asc' }
+      });
+    }
 
     if (domains.length === 0) {
       await seedDefaultEarlyYearsDomains(req.schoolId);
       domains = await prisma.earlyYearsDomain.findMany({
-        where: { schoolId: req.schoolId },
+        where: { schoolId: req.schoolId, classId: null },
         include: {
-          skills: {
-            orderBy: { sortOrder: 'asc' }
-          }
+          skills: { orderBy: { sortOrder: 'asc' } }
         },
         orderBy: { sortOrder: 'asc' }
       });
@@ -145,6 +156,154 @@ router.get('/domains', authenticate, async (req, res) => {
   } catch (error) {
     console.error('Fetch early years domains error:', error);
     res.status(500).json({ error: 'Failed to fetch early years domains' });
+  }
+});
+
+// GET /api/early-years/class/:classId/domains - Get domains for a specific class with customization flag
+router.get('/class/:classId/domains', authenticate, async (req, res) => {
+  try {
+    const classId = parseInt(req.params.classId);
+    let classDomains = await prisma.earlyYearsDomain.findMany({
+      where: { schoolId: req.schoolId, classId },
+      include: {
+        skills: { orderBy: { sortOrder: 'asc' } }
+      },
+      orderBy: { sortOrder: 'asc' }
+    });
+
+    const isCustomized = classDomains.length > 0;
+
+    if (!isCustomized) {
+      classDomains = await prisma.earlyYearsDomain.findMany({
+        where: { schoolId: req.schoolId, classId: null },
+        include: {
+          skills: { orderBy: { sortOrder: 'asc' } }
+        },
+        orderBy: { sortOrder: 'asc' }
+      });
+
+      if (classDomains.length === 0) {
+        await seedDefaultEarlyYearsDomains(req.schoolId);
+        classDomains = await prisma.earlyYearsDomain.findMany({
+          where: { schoolId: req.schoolId, classId: null },
+          include: {
+            skills: { orderBy: { sortOrder: 'asc' } }
+          },
+          orderBy: { sortOrder: 'asc' }
+        });
+      }
+    }
+
+    res.json({ isCustomized, domains: classDomains });
+  } catch (error) {
+    console.error('Fetch class early years domains error:', error);
+    res.status(500).json({ error: 'Failed to fetch class domains' });
+  }
+});
+
+// POST /api/early-years/class/:classId/domains - Save custom domain & skill structure for a class
+router.post('/class/:classId/domains', authenticate, authorize(['admin', 'principal']), async (req, res) => {
+  try {
+    const classId = parseInt(req.params.classId);
+    const { domains } = req.body;
+
+    if (!Array.isArray(domains)) {
+      return res.status(400).json({ error: 'Domains must be an array' });
+    }
+
+    // Delete existing class-specific domains & skills
+    await prisma.earlyYearsSkill.deleteMany({
+      where: { schoolId: req.schoolId, classId }
+    });
+    await prisma.earlyYearsDomain.deleteMany({
+      where: { schoolId: req.schoolId, classId }
+    });
+
+    // Create new class-specific domains & skills
+    for (let dIdx = 0; dIdx < domains.length; dIdx++) {
+      const d = domains[dIdx];
+      const createdDomain = await prisma.earlyYearsDomain.create({
+        data: {
+          schoolId: req.schoolId,
+          classId,
+          name: d.name.trim(),
+          code: d.code ? d.code.trim() : null,
+          sortOrder: d.sortOrder !== undefined ? parseInt(d.sortOrder) : dIdx + 1,
+          isActive: d.isActive !== undefined ? !!d.isActive : true
+        }
+      });
+
+      if (Array.isArray(d.skills) && d.skills.length > 0) {
+        for (let sIdx = 0; sIdx < d.skills.length; sIdx++) {
+          const s = d.skills[sIdx];
+          await prisma.earlyYearsSkill.create({
+            data: {
+              schoolId: req.schoolId,
+              classId,
+              domainId: createdDomain.id,
+              name: s.name.trim(),
+              description: s.description ? s.description.trim() : null,
+              sortOrder: s.sortOrder !== undefined ? parseInt(s.sortOrder) : sIdx + 1,
+              isActive: s.isActive !== undefined ? !!s.isActive : true
+            }
+          });
+        }
+      }
+    }
+
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'UPDATE',
+      resource: 'CLASS_EARLY_YEARS_DOMAINS',
+      details: { classId, count: domains.length },
+      ipAddress: req.ip
+    });
+
+    const updatedDomains = await prisma.earlyYearsDomain.findMany({
+      where: { schoolId: req.schoolId, classId },
+      include: { skills: { orderBy: { sortOrder: 'asc' } } },
+      orderBy: { sortOrder: 'asc' }
+    });
+
+    res.json({ isCustomized: true, domains: updatedDomains });
+  } catch (error) {
+    console.error('Save class early years domains error:', error);
+    res.status(500).json({ error: 'Failed to save class domains' });
+  }
+});
+
+// POST /api/early-years/class/:classId/domains/reset - Reset class domains to school defaults
+router.post('/class/:classId/domains/reset', authenticate, authorize(['admin', 'principal']), async (req, res) => {
+  try {
+    const classId = parseInt(req.params.classId);
+
+    await prisma.earlyYearsSkill.deleteMany({
+      where: { schoolId: req.schoolId, classId }
+    });
+    await prisma.earlyYearsDomain.deleteMany({
+      where: { schoolId: req.schoolId, classId }
+    });
+
+    const defaultDomains = await prisma.earlyYearsDomain.findMany({
+      where: { schoolId: req.schoolId, classId: null },
+      include: { skills: { orderBy: { sortOrder: 'asc' } } },
+      orderBy: { sortOrder: 'asc' }
+    });
+
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'RESET',
+      resource: 'CLASS_EARLY_YEARS_DOMAINS',
+      details: { classId },
+      ipAddress: req.ip
+    });
+
+    res.json({ isCustomized: false, domains: defaultDomains });
+  } catch (error) {
+    console.error('Reset class early years domains error:', error);
+    res.status(500).json({ error: 'Failed to reset class domains' });
   }
 });
 

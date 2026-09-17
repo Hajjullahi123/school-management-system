@@ -471,6 +471,8 @@ model Class {
   students               Student[]
   reportCards            StudentReportCard[]
   timetables             Timetable[]
+  earlyYearsDomains      EarlyYearsDomain[]
+  earlyYearsSkills       EarlyYearsSkill[]
 
   @@unique([schoolId, name, arm])
 }
@@ -1487,6 +1489,7 @@ model PsychomotorDomain {
 model EarlyYearsDomain {
   id        Int               @id @default(autoincrement())
   schoolId  Int
+  classId   Int?
   name      String
   code      String?
   sortOrder Int               @default(0)
@@ -1494,14 +1497,16 @@ model EarlyYearsDomain {
   createdAt DateTime          @default(now())
   updatedAt DateTime          @updatedAt
   School    School            @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  Class     Class?            @relation(fields: [classId], references: [id], onDelete: Cascade)
   skills    EarlyYearsSkill[]
 
-  @@unique([schoolId, name])
+  @@index([schoolId, classId])
 }
 
 model EarlyYearsSkill {
   id          Int              @id @default(autoincrement())
   schoolId    Int
+  classId     Int?
   domainId    Int
   name        String
   description String?
@@ -1511,7 +1516,9 @@ model EarlyYearsSkill {
   updatedAt   DateTime         @updatedAt
   Domain      EarlyYearsDomain @relation(fields: [domainId], references: [id], onDelete: Cascade)
   School      School           @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  Class       Class?           @relation(fields: [classId], references: [id], onDelete: Cascade)
 
+  @@index([schoolId, classId])
   @@unique([domainId, name])
 }
 
