@@ -806,7 +806,7 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
         reportLayout: (student.classModel?.reportLayout && student.classModel.reportLayout.trim() !== '') ? student.classModel.reportLayout : (schoolSettings.reportLayout || 'classic'),
         reportColorScheme: schoolSettings.reportColorScheme,
         reportFontFamily: schoolSettings.reportFontFamily,
-        earlyYearsPageFormat: schoolSettings.earlyYearsPageFormat || '3-page'
+        earlyYearsPageFormat: (student.classModel?.reportLayout && student.classModel.reportLayout.startsWith('early_years_')) ? student.classModel.reportLayout.replace('early_years_', '') : (schoolSettings.earlyYearsPageFormat || '3-page')
       }
     };
 
@@ -1565,7 +1565,7 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
           reportLayout: classInfo?.reportLayout ?? (schoolSettings.reportLayout || 'classic'),
           reportColorScheme: schoolSettings.reportColorScheme,
           reportFontFamily: schoolSettings.reportFontFamily,
-          earlyYearsPageFormat: schoolSettings.earlyYearsPageFormat || '3-page'
+          earlyYearsPageFormat: (classInfo?.reportLayout && classInfo.reportLayout.startsWith('early_years_')) ? classInfo.reportLayout.replace('early_years_', '') : (schoolSettings.earlyYearsPageFormat || '3-page')
         }
       };
       } catch (err) {
@@ -1766,7 +1766,7 @@ router.get('/bulk-cumulative/:classId/:sessionId', authenticate, authorize(['adm
           reportLayout: student.classModel?.reportLayout || schoolSettings.reportLayout || 'classic',
           reportColorScheme: schoolSettings.reportColorScheme,
           reportFontFamily: schoolSettings.reportFontFamily,
-          earlyYearsPageFormat: schoolSettings.earlyYearsPageFormat || '3-page'
+          earlyYearsPageFormat: (student.classModel?.reportLayout && student.classModel.reportLayout.startsWith('early_years_')) ? student.classModel.reportLayout.replace('early_years_', '') : (schoolSettings.earlyYearsPageFormat || '3-page')
         }
       };
     });
@@ -2134,7 +2134,7 @@ router.get('/cumulative/:studentId/:sessionId', authenticate, async (req, res) =
         reportLayout: student.classModel?.reportLayout ?? (schoolSettings.reportLayout || 'classic'),
         reportColorScheme: schoolSettings.reportColorScheme,
         reportFontFamily: schoolSettings.reportFontFamily,
-        earlyYearsPageFormat: schoolSettings.earlyYearsPageFormat || '3-page'
+        earlyYearsPageFormat: (student.classModel?.reportLayout && student.classModel.reportLayout.startsWith('early_years_')) ? student.classModel.reportLayout.replace('early_years_', '') : (schoolSettings.earlyYearsPageFormat || '3-page')
       }
     });
 
@@ -2419,7 +2419,7 @@ router.get('/bulk-cumulative/:classId/:sessionId', authenticate, authorize(['adm
           reportLayout: classInfo?.reportLayout ?? (schoolSettings.reportLayout || 'classic'),
           reportColorScheme: schoolSettings.reportColorScheme,
           reportFontFamily: schoolSettings.reportFontFamily,
-          earlyYearsPageFormat: schoolSettings.earlyYearsPageFormat || '3-page'
+          earlyYearsPageFormat: (classInfo?.reportLayout && classInfo.reportLayout.startsWith('early_years_')) ? classInfo.reportLayout.replace('early_years_', '') : (schoolSettings.earlyYearsPageFormat || '3-page')
         }
       });
     }

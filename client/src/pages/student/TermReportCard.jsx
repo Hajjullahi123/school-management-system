@@ -661,9 +661,9 @@ const TermReportCard = () => {
 
                 <div className="relative z-10 space-y-2 print:space-y-1">
                   {layout === 'early_years' ? (() => {
-                    // School-wide AcademicSetup setting wins. Fall back to class DB suffix only if no school setting.
-                    const classLayoutSuffix = layoutRawDB.startsWith('early_years_') ? layoutRawDB.replace('early_years_', '') : null;
-                    const earlyYearsPageFormat = data.reportSettings?.earlyYearsPageFormat || classLayoutSuffix || '3-page';
+                    // Class-specific template suffix (e.g., early_years_1-page) wins over school-wide setting.
+                    const classLayoutSuffix = (layoutRawDB && layoutRawDB.startsWith('early_years_')) ? layoutRawDB.replace('early_years_', '') : null;
+                    const earlyYearsPageFormat = classLayoutSuffix || data.reportSettings?.earlyYearsPageFormat || (data.schoolSettings || schoolSettings)?.earlyYearsPageFormat || '3-page';
                     const allDomains = data.earlyYearsDomains || [];
                     const ss = data.schoolSettings || schoolSettings;
                     const logoUrl = ss?.logoUrl;

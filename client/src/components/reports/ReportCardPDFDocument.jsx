@@ -707,10 +707,9 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
             { area: 'Social / Emotional', goingWell: 'Self-control, confidence and participation.', nextFocus: 'Continue positive reinforcement and independence.' }
           ];
           const devPlan = data.developmentPlan || {};
-          const globalEarlyFormat = data.reportSettings?.earlyYearsPageFormat || (data.schoolSettings || schoolSettings)?.earlyYearsPageFormat;
-          // School-wide AcademicSetup setting wins. Fall back to class DB suffix only if no school setting.
-          const classLayoutSuffix = layoutRawDB.startsWith('early_years_') ? layoutRawDB.replace('early_years_', '') : null;
-          const earlyYearsPageFormat = globalEarlyFormat || classLayoutSuffix || '3-page';
+          // Class-specific template suffix (e.g., early_years_1-page) wins over school-wide setting.
+          const classLayoutSuffix = (layoutRawDB && layoutRawDB.startsWith('early_years_')) ? layoutRawDB.replace('early_years_', '') : null;
+          const earlyYearsPageFormat = classLayoutSuffix || data.reportSettings?.earlyYearsPageFormat || (data.schoolSettings || schoolSettings)?.earlyYearsPageFormat || '3-page';
 
           // Filter domains into Page 1 (01, 02) and Page 2 (03, 04, 05, 06+)
           const page1Domains = domains.filter(d => (d.name || '').startsWith('01') || (d.name || '').startsWith('02'));
