@@ -621,7 +621,7 @@ const TermReportCard = () => {
             const showFees = data.reportSettings?.showFeesOnReport !== undefined ? data.reportSettings.showFeesOnReport : ((data.schoolSettings || schoolSettings)?.showFeesOnReport !== false);
             const showAttendance = ((data.schoolSettings || schoolSettings)?.showAttendanceOnReport !== false) && (data.reportSettings?.showAttendanceOnReport !== false);
             const layoutRaw = (data.student?.classModel?.reportLayout && data.student.classModel.reportLayout.trim() !== '') ? data.student.classModel.reportLayout : ((data.reportSettings?.reportLayout && data.reportSettings.reportLayout.trim() !== '') ? data.reportSettings.reportLayout : ((data.schoolSettings || schoolSettings)?.reportLayout || 'classic'));
-            const isEarlyYears = layoutRaw.startsWith('early_years');
+            const isEarlyYears = layoutRaw.startsWith('early_years') || /early|nursery|kg|kindergarten|reception|playgroup|toddler|creche|pre-k|ركن|الركن|روضة|الروضة|تمهيدي|حضانة/i.test(data.student?.class || '');
             const layout = isEarlyYears ? 'early_years' : layoutRaw;
             const borderStyle = layout === 'minimal' ? 'border-[2px] border-gray-400' : layout === 'modern' ? 'border-[6px] rounded-2xl' : 'border-[12px]';
 
@@ -659,10 +659,14 @@ const TermReportCard = () => {
 
                 <div className="relative z-10 space-y-2 print:space-y-1">
                   {layout === 'early_years' ? (() => {
-                    let earlyYearsPageFormat = data.reportSettings?.earlyYearsPageFormat || '3-page';
-                    if (layoutRaw === 'early_years_1-page') earlyYearsPageFormat = '1-page';
-                    if (layoutRaw === 'early_years_2-page') earlyYearsPageFormat = '2-page';
-                    if (layoutRaw === 'early_years_3-page') earlyYearsPageFormat = '3-page';
+                    const globalEarlyFormat = data.reportSettings?.earlyYearsPageFormat || schoolSettings?.earlyYearsPageFormat;
+                    let earlyYearsPageFormat = globalEarlyFormat;
+                    if (!earlyYearsPageFormat) {
+                      if (layoutRaw === 'early_years_1-page') earlyYearsPageFormat = '1-page';
+                      else if (layoutRaw === 'early_years_2-page') earlyYearsPageFormat = '2-page';
+                      else if (layoutRaw === 'early_years_3-page') earlyYearsPageFormat = '3-page';
+                      else earlyYearsPageFormat = '3-page';
+                    }
                     const allDomains = data.earlyYearsDomains || [];
                     const ss = data.schoolSettings || schoolSettings;
                     const logoUrl = ss?.logoUrl;

@@ -682,7 +682,7 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
         
         // Layout: Strictly default to 'classic' to mirror web behavior
         const layoutRaw = data.student?.classModel?.reportLayout || data.reportSettings?.reportLayout || (data.schoolSettings || schoolSettings)?.reportLayout || 'classic';
-        const isEarlyYears = layoutRaw.startsWith('early_years');
+        const isEarlyYears = layoutRaw.startsWith('early_years') || /early|nursery|kg|kindergarten|reception|playgroup|toddler|creche|pre-k|ركن|الركن|روضة|الروضة|تمهيدي|حضانة/i.test(student.class || data.className || '');
         const layout = isEarlyYears ? 'early_years' : layoutRaw;
         
         const reportColor = data.reportSettings?.reportColorScheme || (data.schoolSettings || schoolSettings)?.reportColorScheme || (data.schoolSettings || schoolSettings)?.primaryColor || '#1e40af';
@@ -695,7 +695,7 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
         const studentName = getStudentDisplayName(student);
         const className = (student.class || data.className || 'N/A').toUpperCase();
 
-        // --- DEDICATED EARLY YEARS 3-PAGE TEMPLATE ---
+        // --- DEDICATED EARLY YEARS TEMPLATES ---
         if (layout === 'early_years') {
           const domains = data.earlyYearsDomains || [];
           const progressAtAGlance = data.progressAtAGlance || [
@@ -705,10 +705,14 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
             { area: 'Social / Emotional', goingWell: 'Self-control, confidence and participation.', nextFocus: 'Continue positive reinforcement and independence.' }
           ];
           const devPlan = data.developmentPlan || {};
-          let earlyYearsPageFormat = data.reportSettings?.earlyYearsPageFormat || '3-page';
-          if (layoutRaw === 'early_years_1-page') earlyYearsPageFormat = '1-page';
-          if (layoutRaw === 'early_years_2-page') earlyYearsPageFormat = '2-page';
-          if (layoutRaw === 'early_years_3-page') earlyYearsPageFormat = '3-page';
+          const globalEarlyFormat = data.reportSettings?.earlyYearsPageFormat || (data.schoolSettings || schoolSettings)?.earlyYearsPageFormat;
+          let earlyYearsPageFormat = globalEarlyFormat;
+          if (!earlyYearsPageFormat) {
+            if (layoutRaw === 'early_years_1-page') earlyYearsPageFormat = '1-page';
+            else if (layoutRaw === 'early_years_2-page') earlyYearsPageFormat = '2-page';
+            else if (layoutRaw === 'early_years_3-page') earlyYearsPageFormat = '3-page';
+            else earlyYearsPageFormat = '3-page';
+          }
 
           // Filter domains into Page 1 (01, 02) and Page 2 (03, 04, 05, 06+)
           const page1Domains = domains.filter(d => (d.name || '').startsWith('01') || (d.name || '').startsWith('02'));
