@@ -436,139 +436,140 @@ const BulkReportDownload = () => {
                             const currentReportColor = reportColor || ss?.reportColorScheme || ss?.primaryColor || '#065f46';
                             
                             if (earlyYearsPageFormat === '1-page') {
+                              const halfLength = Math.ceil((allDomains || []).length / 2);
+                              const leftDomains = (allDomains || []).slice(0, halfLength);
+                              const rightDomains = (allDomains || []).slice(halfLength);
+                              const verificationUrl = typeof window !== 'undefined' ? `${window.location.origin}/verify/term/${data.student?.id}/${data.term?.id || data.academic?.termId}` : '';
+
                               return (
-                                <div className="bg-white border-4 p-3 space-y-2 print:p-2 print:space-y-1" style={{ borderColor: currentReportColor }}>
+                                <div className="bg-white border-4 p-3 space-y-2 print:p-2 print:space-y-1.5 rounded-xl shadow-lg" style={{ borderColor: currentReportColor }}>
                                   {/* Header */}
-                                  <div className="grid grid-cols-[64px_1fr_64px] items-center gap-2 mb-1 pb-1 border-b-2 border-black">
-                                    <div className="w-16 h-16 flex-shrink-0 flex items-center justify-center">
+                                  <div className="grid grid-cols-[52px_1fr_96px] items-center gap-2 mb-1 pb-1 border-b-2" style={{ borderColor: currentReportColor }}>
+                                    <div className="w-13 h-13 flex-shrink-0 flex items-center justify-center">
                                       {logoUri ? (
                                         <img src={logoUri} alt="School Logo" className="w-full h-full object-contain" />
                                       ) : (
-                                        <div className="w-14 h-14 bg-gray-100 border border-gray-300 rounded flex items-center justify-center text-[9px] text-gray-400 font-bold uppercase text-center p-1">No Logo</div>
+                                        <div className="w-11 h-11 bg-gray-100 border border-gray-300 rounded flex items-center justify-center text-[7.5px] text-gray-400 font-bold uppercase text-center p-0.5">No Logo</div>
                                       )}
                                     </div>
                                     <div className="flex flex-col items-center justify-center text-center space-y-0.5 w-full mx-auto">
-                                      <h1 className="text-lg font-black uppercase tracking-wider leading-tight text-center mx-auto" style={{ color: currentReportColor }}>
+                                      <h1 className="text-base font-black uppercase tracking-wider leading-tight text-center mx-auto" style={{ color: currentReportColor }}>
                                         {ss?.name || ss?.schoolName || 'AL-BAYYINAH BASIC / TAHFEEDH SCHOOL'}
                                       </h1>
                                       {ss?.motto && (
-                                        <p className="text-[10px] font-black italic text-gray-800 uppercase tracking-wide text-center mx-auto">
+                                        <p className="text-[8.5px] font-black italic text-gray-700 uppercase tracking-wide text-center mx-auto">
                                           "{ss.motto}"
                                         </p>
                                       )}
-                                      <p className="text-[9px] font-bold text-gray-700 leading-tight text-center mx-auto">
+                                      <p className="text-[8px] font-bold text-gray-600 leading-tight text-center mx-auto">
                                         {ss?.address || 'Kano, Nigeria'}
                                       </p>
                                     </div>
-                                    <div className="w-16 h-16 flex-shrink-0 flex items-center justify-center">
-                                      {photoUri ? (
-                                        <img src={photoUri} alt="Student" className="w-14 h-14 object-cover rounded border border-gray-300" />
-                                      ) : (
-                                        <div className="w-14 h-14 bg-gray-100 border border-gray-300 rounded flex items-center justify-center text-[9px] text-gray-400 font-bold uppercase text-center p-1">Photo</div>
-                                      )}
+                                    <div className="flex items-center gap-1.5 justify-end">
+                                      {/* QR Code */}
+                                      <div className="p-0.5 bg-white border border-gray-200 rounded shadow-xs" title="Scan to verify document">
+                                        <QRCodeSVG value={verificationUrl} size={38} level="H" includeMargin={false} />
+                                      </div>
+                                      {/* Student Photo */}
+                                      <div className="w-11 h-11 flex-shrink-0 flex items-center justify-center">
+                                        {photoUri ? (
+                                          <img src={photoUri} alt="Student" className="w-11 h-11 object-cover rounded-lg border border-gray-300 shadow-xs" />
+                                        ) : (
+                                          <div className="w-11 h-11 bg-gray-100 border border-gray-300 rounded-lg flex items-center justify-center text-[7.5px] text-gray-400 font-bold uppercase text-center p-0.5">Photo</div>
+                                        )}
+                                      </div>
                                     </div>
                                   </div>
 
-                                  <div className="text-center py-0.5 font-black uppercase text-xs tracking-wider text-white" style={{ backgroundColor: currentReportColor }}>
-                                    EARLY YEARS PROGRESS REPORT
+                                  {/* Title Banner */}
+                                  <div className="text-center py-0.5 font-black uppercase text-[11px] tracking-widest text-white rounded-md shadow-xs flex items-center justify-center gap-2" style={{ backgroundColor: currentReportColor }}>
+                                    <span>✨</span>
+                                    <span>EARLY YEARS PROGRESS REPORT</span>
+                                    <span>✨</span>
                                   </div>
 
-                                  {/* Student Info Table */}
-                                  <table className="w-full border-2 border-black border-collapse text-[10px] font-bold uppercase">
-                                    <tbody>
-                                      <tr className="border-b border-black">
-                                        <td className="border-r border-black p-0.5 w-[12%] text-[9px]">NAME:</td>
-                                        <td className="border-r border-black p-0.5 w-[38%] font-black text-black">{getStudentDisplayName(data.student)}</td>
-                                        <td className="border-r border-black p-0.5 w-[15%] text-[9px]">GENDER:</td>
-                                        <td className="p-0.5 w-[35%]">{data.student?.gender}</td>
-                                      </tr>
-                                      <tr className="border-b border-black">
-                                        <td className="border-r border-black p-0.5">CLASS:</td>
-                                        <td className="border-r border-black p-0.5">{data.student?.class}</td>
-                                        <td className="border-r border-black p-0.5">TERM:</td>
-                                        <td className="p-0.5">{data.term?.session} - {data.term?.name}</td>
-                                      </tr>
-                                      <tr>
-                                        <td className="border-r border-black p-0.5">ADM NO:</td>
-                                        <td className="border-r border-black p-0.5">{data.student?.admissionNumber}</td>
-                                        <td className="border-r border-black p-0.5">ATTENDANCE:</td>
-                                        <td className="p-0.5">{data.attendance?.present} / {data.attendance?.total} DAYS ({data.attendance?.percentage}%)</td>
-                                      </tr>
-                                    </tbody>
-                                  </table>
-
-                                  {/* Key Banner */}
-                                  <div className="bg-gray-100 border border-black p-1 text-[8px] font-bold text-center uppercase tracking-wide flex justify-around">
-                                    <span>5 / EX: EXCEEDING</span>
-                                    <span>4 / MT: MEETING</span>
-                                    <span>3 / DV: DEVELOPING</span>
-                                    <span>2 / EM: EMERGING</span>
-                                    <span>1 / NT: NOT TAUGHT</span>
+                                  {/* Student Info Grid */}
+                                  <div className="bg-slate-50 border border-slate-200 rounded-lg p-1.5 text-[8.5px] font-bold uppercase grid grid-cols-3 gap-x-3 gap-y-0.5">
+                                    <div><span className="text-gray-500 font-normal">NAME:</span> <span className="text-black font-black">{getStudentDisplayName(data.student)}</span></div>
+                                    <div><span className="text-gray-500 font-normal">GENDER:</span> <span className="text-black">{data.student?.gender || '-'}</span></div>
+                                    <div><span className="text-gray-500 font-normal">ADM NO:</span> <span className="text-black">{data.student?.admissionNumber || '-'}</span></div>
+                                    <div><span className="text-gray-500 font-normal">CLASS:</span> <span className="text-black">{data.student?.class || '-'}</span></div>
+                                    <div><span className="text-gray-500 font-normal">TERM:</span> <span className="text-black">{data.term?.session} - {data.term?.name}</span></div>
+                                    <div><span className="text-gray-500 font-normal">ATTENDANCE:</span> <span className="text-black">{data.attendance?.present || 0}/{data.attendance?.total || 0} DAYS ({data.attendance?.percentage || 0}%)</span></div>
                                   </div>
 
-                                  {/* Domains & Skills */}
-                                  <div className="border-2 border-black">
-                                    {allDomains.map((domain, dIdx) => (
-                                      <div key={dIdx} className="border-b last:border-b-0 border-black">
-                                        <div className="bg-gray-200 px-2 py-0.5 font-black uppercase text-[9px] border-b border-black flex justify-between items-center">
-                                          <span>{domain.name}</span>
-                                          <span className="text-[7.5px] font-mono">5  4  3  2  1</span>
-                                        </div>
-                                        <table className="w-full border-collapse text-[8.5px]">
-                                          <tbody>
-                                            {(domain.skills || []).map((skill, sIdx) => {
-                                              const score = Math.round(skill.score || 0);
-                                              return (
-                                                <tr key={sIdx} className="border-b last:border-b-0 border-gray-200">
-                                                  <td className="p-1 pl-2 font-medium">{skill.name}</td>
-                                                  <td className="p-1 w-24 text-right pr-2">
-                                                    <div className="flex justify-end gap-1 font-mono text-[8px]">
+                                  {/* Kindergarten Rating Legend / Scale */}
+                                  <div className="bg-amber-50/60 border border-amber-200/80 rounded-lg p-1 text-[7.5px] font-bold text-center uppercase tracking-wide flex justify-around items-center">
+                                    <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300">5 / EX: EXCEEDING</span>
+                                    <span className="px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 border border-blue-300">4 / MT: MEETING</span>
+                                    <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300">3 / DV: DEVELOPING</span>
+                                    <span className="px-1.5 py-0.5 rounded bg-orange-100 text-orange-800 border border-orange-300">2 / EM: EMERGING</span>
+                                    <span className="px-1.5 py-0.5 rounded bg-rose-100 text-rose-800 border border-rose-300">1 / NT: NOT TAUGHT</span>
+                                  </div>
+
+                                  {/* 2-Column Domains Layout */}
+                                  <div className="grid grid-cols-2 gap-2.5 items-start">
+                                    {[leftDomains, rightDomains].map((colDomains, colIdx) => (
+                                      <div key={colIdx} className="space-y-2">
+                                        {colDomains.map((domain, dIdx) => (
+                                          <div key={dIdx} className="border border-gray-200 rounded-lg overflow-hidden bg-white shadow-xs">
+                                            <div className="px-2 py-0.5 font-black uppercase text-[8.5px] text-white flex justify-between items-center" style={{ backgroundColor: currentReportColor }}>
+                                              <span>{domain.name}</span>
+                                              <span className="text-[7px] font-mono tracking-widest opacity-90">5 4 3 2 1</span>
+                                            </div>
+                                            <div className="divide-y divide-gray-100 text-[8px]">
+                                              {(domain.skills || []).map((skill, sIdx) => {
+                                                const score = Math.round(skill.score || 0);
+                                                return (
+                                                  <div key={sIdx} className="p-0.5 px-2 flex justify-between items-center hover:bg-slate-50">
+                                                    <span className="font-semibold text-slate-700 leading-tight pr-1">{skill.name}</span>
+                                                    <div className="flex items-center gap-1 font-mono text-[8px] flex-shrink-0">
                                                       {[5, 4, 3, 2, 1].map(val => (
-                                                        <span key={val} className={`w-3.5 text-center ${score === val ? 'font-bold text-black bg-gray-300 rounded-sm' : 'text-gray-300'}`}>
+                                                        <span key={val} className={`w-3.5 h-3.5 flex items-center justify-center rounded-full text-[7.5px] ${score === val ? 'font-black text-white shadow-xs' : 'text-gray-300'}`} style={{ backgroundColor: score === val ? currentReportColor : 'transparent' }}>
                                                           {score === val ? val : '·'}
                                                         </span>
                                                       ))}
                                                     </div>
-                                                  </td>
-                                                </tr>
-                                              );
-                                            })}
-                                          </tbody>
-                                        </table>
+                                                  </div>
+                                                );
+                                              })}
+                                            </div>
+                                          </div>
+                                        ))}
                                       </div>
                                     ))}
                                   </div>
 
-                                  {/* Comments */}
-                                  <div className="grid grid-cols-2 gap-2 text-[9px]">
-                                    <div className="border border-black p-1.5 min-h-[30px]">
-                                      <p className="font-bold text-[8px] uppercase mb-0.5">TEACHER'S COMMENT</p>
-                                      <p className="italic text-[8.5px]">"{data.developmentPlan?.teacherComment || 'The student is an energetic and engaged learner who has made good progress this term.'}"</p>
+                                  {/* Comments Section */}
+                                  <div className="grid grid-cols-2 gap-2 text-[8.5px]">
+                                    <div className="border border-emerald-200 bg-emerald-50/30 rounded-lg p-1.5 min-h-[32px]">
+                                      <p className="font-black text-[7.5px] uppercase mb-0.5 tracking-wider" style={{ color: currentReportColor }}>TEACHER'S COMMENT</p>
+                                      <p className="italic text-[8px] text-slate-700">"{data.developmentPlan?.teacherComment || 'The student is an energetic and engaged learner who has made good progress this term.'}"</p>
                                     </div>
-                                    <div className="border border-black p-1.5 min-h-[30px]">
-                                      <p className="font-bold text-[8px] uppercase mb-0.5">HEAD TEACHER'S COMMENT</p>
-                                      <p className="italic text-[8.5px]">"{data.developmentPlan?.headTeacherComment || 'Has shown encouraging progress this term. Should continue to practise consistently.'}"</p>
-                                    </div>
-                                  </div>
-
-                                  {/* Signatures */}
-                                  <div className="grid grid-cols-2 gap-8 pt-2 px-8 text-center text-[8px] uppercase font-bold">
-                                    <div>
-                                      <p className="mb-4">CLASS TEACHER</p>
-                                      <div className="border-b border-black w-full mb-1"></div>
-                                      <p className="text-[7px]">DATE: ______________</p>
-                                    </div>
-                                    <div>
-                                      <p className="mb-4">HEAD TEACHER</p>
-                                      <div className="border-b border-black w-full mb-1"></div>
-                                      <p className="text-[7px]">DATE: ______________</p>
+                                    <div className="border border-teal-200 bg-teal-50/30 rounded-lg p-1.5 min-h-[32px]">
+                                      <p className="font-black text-[7.5px] uppercase mb-0.5 tracking-wider" style={{ color: currentReportColor }}>HEAD TEACHER'S COMMENT</p>
+                                      <p className="italic text-[8.5px] text-slate-700">"{data.developmentPlan?.headTeacherComment || 'Has shown encouraging progress this term. Should continue to practise consistently.'}"</p>
                                     </div>
                                   </div>
 
-                                  {/* Footer */}
-                                  <div className="flex justify-between items-center text-[7.5px] text-gray-500 pt-1 border-t border-gray-300">
+                                  {/* Signatures & Footer */}
+                                  <div className="grid grid-cols-2 gap-6 pt-1 px-6 text-center text-[8px] uppercase font-bold">
+                                    <div>
+                                      <p className="mb-2 text-[7.5px] text-gray-600">CLASS TEACHER SIGNATURE</p>
+                                      <div className="border-b border-gray-400 w-full mb-0.5"></div>
+                                      <p className="text-[7px] text-gray-500">DATE: ______________</p>
+                                    </div>
+                                    <div>
+                                      <p className="mb-2 text-[7.5px] text-gray-600">HEAD TEACHER SIGNATURE</p>
+                                      <div className="border-b border-gray-400 w-full mb-0.5"></div>
+                                      <p className="text-[7px] text-gray-500">DATE: ______________</p>
+                                    </div>
+                                  </div>
+
+                                  {/* Footer Info */}
+                                  <div className="flex justify-between items-center text-[7px] text-gray-400 pt-1 border-t border-gray-200">
                                     <span>Early Years Progress Report</span>
-                                    <span>Confidential School Record</span>
+                                    <span>Official Authenticated Record</span>
                                     <span>Page 1 of 1</span>
                                   </div>
                                 </div>
