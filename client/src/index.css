@@ -234,21 +234,22 @@ nav a svg,
     padding: 0 !important;
   }
 
-  /* Strict A4 Container - Exactly 280mm to guarantee 100% 1-page fit with zero spillover or overlap */
+  /* A4 Print Container: Allow multi-page overflow and page breaking for 2-page & 3-page templates */
   .emerald-print-A4 {
     width: 210mm !important;
     max-width: 210mm !important;
-    height: 280mm !important;
+    min-width: 210mm !important;
+    height: auto !important;
     min-height: 280mm !important;
-    max-height: 280mm !important;
-    padding: 4mm 6mm !important;
+    max-height: none !important;
+    padding: 0 !important;
     margin: 0 auto !important;
     box-sizing: border-box !important;
     position: relative !important;
     background: white !important;
-    overflow: hidden !important;
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
+    overflow: visible !important;
+    page-break-inside: auto !important;
+    break-inside: auto !important;
     page-break-after: always !important;
     break-after: page !important;
   }
@@ -257,6 +258,25 @@ nav a svg,
   .emerald-print-A4:last-child {
     page-break-after: avoid !important;
     break-after: avoid !important;
+  }
+
+  /* Force page breaks for multi-page templates */
+  .print\:break-before-page,
+  .break-before-page {
+    break-before: page !important;
+    page-break-before: always !important;
+  }
+
+  .print\:break-after-page,
+  .break-after-page {
+    break-after: page !important;
+    page-break-after: always !important;
+  }
+
+  .print\:break-inside-avoid,
+  .break-inside-avoid {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
   }
 
   .emerald-print-A4-landscape {

@@ -95,16 +95,23 @@ export function buildReportHtmlDocument(containerElement, documentTitle = 'Repor
       width: 210mm !important;
       max-width: 210mm !important;
       min-width: 210mm !important;
+      height: auto !important;
+      max-height: none !important;
+      overflow: visible !important;
       margin: 0 auto !important;
       page-break-after: always !important;
       break-after: page !important;
-      page-break-inside: avoid !important;
-      break-inside: avoid !important;
+      page-break-inside: auto !important;
+      break-inside: auto !important;
       box-sizing: border-box !important;
     }
     .emerald-print-A4:last-child {
       page-break-after: auto !important;
       break-after: auto !important;
+    }
+    .print\:break-before-page, .break-before-page {
+      break-before: page !important;
+      page-break-before: always !important;
     }
   </style>
 </head>
