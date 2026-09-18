@@ -112,6 +112,7 @@ export const useSchoolSettings = () => {
             showFeesOnReport: data.showFeesOnReport !== false, // default true
             showAttendanceOnReport: data.showAttendanceOnReport !== false, // default true
             reportLayout: data.reportLayout || 'classic',
+            earlyYearsPageFormat: data.earlyYearsPageFormat || '3-page',
             // Certificate & Testimonial Customization
             certFontFamily: data.certFontFamily || 'serif',
             certBorderType: data.certBorderType || 'ornate',

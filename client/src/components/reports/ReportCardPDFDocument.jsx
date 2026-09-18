@@ -681,9 +681,11 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
         const attendance = data.attendance || { present: 0, total: 0, percentage: 0 };
         
         // Layout: Strictly default to 'classic' to mirror web behavior
-        const layoutRaw = data.student?.classModel?.reportLayout || data.reportSettings?.reportLayout || (data.schoolSettings || schoolSettings)?.reportLayout || 'classic';
-        const isEarlyYears = layoutRaw.startsWith('early_years') || /early|nursery|kg|kindergarten|reception|playgroup|toddler|creche|pre-k|ركن|الركن|روضة|الروضة|تمهيدي|حضانة/i.test(student.class || data.className || '');
-        const layout = isEarlyYears ? 'early_years' : layoutRaw;
+        const layoutRawDB = data.student?.classModel?.reportLayout || data.reportSettings?.reportLayout || (data.schoolSettings || schoolSettings)?.reportLayout || 'classic';
+        const isEarlyYears = layoutRawDB.startsWith('early_years') || /early|nursery|kg|kindergarten|reception|playgroup|toddler|creche|pre-k|ركن|الركن|روضة|الروضة|تمهيدي|حضانة/i.test(student.class || data.className || '');
+        // Strip page-format suffix so layoutRaw never encodes the page count
+        const layoutRaw = isEarlyYears ? 'early_years' : layoutRawDB;
+        const layout = layoutRaw;
         
         const reportColor = data.reportSettings?.reportColorScheme || (data.schoolSettings || schoolSettings)?.reportColorScheme || (data.schoolSettings || schoolSettings)?.primaryColor || '#1e40af';
 
@@ -706,13 +708,9 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
           ];
           const devPlan = data.developmentPlan || {};
           const globalEarlyFormat = data.reportSettings?.earlyYearsPageFormat || (data.schoolSettings || schoolSettings)?.earlyYearsPageFormat;
-          let earlyYearsPageFormat = globalEarlyFormat;
-          if (!earlyYearsPageFormat) {
-            if (layoutRaw === 'early_years_1-page') earlyYearsPageFormat = '1-page';
-            else if (layoutRaw === 'early_years_2-page') earlyYearsPageFormat = '2-page';
-            else if (layoutRaw === 'early_years_3-page') earlyYearsPageFormat = '3-page';
-            else earlyYearsPageFormat = '3-page';
-          }
+          // School-wide AcademicSetup setting wins. Fall back to class DB suffix only if no school setting.
+          const classLayoutSuffix = layoutRawDB.startsWith('early_years_') ? layoutRawDB.replace('early_years_', '') : null;
+          const earlyYearsPageFormat = globalEarlyFormat || classLayoutSuffix || '3-page';
 
           // Filter domains into Page 1 (01, 02) and Page 2 (03, 04, 05, 06+)
           const page1Domains = domains.filter(d => (d.name || '').startsWith('01') || (d.name || '').startsWith('02'));

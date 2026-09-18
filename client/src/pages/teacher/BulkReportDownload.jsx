@@ -390,9 +390,11 @@ const BulkReportDownload = () => {
               const showPosition = data.reportSettings?.showPositionOnReport !== undefined ? data.reportSettings.showPositionOnReport : (schoolSettings?.showPositionOnReport !== false);
               const showFees = data.reportSettings?.showFeesOnReport !== undefined ? data.reportSettings.showFeesOnReport : (schoolSettings?.showFeesOnReport !== false);
               const showAttendance = (schoolSettings?.showAttendanceOnReport !== false) && (data.reportSettings?.showAttendanceOnReport !== false);
-              const layoutRaw = data.student?.classModel?.reportLayout || data.reportSettings?.reportLayout || schoolSettings?.reportLayout || 'classic';
-              const isEarlyYears = layoutRaw.startsWith('early_years') || /early|nursery|kg|kindergarten|reception|playgroup|toddler|creche|pre-k|ركن|الركن|روضة|الروضة|تمهيدي|حضانة/i.test(data.student?.class || '');
-              const layout = isEarlyYears ? 'early_years' : layoutRaw;
+              const layoutRawDB = data.student?.classModel?.reportLayout || data.reportSettings?.reportLayout || schoolSettings?.reportLayout || 'classic';
+              const isEarlyYears = layoutRawDB.startsWith('early_years') || /early|nursery|kg|kindergarten|reception|playgroup|toddler|creche|pre-k|ركن|الركن|روضة|الروضة|تمهيدي|حضانة/i.test(data.student?.class || '');
+              // Strip page-format suffix so layoutRaw never encodes the page count
+              const layoutRaw = isEarlyYears ? 'early_years' : layoutRawDB;
+              const layout = layoutRaw;
               const borderStyle = layout === 'minimal' ? 'border-[2px] border-gray-400' : layout === 'modern' ? 'border-[6px] rounded-2xl' : 'border-[12px]';
 
               return (
@@ -422,14 +424,9 @@ const BulkReportDownload = () => {
 
                         <div className="relative z-10 space-y-3 print:space-y-2">
                           {layout === 'early_years' ? (() => {
-                            const globalEarlyFormat = data.reportSettings?.earlyYearsPageFormat || schoolSettings?.earlyYearsPageFormat;
-                            let earlyYearsPageFormat = globalEarlyFormat;
-                            if (!earlyYearsPageFormat) {
-                              if (layoutRaw === 'early_years_1-page') earlyYearsPageFormat = '1-page';
-                              else if (layoutRaw === 'early_years_2-page') earlyYearsPageFormat = '2-page';
-                              else if (layoutRaw === 'early_years_3-page') earlyYearsPageFormat = '3-page';
-                              else earlyYearsPageFormat = '3-page';
-                            }
+                            // School-wide AcademicSetup setting wins. Fall back to class DB suffix only if no school setting.
+                            const classLayoutSuffix = layoutRawDB.startsWith('early_years_') ? layoutRawDB.replace('early_years_', '') : null;
+                            const earlyYearsPageFormat = data.reportSettings?.earlyYearsPageFormat || classLayoutSuffix || '3-page';
                             const allDomains = data.earlyYearsDomains || [];
                             const ss = data.schoolSettings || schoolSettings;
                             const logoUrl = ss?.logoUrl;
