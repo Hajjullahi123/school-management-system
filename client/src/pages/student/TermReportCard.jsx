@@ -755,8 +755,8 @@ const TermReportCard = () => {
                                   {colDomains.map((domain, dIdx) => (
                                     <div key={dIdx} className="border border-gray-300 rounded-lg overflow-hidden bg-white shadow-xs">
                                       <div className="px-3 py-1.5 font-black uppercase text-[11px] sm:text-xs text-white flex justify-between items-center" style={{ backgroundColor: currentReportColor }}>
-                                        <span>{domain.name}</span>
-                                        <span className="text-[9px] font-mono tracking-widest opacity-90">5 4 3 2 1</span>
+                                        <span className="pr-2 break-words flex-1 min-w-0">{domain.name}</span>
+                                        <span className="text-[9px] font-mono tracking-widest opacity-90 whitespace-nowrap shrink-0 ml-2">5 4 3 2 1</span>
                                       </div>
                                       <div className="divide-y divide-gray-100">
                                         {(domain.skills || []).map((skill, sIdx) => {
@@ -979,8 +979,8 @@ const TermReportCard = () => {
                               return (
                                 <div key={dIdx} className="border-2 border-black overflow-hidden shadow-xs">
                                   <div className={`px-3 py-1 font-black text-xs sm:text-[12.5px] uppercase border-b-2 border-black flex justify-between items-center ${domainHeaderBg}`}>
-                                    <span>{domain.name}</span>
-                                    <span className="text-[10px] font-bold opacity-90">Domain {dIdx + 1}</span>
+                                    <span className="pr-2 break-words flex-1 min-w-0">{domain.name}</span>
+                                    <span className="text-[10px] font-bold opacity-90 whitespace-nowrap shrink-0 ml-2">Domain {dIdx + 1}</span>
                                   </div>
                                   <table className="w-full border-collapse text-xs">
                                     <thead>
@@ -1065,8 +1065,8 @@ const TermReportCard = () => {
                               return (
                                 <div key={dIdx} className="border-2 border-black overflow-hidden shadow-xs">
                                   <div className={`px-3 py-1 font-black text-[11px] uppercase border-b-2 border-black flex justify-between items-center ${domainHeaderBg}`}>
-                                    <span>{domain.name}</span>
-                                    <span className="text-[9px] font-bold opacity-80">Domain {dIdx + 4}</span>
+                                    <span className="pr-2 break-words flex-1 min-w-0">{domain.name}</span>
+                                    <span className="text-[9px] font-bold opacity-80 whitespace-nowrap shrink-0 ml-2">Domain {dIdx + 4}</span>
                                   </div>
                                   <table className="w-full border-collapse text-xs">
                                     <thead>
@@ -1421,8 +1421,8 @@ const TermReportCard = () => {
                           return (
                             <div key={dIdx} className="border-2 border-black overflow-hidden shadow-xs">
                               <div className={`px-3 py-1 font-black text-xs uppercase border-b-2 border-black flex justify-between items-center ${domainHeaderBg}`}>
-                                <span>{domain.name}</span>
-                                <span className="text-[9px] font-bold opacity-80">Domain {dIdx + 1}</span>
+                                <span className="pr-2 break-words flex-1 min-w-0">{domain.name}</span>
+                                <span className="text-[9px] font-bold opacity-80 whitespace-nowrap shrink-0 ml-2">Domain {dIdx + 1}</span>
                               </div>
                               <table className="w-full border-collapse text-xs">
                                 <thead>
@@ -1507,8 +1507,8 @@ const TermReportCard = () => {
                           return (
                             <div key={dIdx} className="border-2 border-black overflow-hidden shadow-xs">
                               <div className={`px-3 py-1 font-black text-xs uppercase border-b-2 border-black flex justify-between items-center ${domainHeaderBg}`}>
-                                <span>{domain.name}</span>
-                                <span className="text-[9px] font-bold opacity-80">Domain {dIdx + 3}</span>
+                                <span className="pr-2 break-words flex-1 min-w-0">{domain.name}</span>
+                                <span className="text-[9px] font-bold opacity-80 whitespace-nowrap shrink-0 ml-2">Domain {dIdx + 3}</span>
                               </div>
                               <table className="w-full border-collapse text-xs">
                                 <thead>
@@ -1848,8 +1848,8 @@ const TermReportCard = () => {
                         {data.earlyYearsDomains.map((domain, dIdx) => (
                           <div key={dIdx} className="border-2 border-black">
                             <div className="bg-gray-200 px-2 py-0.5 font-black uppercase text-[9px] border-b border-black flex justify-between items-center">
-                              <span>{domain.name}</span>
-                              <span className="text-[7.5px] font-mono">5  4  3  2  1</span>
+                              <span className="pr-2 break-words flex-1 min-w-0">{domain.name}</span>
+                              <span className="text-[7.5px] font-mono whitespace-nowrap shrink-0 ml-2">5  4  3  2  1</span>
                             </div>
                             <table className="w-full border-collapse text-[9px]">
                               <tbody>

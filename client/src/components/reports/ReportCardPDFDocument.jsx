@@ -805,8 +805,8 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
                           {colDomains.map((domain, dIdx) => (
                             <View key={dIdx} style={{ borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 4, overflow: 'hidden' }}>
                               <View style={{ backgroundColor: reportColor, paddingHorizontal: 5, paddingVertical: 2.5, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <Text style={{ fontSize: 8.5, fontWeight: 'bold', textTransform: 'uppercase', color: '#ffffff' }}>{domain.name}</Text>
-                                <Text style={{ fontSize: 7, color: '#ffffff', opacity: 0.85 }}>5  4  3  2  1</Text>
+                                <Text style={{ flex: 1, fontSize: 8.5, fontWeight: 'bold', textTransform: 'uppercase', color: '#ffffff', paddingRight: 4 }}>{domain.name}</Text>
+                                <Text style={{ fontSize: 7, color: '#ffffff', opacity: 0.85, flexShrink: 0 }}>5  4  3  2  1</Text>
                               </View>
                               {(domain.skills || []).map((skill, sIdx) => {
                                 const score = Math.round(skill.score || 0);
