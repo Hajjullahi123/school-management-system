@@ -954,8 +954,8 @@ const TermReportCard = () => {
                               </div>
                             </div>
 
-                            {/* Page 1 Domains (ALL Domains for 2-page) */}
-                            {allDomains.map((domain, dIdx) => {
+                            {/* Page 1 Domains (01, 02, 03 for 2-page format) */}
+                            {page1Domains.map((domain, dIdx) => {
                               const headerColors = [
                                 'bg-emerald-600 text-white',
                                 'bg-indigo-600 text-white',
@@ -1041,6 +1041,80 @@ const TermReportCard = () => {
                             <div className="text-center border-b-2 border-black pb-2">
                               <h2 className="text-sm font-black uppercase tracking-wider text-black">EARLY YEARS PROGRESS REPORT</h2>
                             </div>
+
+                            {/* Page 2 Remaining Domains (04, 05, 06+) */}
+                            {extraDomains.map((domain, dIdx) => {
+                              const headerColors = [
+                                'bg-purple-600 text-white',
+                                'bg-amber-600 text-white',
+                                'bg-teal-600 text-white',
+                                'bg-rose-600 text-white'
+                              ];
+                              const domainHeaderBg = headerColors[dIdx % headerColors.length];
+                              return (
+                                <div key={dIdx} className="border-2 border-black overflow-hidden shadow-xs">
+                                  <div className={`px-3 py-1 font-black text-[11px] uppercase border-b-2 border-black flex justify-between items-center ${domainHeaderBg}`}>
+                                    <span>{domain.name}</span>
+                                    <span className="text-[9px] font-bold opacity-80">Domain {dIdx + 4}</span>
+                                  </div>
+                                  <table className="w-full border-collapse text-xs">
+                                    <thead>
+                                      <tr className="bg-gray-100 border-b border-black text-[10px] font-black uppercase text-black">
+                                        <th className="p-1 text-left border-r border-black">Learning outcome / skill</th>
+                                        <th className="p-1 text-center w-16 border-r border-black">Current</th>
+                                        <th className="p-1 text-center w-16 border-r border-black">Previous</th>
+                                        <th className="p-1 text-center w-28">Progress</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {(domain.skills || []).map((skill, sIdx) => {
+                                        const curVal = (skill.current || 'A').toUpperCase();
+                                        const prevVal = (skill.previous || 'A').toUpperCase();
+                                        const progVal = (skill.progress || 'Maintained').trim();
+
+                                        const renderGradeBadge = (val) => {
+                                          if (val === 'A') return <span className="inline-block px-2 py-0.5 rounded font-black text-xs bg-emerald-500 text-white shadow-2xs">A</span>;
+                                          if (val === 'P') return <span className="inline-block px-2 py-0.5 rounded font-black text-xs bg-sky-500 text-white shadow-2xs">P</span>;
+                                          if (val === 'W') return <span className="inline-block px-2 py-0.5 rounded font-black text-xs bg-amber-500 text-white shadow-2xs">W</span>;
+                                          return <span className="inline-block px-2 py-0.5 rounded font-black text-xs bg-slate-400 text-white">NA</span>;
+                                        };
+
+                                        const renderProgressBadge = (val) => {
+                                          if (val.toLowerCase().includes('improv')) {
+                                            return (
+                                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-bold text-[10px] bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                                <span className="font-black text-emerald-600">↑</span> Improved
+                                              </span>
+                                            );
+                                          }
+                                          if (val.toLowerCase().includes('maintain')) {
+                                            return (
+                                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-bold text-[10px] bg-sky-100 text-sky-800 border border-sky-300">
+                                                <span className="font-black text-sky-600">→</span> Maintained
+                                              </span>
+                                            );
+                                          }
+                                          return (
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-bold text-[10px] bg-amber-100 text-amber-800 border border-amber-300">
+                                              <span className="font-black text-amber-600">⚡</span> Needs Support
+                                            </span>
+                                          );
+                                        };
+
+                                        return (
+                                          <tr key={sIdx} className="border-b border-gray-200 last:border-b-0 h-6 font-medium text-black text-[11px] hover:bg-gray-50/50">
+                                            <td className="p-1 border-r border-black font-bold">{skill.name}</td>
+                                            <td className="p-1 text-center border-r border-black">{renderGradeBadge(curVal)}</td>
+                                            <td className="p-1 text-center border-r border-black">{renderGradeBadge(prevVal)}</td>
+                                            <td className="p-1 text-center">{renderProgressBadge(progVal)}</td>
+                                          </tr>
+                                        );
+                                      })}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              );
+                            })}
 
                             {/* PROGRESS AT A GLANCE TABLE */}
                             <div className="border-2 border-black overflow-hidden shadow-xs">
