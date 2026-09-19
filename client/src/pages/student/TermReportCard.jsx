@@ -1059,7 +1059,7 @@ const TermReportCard = () => {
                                   </div>
                                   <table className="w-full border-collapse text-xs">
                                     <thead>
-                                      <tr className="bg-gray-100 border-b border-black text-[10px] font-black uppercase text-black">
+                                      <tr className="bg-gray-100 border-b border-black text-[11px] sm:text-[11.5px] font-black uppercase text-black">
                                         <th className="p-1 text-left border-r border-black">Learning outcome / skill</th>
                                         <th className="p-1 text-center w-16 border-r border-black">Current</th>
                                         <th className="p-1 text-center w-16 border-r border-black">Previous</th>
@@ -1102,8 +1102,8 @@ const TermReportCard = () => {
                                         };
 
                                         return (
-                                          <tr key={sIdx} className="border-b border-gray-200 last:border-b-0 min-h-[24px] align-middle font-medium text-black text-[11px] hover:bg-gray-50/50">
-                                            <td className="p-1 border-r border-black font-bold">{skill.name}</td>
+                                          <tr key={sIdx} className="border-b border-gray-200 last:border-b-0 min-h-[24px] align-middle font-medium text-black text-[12px] sm:text-[12.5px] hover:bg-gray-50/50">
+                                            <td className="p-1 border-r border-black font-black text-black">{skill.name}</td>
                                             <td className="p-1 text-center border-r border-black">{renderGradeBadge(curVal)}</td>
                                             <td className="p-1 text-center border-r border-black">{renderGradeBadge(prevVal)}</td>
                                             <td className="p-1 text-center">{renderProgressBadge(progVal)}</td>
@@ -1146,12 +1146,12 @@ const TermReportCard = () => {
                                     return (
                                       <tr key={rIdx} className="border-b border-gray-300 last:border-b-0 font-medium text-black hover:bg-gray-50">
                                         <td className="p-1 border-r border-black font-black align-middle">
-                                          <span className={`inline-flex items-center px-2 py-0.5 rounded border text-[10.5px] font-black leading-none ${areaPillColors[rIdx % areaPillColors.length]}`}>
+                                          <span className={`inline-flex items-center px-2 py-0.5 rounded border text-[11px] sm:text-[11.5px] font-black leading-none ${areaPillColors[rIdx % areaPillColors.length]}`}>
                                             {row.area}
                                           </span>
                                         </td>
-                                        <td className="p-1.5 border-r border-black bg-emerald-50/20">{row.goingWell}</td>
-                                        <td className="p-1.5 bg-indigo-50/20">{row.nextFocus}</td>
+                                        <td className="p-1.5 border-r border-black bg-emerald-50/20 font-bold text-black text-[12px] sm:text-[12.5px] leading-snug">{row.goingWell}</td>
+                                        <td className="p-1.5 bg-indigo-50/20 font-bold text-black text-[12px] sm:text-[12.5px] leading-snug">{row.nextFocus}</td>
                                       </tr>
                                     );
                                   })}
@@ -1161,24 +1161,24 @@ const TermReportCard = () => {
 
                             {/* TEACHER'S OVERALL COMMENT */}
                             <div className="space-y-1">
-                              <p className="text-xs font-black uppercase text-black">TEACHER'S OVERALL COMMENT</p>
-                              <div className="border-2 border-black p-2 text-xs italic font-medium leading-snug bg-gray-50 text-black">
+                              <p className="text-[12.5px] sm:text-[13px] font-black uppercase text-black tracking-wide">TEACHER'S OVERALL COMMENT</p>
+                              <div className="border-2 border-black p-2.5 text-[12px] sm:text-[12.5px] italic font-bold leading-snug bg-gray-50 text-black">
                                 "{data.developmentPlan?.teacherComment || 'The student is an energetic and engaged learner who has made clear progress during the term. She demonstrates strong performance in areas of interest and is developing confidence across literacy, numeracy and classroom activities.'}"
                               </div>
                             </div>
 
                             {/* SUBJECT / DEVELOPMENT COMMENTS */}
                             <div className="space-y-1">
-                              <p className="text-xs font-black uppercase text-black">SUBJECT / DEVELOPMENT COMMENTS</p>
+                              <p className="text-[12.5px] sm:text-[13px] font-black uppercase text-black tracking-wide">SUBJECT / DEVELOPMENT COMMENTS</p>
                               <table className="w-full border-2 border-black border-collapse text-xs">
                                 <tbody>
                                   <tr className="border-b border-black">
-                                    <td className="p-1.5 w-1/4 font-black border-r border-black bg-gray-100 uppercase text-black">LITERACY</td>
-                                    <td className="p-1.5 italic text-black">{data.developmentPlan?.literacyComment || 'Recognises letter sounds confidently and is developing ability to use complete sentences and appropriate vocabulary.'}</td>
+                                    <td className="p-1.5 w-1/4 font-black border-r border-black bg-gray-100 uppercase text-black text-[11.5px]">LITERACY</td>
+                                    <td className="p-1.5 italic font-bold text-black text-[12px] sm:text-[12.5px] leading-snug">{data.developmentPlan?.literacyComment || 'Recognises letter sounds confidently and is developing ability to use complete sentences and appropriate vocabulary.'}</td>
                                   </tr>
                                   <tr>
-                                    <td className="p-1.5 w-1/4 font-black border-r border-black bg-gray-100 uppercase text-black">NUMERACY</td>
-                                    <td className="p-1.5 italic text-black">{data.developmentPlan?.numeracyComment || 'Demonstrates strong understanding of basic numeracy concepts and applies counting and number skills confidently.'}</td>
+                                    <td className="p-1.5 w-1/4 font-black border-r border-black bg-gray-100 uppercase text-black text-[11.5px]">NUMERACY</td>
+                                    <td className="p-1.5 italic font-bold text-black text-[12px] sm:text-[12.5px] leading-snug">{data.developmentPlan?.numeracyComment || 'Demonstrates strong understanding of basic numeracy concepts and applies counting and number skills confidently.'}</td>
                                   </tr>
                                 </tbody>
                               </table>
@@ -1186,18 +1186,18 @@ const TermReportCard = () => {
 
                             {/* RECOMMENDED NEXT STEPS */}
                             <div className="space-y-1">
-                              <p className="text-xs font-black uppercase text-black">RECOMMENDED NEXT STEPS</p>
+                              <p className="text-[12.5px] sm:text-[13px] font-black uppercase text-black tracking-wide">RECOMMENDED NEXT STEPS</p>
                               <table className="w-full border-2 border-black border-collapse text-xs">
                                 <thead>
-                                  <tr className="bg-gray-100 border-b border-black font-black uppercase text-black text-[10.5px]">
+                                  <tr className="bg-gray-100 border-b border-black font-black uppercase text-black text-[11px] sm:text-[11.5px]">
                                     <th className="p-1.5 text-left w-1/2 border-r border-black">At School</th>
                                     <th className="p-1.5 text-left w-1/2">At Home</th>
                                   </tr>
                                 </thead>
                                 <tbody>
                                   <tr>
-                                    <td className="p-1.5 border-r border-black text-black">{data.developmentPlan?.atSchoolNextStep || 'Continue guided literacy and numeracy practice; reinforce independent classroom routines.'}</td>
-                                    <td className="p-1.5 text-black">{data.developmentPlan?.atHomeNextStep || 'Read together, practise sounds and counting, and use everyday objects for sorting and number games.'}</td>
+                                    <td className="p-1.5 border-r border-black font-bold text-black text-[12px] sm:text-[12.5px] leading-snug">{data.developmentPlan?.atSchoolNextStep || 'Continue guided literacy and numeracy practice; reinforce independent classroom routines.'}</td>
+                                    <td className="p-1.5 font-bold text-black text-[12px] sm:text-[12.5px] leading-snug">{data.developmentPlan?.atHomeNextStep || 'Read together, practise sounds and counting, and use everyday objects for sorting and number games.'}</td>
                                   </tr>
                                 </tbody>
                               </table>
@@ -1205,8 +1205,8 @@ const TermReportCard = () => {
 
                             {/* HEAD TEACHER'S COMMENT */}
                             <div className="space-y-1">
-                              <p className="text-xs font-black uppercase text-black">HEAD TEACHER'S COMMENT</p>
-                              <div className="border-2 border-black p-2 text-xs italic font-medium leading-snug bg-gray-50 text-black">
+                              <p className="text-[12.5px] sm:text-[13px] font-black uppercase text-black tracking-wide">HEAD TEACHER'S COMMENT</p>
+                              <div className="border-2 border-black p-2.5 text-[12px] sm:text-[12.5px] italic font-bold leading-snug bg-gray-50 text-black">
                                 "{data.developmentPlan?.headTeacherComment || 'Has shown encouraging progress this term. Should continue to practise consistently and maintain a positive attitude toward learning.'}"
                               </div>
                             </div>
