@@ -1037,9 +1037,9 @@ const TermReportCard = () => {
                           </div>
 
                           {/* PAGE 2 */}
-                          <div className="bg-white border-4 border-black p-5 sm:p-6 space-y-3 print:p-4 print:space-y-2 rounded-xl flex flex-col justify-between min-h-[282mm] print:min-h-[285mm] w-full box-border print:break-before-page" style={{ pageBreakBefore: 'always', breakBefore: 'page' }}>
-                            <div className="text-center border-b-2 border-black pb-2">
-                              <h2 className="text-sm font-black uppercase tracking-wider text-black">EARLY YEARS PROGRESS REPORT</h2>
+                          <div className="bg-white border-4 border-black p-4 sm:p-5 space-y-2 print:p-3 print:space-y-1.5 rounded-xl flex flex-col justify-between min-h-[270mm] print:min-h-[275mm] print:max-h-[280mm] w-full box-border print:break-before-page" style={{ pageBreakBefore: 'always', breakBefore: 'page' }}>
+                            <div className="text-center border-b-2 border-black pb-1">
+                              <h2 className="text-xs sm:text-sm font-black uppercase tracking-wider text-black">EARLY YEARS PROGRESS REPORT</h2>
                             </div>
 
                             {/* Page 2 Remaining Domains (04, 05, 06+) */}
@@ -1162,7 +1162,7 @@ const TermReportCard = () => {
                             {/* TEACHER'S OVERALL COMMENT */}
                             <div className="space-y-1">
                               <p className="text-xs font-black uppercase text-black">TEACHER'S OVERALL COMMENT</p>
-                              <div className="border-2 border-black p-3 text-xs italic font-medium leading-relaxed bg-gray-50 text-black">
+                              <div className="border-2 border-black p-2 text-xs italic font-medium leading-snug bg-gray-50 text-black">
                                 "{data.developmentPlan?.teacherComment || 'The student is an energetic and engaged learner who has made clear progress during the term. She demonstrates strong performance in areas of interest and is developing confidence across literacy, numeracy and classroom activities.'}"
                               </div>
                             </div>
@@ -1173,12 +1173,12 @@ const TermReportCard = () => {
                               <table className="w-full border-2 border-black border-collapse text-xs">
                                 <tbody>
                                   <tr className="border-b border-black">
-                                    <td className="p-2 w-1/4 font-black border-r border-black bg-gray-100 uppercase text-black">LITERACY</td>
-                                    <td className="p-2 italic text-black">{data.developmentPlan?.literacyComment || 'Recognises letter sounds confidently and is developing ability to use complete sentences and appropriate vocabulary.'}</td>
+                                    <td className="p-1.5 w-1/4 font-black border-r border-black bg-gray-100 uppercase text-black">LITERACY</td>
+                                    <td className="p-1.5 italic text-black">{data.developmentPlan?.literacyComment || 'Recognises letter sounds confidently and is developing ability to use complete sentences and appropriate vocabulary.'}</td>
                                   </tr>
                                   <tr>
-                                    <td className="p-2 w-1/4 font-black border-r border-black bg-gray-100 uppercase text-black">NUMERACY</td>
-                                    <td className="p-2 italic text-black">{data.developmentPlan?.numeracyComment || 'Demonstrates strong understanding of basic numeracy concepts and applies counting and number skills confidently.'}</td>
+                                    <td className="p-1.5 w-1/4 font-black border-r border-black bg-gray-100 uppercase text-black">NUMERACY</td>
+                                    <td className="p-1.5 italic text-black">{data.developmentPlan?.numeracyComment || 'Demonstrates strong understanding of basic numeracy concepts and applies counting and number skills confidently.'}</td>
                                   </tr>
                                 </tbody>
                               </table>
@@ -1189,15 +1189,15 @@ const TermReportCard = () => {
                               <p className="text-xs font-black uppercase text-black">RECOMMENDED NEXT STEPS</p>
                               <table className="w-full border-2 border-black border-collapse text-xs">
                                 <thead>
-                                  <tr className="bg-gray-100 border-b border-black font-black uppercase text-black text-[11px]">
-                                    <th className="p-2 text-left w-1/2 border-r border-black">At School</th>
-                                    <th className="p-2 text-left w-1/2">At Home</th>
+                                  <tr className="bg-gray-100 border-b border-black font-black uppercase text-black text-[10.5px]">
+                                    <th className="p-1.5 text-left w-1/2 border-r border-black">At School</th>
+                                    <th className="p-1.5 text-left w-1/2">At Home</th>
                                   </tr>
                                 </thead>
                                 <tbody>
                                   <tr>
-                                    <td className="p-2 border-r border-black text-black">{data.developmentPlan?.atSchoolNextStep || 'Continue guided literacy and numeracy practice; reinforce independent classroom routines.'}</td>
-                                    <td className="p-2 text-black">{data.developmentPlan?.atHomeNextStep || 'Read together, practise sounds and counting, and use everyday objects for sorting and number games.'}</td>
+                                    <td className="p-1.5 border-r border-black text-black">{data.developmentPlan?.atSchoolNextStep || 'Continue guided literacy and numeracy practice; reinforce independent classroom routines.'}</td>
+                                    <td className="p-1.5 text-black">{data.developmentPlan?.atHomeNextStep || 'Read together, practise sounds and counting, and use everyday objects for sorting and number games.'}</td>
                                   </tr>
                                 </tbody>
                               </table>
@@ -1206,39 +1206,39 @@ const TermReportCard = () => {
                             {/* HEAD TEACHER'S COMMENT */}
                             <div className="space-y-1">
                               <p className="text-xs font-black uppercase text-black">HEAD TEACHER'S COMMENT</p>
-                              <div className="border-2 border-black p-3 text-xs italic font-medium leading-relaxed bg-gray-50 text-black">
+                              <div className="border-2 border-black p-2 text-xs italic font-medium leading-snug bg-gray-50 text-black">
                                 "{data.developmentPlan?.headTeacherComment || 'Has shown encouraging progress this term. Should continue to practise consistently and maintain a positive attitude toward learning.'}"
                               </div>
                             </div>
 
                             {/* Signatures */}
-                            <div className="grid grid-cols-2 max-w-xl mx-auto gap-12 pt-4 text-center text-xs font-black uppercase text-black">
-                              <div className="space-y-2">
+                            <div className="grid grid-cols-2 max-w-xl mx-auto gap-8 pt-2 text-center text-xs font-black uppercase text-black">
+                              <div className="space-y-1">
                                 <p>CLASS TEACHER</p>
-                                <div className="border-b-2 border-black h-8 flex items-center justify-center">
+                                <div className="border-b-2 border-black h-7 flex items-center justify-center">
                                   {data.student?.formMasterSignatureUrl && (
                                     <img src={data.student.formMasterSignatureUrl.startsWith('data:') || data.student.formMasterSignatureUrl.startsWith('http') ? data.student.formMasterSignatureUrl : `${API_BASE_URL}${data.student.formMasterSignatureUrl}`} alt="Teacher Signature" className="h-full w-auto mix-blend-multiply" />
                                   )}
                                 </div>
-                                <p className="text-[10px] font-normal">Date: ______________</p>
+                                <p className="text-[9.5px] font-normal">Date: ______________</p>
                               </div>
-                              <div className="space-y-2">
+                              <div className="space-y-1">
                                 <p>HEAD TEACHER</p>
-                                <div className="border-b-2 border-black h-8 flex items-center justify-center">
+                                <div className="border-b-2 border-black h-7 flex items-center justify-center">
                                   {data.term?.principalSignatureUrl && (
                                     <img src={data.term.principalSignatureUrl.startsWith('data:') || data.term.principalSignatureUrl.startsWith('http') ? data.term.principalSignatureUrl : `${API_BASE_URL}${data.term.principalSignatureUrl}`} alt="Principal Signature" className="h-full w-auto mix-blend-multiply" />
                                   )}
                                 </div>
-                                <p className="text-[10px] font-normal">Date: ______________</p>
+                                <p className="text-[9.5px] font-normal">Date: ______________</p>
                               </div>
                             </div>
 
-                            <p className="text-[10px] text-gray-500 text-center pt-3 border-t border-gray-200">
+                            <p className="text-[9px] text-gray-500 text-center pt-1.5 border-t border-gray-200 leading-tight">
                               Report integrity: Published reports should be locked against unauthorised changes. Assessment templates and rating schemes should be configurable by school administrators.
                             </p>
 
                             {/* DOCUMENT VERIFICATION FOOTER / QR CODE SCANNER */}
-                            <div className="mt-2 border-t border-gray-200 pt-1 flex justify-between items-center bg-transparent">
+                            <div className="mt-1 border-t border-gray-200 pt-0.5 flex justify-between items-center bg-transparent">
                               <div className="flex items-center gap-3">
                                 <div className="group/qr relative bg-white p-1 rounded-lg shadow-sm border border-gray-100 transition-all hover:shadow-md">
                                   <QRCodeSVG 
