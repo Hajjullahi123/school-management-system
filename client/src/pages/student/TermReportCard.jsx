@@ -881,24 +881,24 @@ const TermReportCard = () => {
                             </div>
 
                             {/* Student Details Table */}
-                            <table className="w-full border-2 border-black border-collapse text-xs font-bold uppercase">
+                            <table className="w-full border-2 border-black border-collapse text-xs sm:text-[12.5px] font-bold uppercase">
                               <tbody>
                                 <tr className="border-b border-black">
-                                  <td className="border-r border-black p-1.5 w-[15%] bg-gray-100 font-black">STUDENT</td>
+                                  <td className="border-r border-black p-1.5 w-[15%] bg-gray-100 font-black text-slate-800">STUDENT</td>
                                   <td className="border-r border-black p-1.5 w-[45%] font-black text-black">{getStudentDisplayName(data.student)}</td>
-                                  <td className="border-r border-black p-1.5 w-[15%] bg-gray-100 font-black">CLASS</td>
+                                  <td className="border-r border-black p-1.5 w-[15%] bg-gray-100 font-black text-slate-800">CLASS</td>
                                   <td className="p-1.5 w-[25%] font-black text-black">{data.student?.class}</td>
                                 </tr>
                                 <tr className="border-b border-black">
-                                  <td className="border-r border-black p-1.5 bg-gray-100 font-black">DATE OF BIRTH</td>
-                                  <td className="border-r border-black p-1.5 font-bold">{formatDateVerbose(data.student?.dateOfBirth)}</td>
-                                  <td className="border-r border-black p-1.5 bg-gray-100 font-black">SESSION</td>
-                                  <td className="p-1.5 font-bold">{data.term?.session}</td>
+                                  <td className="border-r border-black p-1.5 bg-gray-100 font-black text-slate-800">DATE OF BIRTH</td>
+                                  <td className="border-r border-black p-1.5 font-bold text-black">{formatDateVerbose(data.student?.dateOfBirth)}</td>
+                                  <td className="border-r border-black p-1.5 bg-gray-100 font-black text-slate-800">SESSION</td>
+                                  <td className="p-1.5 font-bold text-black">{data.term?.session}</td>
                                 </tr>
                                 <tr>
-                                  <td className="border-r border-black p-1.5 bg-gray-100 font-black">TERM</td>
-                                  <td className="border-r border-black p-1.5 font-bold">{data.term?.name}</td>
-                                  <td className="border-r border-black p-1.5 bg-gray-100 font-black">REPORT STATUS</td>
+                                  <td className="border-r border-black p-1.5 bg-gray-100 font-black text-slate-800">TERM</td>
+                                  <td className="border-r border-black p-1.5 font-bold text-black">{data.term?.name}</td>
+                                  <td className="border-r border-black p-1.5 bg-gray-100 font-black text-slate-800">REPORT STATUS</td>
                                   <td className="p-1.5 font-black text-emerald-800">Published</td>
                                 </tr>
                               </tbody>
@@ -909,47 +909,47 @@ const TermReportCard = () => {
                               <div className="border-2 border-black">
                                 <div className="grid grid-cols-4 divide-x-2 divide-black text-center p-2">
                                   <div>
-                                    <div className="text-xl font-black text-black">{data.attendance.present ?? 0}</div>
-                                    <div className="text-[10px] font-black uppercase text-gray-700">DAYS PRESENT</div>
+                                    <div className="text-xl sm:text-2xl font-black text-black">{data.attendance.present ?? 0}</div>
+                                    <div className="text-[10.5px] sm:text-[11px] font-black uppercase text-gray-800">DAYS PRESENT</div>
                                   </div>
                                   <div>
-                                    <div className="text-xl font-black text-black">{data.attendance.absent ?? 0}</div>
-                                    <div className="text-[10px] font-black uppercase text-gray-700">DAYS ABSENT</div>
+                                    <div className="text-xl sm:text-2xl font-black text-black">{data.attendance.absent ?? 0}</div>
+                                    <div className="text-[10.5px] sm:text-[11px] font-black uppercase text-gray-800">DAYS ABSENT</div>
                                   </div>
                                   <div>
-                                    <div className="text-xl font-black text-black">{data.attendance.percentage}%</div>
-                                    <div className="text-[10px] font-black uppercase text-gray-700">ATTENDANCE</div>
+                                    <div className="text-xl sm:text-2xl font-black text-black">{data.attendance.percentage}%</div>
+                                    <div className="text-[10.5px] sm:text-[11px] font-black uppercase text-gray-800">ATTENDANCE</div>
                                   </div>
                                   <div>
-                                    <div className="text-xl font-black text-black">—</div>
-                                    <div className="text-[10px] font-black uppercase text-gray-700">NEXT TERM</div>
+                                    <div className="text-xl sm:text-2xl font-black text-black">—</div>
+                                    <div className="text-[10.5px] sm:text-[11px] font-black uppercase text-gray-800">NEXT TERM</div>
                                   </div>
                                 </div>
                               </div>
                             )}
-                            <p className="text-xs font-black text-black">
+                            <p className="text-xs sm:text-[12.5px] font-black text-black">
                               Next term begins: <span className="underline">{data.term?.nextTermBegins ? formatDateVerbose(data.term.nextTermBegins) : '4 May 2026'}</span>
                             </p>
 
                             {/* Assessment Key Banner */}
                             <div>
-                              <p className="text-xs font-black uppercase mb-1 text-black">ASSESSMENT KEY</p>
+                              <p className="text-xs sm:text-[12.5px] font-black uppercase mb-1 text-black">ASSESSMENT KEY</p>
                               <div className="grid grid-cols-4 border-2 border-black divide-x-2 divide-black text-center p-1.5 text-xs font-black">
-                                <div className="bg-emerald-100 p-1 text-emerald-900 border-r border-black">
-                                  <span className="font-black text-sm block text-emerald-800">A</span>
-                                  <span className="text-[10px] font-bold">Achieved Target</span>
+                                <div className="bg-emerald-100 p-1.5 text-emerald-900 border-r border-black">
+                                  <span className="font-black text-base block text-emerald-800">A</span>
+                                  <span className="text-[10.5px] sm:text-[11px] font-black">Achieved Target</span>
                                 </div>
-                                <div className="bg-sky-100 p-1 text-sky-900 border-r border-black">
-                                  <span className="font-black text-sm block text-sky-800">P</span>
-                                  <span className="text-[10px] font-bold">Progressing Well</span>
+                                <div className="bg-sky-100 p-1.5 text-sky-900 border-r border-black">
+                                  <span className="font-black text-base block text-sky-800">P</span>
+                                  <span className="text-[10.5px] sm:text-[11px] font-black">Progressing Well</span>
                                 </div>
-                                <div className="bg-amber-100 p-1 text-amber-900 border-r border-black">
-                                  <span className="font-black text-sm block text-amber-800">W</span>
-                                  <span className="text-[10px] font-bold">Working Towards</span>
+                                <div className="bg-amber-100 p-1.5 text-amber-900 border-r border-black">
+                                  <span className="font-black text-base block text-amber-800">W</span>
+                                  <span className="text-[10.5px] sm:text-[11px] font-black">Working Towards</span>
                                 </div>
-                                <div className="bg-slate-100 p-1 text-slate-700">
-                                  <span className="font-black text-sm block text-slate-700">NA</span>
-                                  <span className="text-[10px] font-bold">Not Applicable</span>
+                                <div className="bg-slate-100 p-1.5 text-slate-800">
+                                  <span className="font-black text-base block text-slate-800">NA</span>
+                                  <span className="text-[10.5px] sm:text-[11px] font-black">Not Applicable</span>
                                 </div>
                               </div>
                             </div>
@@ -967,13 +967,13 @@ const TermReportCard = () => {
                               const domainHeaderBg = headerColors[dIdx % headerColors.length];
                               return (
                                 <div key={dIdx} className="border-2 border-black overflow-hidden shadow-xs">
-                                  <div className={`px-3 py-1 font-black text-[11px] uppercase border-b-2 border-black flex justify-between items-center ${domainHeaderBg}`}>
+                                  <div className={`px-3 py-1 font-black text-xs sm:text-[12.5px] uppercase border-b-2 border-black flex justify-between items-center ${domainHeaderBg}`}>
                                     <span>{domain.name}</span>
-                                    <span className="text-[9px] font-bold opacity-80">Domain {dIdx + 1}</span>
+                                    <span className="text-[10px] font-bold opacity-90">Domain {dIdx + 1}</span>
                                   </div>
                                   <table className="w-full border-collapse text-xs">
                                     <thead>
-                                      <tr className="bg-gray-100 border-b border-black text-[10px] font-black uppercase text-black">
+                                      <tr className="bg-gray-100 border-b border-black text-[10.5px] sm:text-[11px] font-black uppercase text-black">
                                         <th className="p-1 text-left border-r border-black">Learning outcome / skill</th>
                                         <th className="p-1 text-center w-16 border-r border-black">Current</th>
                                         <th className="p-1 text-center w-16 border-r border-black">Previous</th>
@@ -987,37 +987,37 @@ const TermReportCard = () => {
                                         const progVal = (skill.progress || 'Maintained').trim();
 
                                         const renderGradeBadge = (val) => {
-                                          if (val === 'A') return <span className="inline-block px-2 py-0.5 rounded font-black text-xs bg-emerald-500 text-white shadow-2xs">A</span>;
-                                          if (val === 'P') return <span className="inline-block px-2 py-0.5 rounded font-black text-xs bg-sky-500 text-white shadow-2xs">P</span>;
-                                          if (val === 'W') return <span className="inline-block px-2 py-0.5 rounded font-black text-xs bg-amber-500 text-white shadow-2xs">W</span>;
-                                          return <span className="inline-block px-2 py-0.5 rounded font-black text-xs bg-slate-400 text-white">NA</span>;
+                                          if (val === 'A') return <span className="inline-block px-2 py-0.5 rounded font-black text-xs sm:text-[12px] bg-emerald-500 text-white shadow-2xs">A</span>;
+                                          if (val === 'P') return <span className="inline-block px-2 py-0.5 rounded font-black text-xs sm:text-[12px] bg-sky-500 text-white shadow-2xs">P</span>;
+                                          if (val === 'W') return <span className="inline-block px-2 py-0.5 rounded font-black text-xs sm:text-[12px] bg-amber-500 text-white shadow-2xs">W</span>;
+                                          return <span className="inline-block px-2 py-0.5 rounded font-black text-xs sm:text-[12px] bg-slate-400 text-white">NA</span>;
                                         };
 
                                         const renderProgressBadge = (val) => {
                                           if (val.toLowerCase().includes('improv')) {
                                             return (
-                                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-bold text-[10px] bg-emerald-100 text-emerald-800 border border-emerald-300">
-                                                <span className="font-black text-emerald-600">↑</span> Improved
+                                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-extrabold text-[10.5px] bg-emerald-100 text-emerald-900 border border-emerald-300">
+                                                <span className="font-black text-emerald-700">↑</span> Improved
                                               </span>
                                             );
                                           }
                                           if (val.toLowerCase().includes('maintain')) {
                                             return (
-                                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-bold text-[10px] bg-sky-100 text-sky-800 border border-sky-300">
-                                                <span className="font-black text-sky-600">→</span> Maintained
+                                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-extrabold text-[10.5px] bg-sky-100 text-sky-900 border border-sky-300">
+                                                <span className="font-black text-sky-700">→</span> Maintained
                                               </span>
                                             );
                                           }
                                           return (
-                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-bold text-[10px] bg-amber-100 text-amber-800 border border-amber-300">
-                                              <span className="font-black text-amber-600">⚡</span> Needs Support
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-extrabold text-[10.5px] bg-amber-100 text-amber-900 border border-amber-300">
+                                              <span className="font-black text-amber-700">⚡</span> Needs Support
                                             </span>
                                           );
                                         };
 
                                         return (
-                                          <tr key={sIdx} className="border-b border-gray-200 last:border-b-0 h-6 font-medium text-black text-[11px] hover:bg-gray-50/50">
-                                            <td className="p-1 border-r border-black font-bold">{skill.name}</td>
+                                          <tr key={sIdx} className="border-b border-gray-200 last:border-b-0 h-6 font-medium text-black text-[11.5px] sm:text-[12px] hover:bg-gray-50/50">
+                                            <td className="p-1 border-r border-black font-bold text-black">{skill.name}</td>
                                             <td className="p-1 text-center border-r border-black">{renderGradeBadge(curVal)}</td>
                                             <td className="p-1 text-center border-r border-black">{renderGradeBadge(prevVal)}</td>
                                             <td className="p-1 text-center">{renderProgressBadge(progVal)}</td>
@@ -1029,7 +1029,7 @@ const TermReportCard = () => {
                                 </div>
                               );
                             })}
-                            <div className="flex justify-between text-[10px] text-gray-500 font-bold border-t pt-2">
+                            <div className="flex justify-between text-[11px] text-gray-600 font-black border-t pt-2">
                               <span>Early Years Assessment & Progress Report</span>
                               <span>Confidential School Record</span>
                               <span>Page 1 of 2</span>
