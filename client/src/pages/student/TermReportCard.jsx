@@ -664,10 +664,10 @@ const TermReportCard = () => {
                     // Class-specific template suffix (e.g., early_years_1-page) wins over school-wide setting.
                     const classLayoutSuffix = (layoutRawDB && layoutRawDB.startsWith('early_years_')) ? layoutRawDB.replace('early_years_', '') : null;
                     let earlyYearsPageFormat = classLayoutSuffix || data.reportSettings?.earlyYearsPageFormat || (data.schoolSettings || schoolSettings)?.earlyYearsPageFormat || '3-page';
-                    const allDomains = data.earlyYearsDomains || [];
-                    const extraDomains = allDomains.filter(d => !(d.name || '').startsWith('01') && !(d.name || '').startsWith('02'));
+                    const page1Domains = allDomains.filter(d => (d.name || '').startsWith('01') || (d.name || '').startsWith('02') || (d.name || '').startsWith('03'));
+                    const extraDomains = allDomains.filter(d => !(d.name || '').startsWith('01') && !(d.name || '').startsWith('02') && !(d.name || '').startsWith('03'));
                     
-                    // If 3-page format is requested but student only has 1 or 2 domains total (no 03+ domains), auto-adapt to 2-page format to prevent duplicated domain tables and empty pages!
+                    // If 3-page format is requested but student only has domains up to 03 (no 04+ extra domains), auto-adapt to 2-page format to prevent empty pages!
                     if (earlyYearsPageFormat === '3-page' && extraDomains.length === 0) {
                       earlyYearsPageFormat = '2-page';
                     }
@@ -1325,8 +1325,8 @@ const TermReportCard = () => {
                           </div>
                         </div>
 
-                        {/* Page 1 Domains (01 & 02) */}
-                        {(data.earlyYearsDomains || []).filter(d => (d.name || '').startsWith('01') || (d.name || '').startsWith('02')).map((domain, dIdx) => {
+                        {/* Page 1 Domains (01, 02 & 03) */}
+                        {(data.earlyYearsDomains || []).filter(d => (d.name || '').startsWith('01') || (d.name || '').startsWith('02') || (d.name || '').startsWith('03')).map((domain, dIdx) => {
                           const headerColors = [
                             'bg-emerald-600 text-white',
                             'bg-indigo-600 text-white'
