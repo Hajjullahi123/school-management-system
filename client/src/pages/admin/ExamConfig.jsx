@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { toast } from '../../utils/toast';
 import { api, API_BASE_URL } from '../../api';
 import EarlyYearsDomainConfig from './EarlyYearsDomainConfig';
+import SectionWeightingsConfig from './SectionWeightingsConfig';
 
 const ExamConfig = () => {
   const location = useLocation();
@@ -254,7 +255,18 @@ const ExamConfig = () => {
             : 'text-slate-500 hover:text-slate-800 dark:text-gray-400'
         }`}
       >
-        Academic Framework
+        Global Framework
+      </button>
+      <button
+        type="button"
+        onClick={() => setActiveTab('sections')}
+        className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
+          activeTab === 'sections'
+            ? 'bg-white dark:bg-gray-700 text-primary shadow-md'
+            : 'text-slate-500 hover:text-slate-800 dark:text-gray-400'
+        }`}
+      >
+        Section & Class Weightings
       </button>
       <button
         type="button"
@@ -265,13 +277,15 @@ const ExamConfig = () => {
             : 'text-slate-500 hover:text-slate-800 dark:text-gray-400'
         }`}
       >
-        Early Years Domains & Skills
+        Early Years Domains
       </button>
     </div>
   </div>
 
   {activeTab === 'early-years' ? (
     <EarlyYearsDomainConfig />
+  ) : activeTab === 'sections' ? (
+    <SectionWeightingsConfig />
   ) : (
   <form onSubmit={handleSaveSettings} className="space-y-8">
  {/* Exam Mode Section */}

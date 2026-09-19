@@ -381,7 +381,12 @@ router.put('/:id', authenticate, authorize(['admin', 'sub_admin', 'principal', '
         showPositionOnReport: req.body.showPositionOnReport !== undefined ? req.body.showPositionOnReport : undefined,
         showFeesOnReport: req.body.showFeesOnReport !== undefined ? req.body.showFeesOnReport : undefined,
         showAttendanceOnReport: req.body.showAttendanceOnReport !== undefined ? req.body.showAttendanceOnReport : undefined,
-        reportLayout: req.body.reportLayout !== undefined ? req.body.reportLayout : undefined
+        reportLayout: req.body.reportLayout !== undefined ? req.body.reportLayout : undefined,
+        assignment1Weight: req.body.assignment1Weight !== undefined ? (req.body.assignment1Weight === null ? null : parseInt(req.body.assignment1Weight)) : undefined,
+        assignment2Weight: req.body.assignment2Weight !== undefined ? (req.body.assignment2Weight === null ? null : parseInt(req.body.assignment2Weight)) : undefined,
+        test1Weight: req.body.test1Weight !== undefined ? (req.body.test1Weight === null ? null : parseInt(req.body.test1Weight)) : undefined,
+        test2Weight: req.body.test2Weight !== undefined ? (req.body.test2Weight === null ? null : parseInt(req.body.test2Weight)) : undefined,
+        examWeight: req.body.examWeight !== undefined ? (req.body.examWeight === null ? null : parseInt(req.body.examWeight)) : undefined
       },
       include: {
         classTeacher: {
@@ -647,8 +652,65 @@ router.get('/:id/publication-status', authenticate, async (req, res) => {
 
     res.json(publication);
   } catch (error) {
-    console.error('Get publication status error:', error);
     res.status(500).json({ error: 'Failed to fetch publication status' });
+  }
+});
+
+// Update assessment weights for multiple classes (e.g. by section or class IDs)
+router.post('/batch-assessment-weights', authenticate, authorize(['admin', 'sub_admin', 'principal', 'examination_officer']), async (req, res) => {
+  try {
+    const { classIds, sectionName, assignment1Weight, assignment2Weight, test1Weight, test2Weight, examWeight, resetToDefault } = req.body;
+    
+    let targetClassIds = [];
+    if (Array.isArray(classIds) && classIds.length > 0) {
+      targetClassIds = classIds.map(id => parseInt(id));
+    } else if (sectionName) {
+      const allClasses = await prisma.class.findMany({
+        where: { schoolId: req.schoolId, isActive: true }
+      });
+      const query = sectionName.toLowerCase();
+      targetClassIds = allClasses
+        .filter(c => {
+          const className = c.name.toLowerCase();
+          if (query === 'primary') return className.includes('primary') || className.includes('basic') || className.includes('pri');
+          if (query === 'jss' || query === 'junior') return className.includes('jss') || className.includes('junior');
+          if (query === 'sss' || query === 'senior') return className.includes('sss') || className.includes('senior') || className.includes('ss');
+          if (query === 'nursery' || query === 'early_years') return className.includes('nursery') || className.includes('reception') || className.includes('kg') || className.includes('toddler') || className.includes('creche');
+          return className.includes(query);
+        })
+        .map(c => c.id);
+    }
+
+    if (targetClassIds.length === 0) {
+      return res.status(400).json({ error: 'No matching classes found to update' });
+    }
+
+    const updateData = resetToDefault ? {
+      assignment1Weight: null,
+      assignment2Weight: null,
+      test1Weight: null,
+      test2Weight: null,
+      examWeight: null
+    } : {
+      assignment1Weight: assignment1Weight !== undefined && assignment1Weight !== null ? parseInt(assignment1Weight) : undefined,
+      assignment2Weight: assignment2Weight !== undefined && assignment2Weight !== null ? parseInt(assignment2Weight) : undefined,
+      test1Weight: test1Weight !== undefined && test1Weight !== null ? parseInt(test1Weight) : undefined,
+      test2Weight: test2Weight !== undefined && test2Weight !== null ? parseInt(test2Weight) : undefined,
+      examWeight: examWeight !== undefined && examWeight !== null ? parseInt(examWeight) : undefined
+    };
+
+    await prisma.class.updateMany({
+      where: {
+        id: { in: targetClassIds },
+        schoolId: req.schoolId
+      },
+      data: updateData
+    });
+
+    res.json({ message: `Assessment weights updated for ${targetClassIds.length} classes`, count: targetClassIds.length });
+  } catch (error) {
+    console.error('Batch update class weights error:', error);
+    res.status(500).json({ error: 'Failed to update section assessment weights' });
   }
 });
 

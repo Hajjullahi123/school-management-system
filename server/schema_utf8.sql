@@ -1,4 +1,4 @@
-﻿-- CreateTable
+-- CreateTable
 CREATE TABLE "GlobalSettings" (
     "id" INTEGER NOT NULL DEFAULT 1,
     "facebookUrl" TEXT,
@@ -244,6 +244,11 @@ CREATE TABLE "Class" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "isResultPublished" BOOLEAN NOT NULL DEFAULT false,
     "expectedSubjects" INTEGER NOT NULL DEFAULT 0,
+    "assignment1Weight" INTEGER,
+    "assignment2Weight" INTEGER,
+    "test1Weight" INTEGER,
+    "test2Weight" INTEGER,
+    "examWeight" INTEGER,
 
     CONSTRAINT "Class_pkey" PRIMARY KEY ("id")
 );

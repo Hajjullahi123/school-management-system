@@ -7,7 +7,8 @@ const {
   calculateStudentTermAverage,
   calculateStudentSessionAverage,
   getGrade,
-  getRemark
+  getRemark,
+  resolveClassWeights
 } = require('../utils/grading');
 const { getStudentFeeSummary } = require('../utils/feeCalculations');
 const { generateAINarrative } = require('../utils/aiNarrative');
@@ -225,6 +226,11 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
             showFeesOnReport: true,
             showAttendanceOnReport: true,
             reportLayout: true,
+            assignment1Weight: true,
+            assignment2Weight: true,
+            test1Weight: true,
+            test2Weight: true,
+            examWeight: true,
             classTeacherId: true,
             classTeacher: {
               select: {
@@ -639,13 +645,16 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
           ? new Date(term.nextTermBeginsDate)
           : (term.endDate ? new Date(new Date(term.endDate).getTime() + 14 * 24 * 60 * 60 * 1000) : null),
         principalSignatureUrl: schoolSettings.principalSignatureUrl || null,
-        weights: {
-          assignment1: schoolSettings.assignment1Weight,
-          assignment2: schoolSettings.assignment2Weight,
-          test1: schoolSettings.test1Weight,
-          test2: schoolSettings.test2Weight,
-          exam: schoolSettings.examWeight
-        }
+        weights: (() => {
+          const effectiveW = resolveClassWeights(schoolSettings, student.classModel);
+          return {
+            assignment1: effectiveW.assignment1Weight,
+            assignment2: effectiveW.assignment2Weight,
+            test1: effectiveW.test1Weight,
+            test2: effectiveW.test2Weight,
+            exam: effectiveW.examWeight
+          };
+        })()
       },
       attendance: (schoolSettings.showAttendanceOnReport && (student.classModel?.showAttendanceOnReport !== false)) ? (() => {
         const isManual = manualAttendanceFromRatings && manualAttendanceFromRatings.enabled;

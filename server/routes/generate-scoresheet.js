@@ -3,6 +3,7 @@ const router = express.Router();
 const prisma = require('../db');
 const { authenticate, authorize } = require('../middleware/auth');
 const { logAction } = require('../utils/audit');
+const { resolveClassWeights } = require('../utils/grading');
 const ExcelJS = require('exceljs');
 
 // Helper to generate Excel Scoresheet
@@ -438,7 +439,8 @@ router.get('/class/:classId/subject/:subjectId', authenticate, authorize(['admin
     console.log(`[Scoresheet] Generating Excel for ${studentData.length} students...`);
 
     // 4. Generate
-    await generateExcel(res, titleData, studentData, filename, school);
+    const dynamicWeights = resolveClassWeights(school, classInfo);
+    await generateExcel(res, titleData, studentData, filename, dynamicWeights);
 
     // 5. Log download (Non-blocking)
     logAction({

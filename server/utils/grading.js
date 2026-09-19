@@ -292,10 +292,38 @@ function getSuggestedRemarks(grade) {
 }
 
 /**
- * Determine if student should be promoted
+ * Resolve effective assessment weights for a class.
+ * Uses class-specific weight override if set, otherwise falls back to schoolSettings or DEFAULT_WEIGHTS.
  */
-function shouldPromote(sessionAverage, threshold = 40) {
-  return sessionAverage >= threshold;
+function resolveClassWeights(schoolSettings = null, classData = null) {
+  const s = schoolSettings || {};
+  const c = classData || {};
+
+  const hasClassWeights = c && (
+    (c.assignment1Weight !== null && c.assignment1Weight !== undefined) ||
+    (c.assignment2Weight !== null && c.assignment2Weight !== undefined) ||
+    (c.test1Weight !== null && c.test1Weight !== undefined) ||
+    (c.test2Weight !== null && c.test2Weight !== undefined) ||
+    (c.examWeight !== null && c.examWeight !== undefined)
+  );
+
+  if (hasClassWeights) {
+    return {
+      assignment1Weight: c.assignment1Weight ?? s.assignment1Weight ?? DEFAULT_WEIGHTS.assignment1Weight,
+      assignment2Weight: c.assignment2Weight ?? s.assignment2Weight ?? DEFAULT_WEIGHTS.assignment2Weight,
+      test1Weight: c.test1Weight ?? s.test1Weight ?? DEFAULT_WEIGHTS.test1Weight,
+      test2Weight: c.test2Weight ?? s.test2Weight ?? DEFAULT_WEIGHTS.test2Weight,
+      examWeight: c.examWeight ?? s.examWeight ?? DEFAULT_WEIGHTS.examWeight
+    };
+  }
+
+  return {
+    assignment1Weight: s.assignment1Weight ?? DEFAULT_WEIGHTS.assignment1Weight,
+    assignment2Weight: s.assignment2Weight ?? DEFAULT_WEIGHTS.assignment2Weight,
+    test1Weight: s.test1Weight ?? DEFAULT_WEIGHTS.test1Weight,
+    test2Weight: s.test2Weight ?? DEFAULT_WEIGHTS.test2Weight,
+    examWeight: s.examWeight ?? DEFAULT_WEIGHTS.examWeight
+  };
 }
 
 module.exports = {
@@ -309,5 +337,7 @@ module.exports = {
   calculatePositions,
   calculateStudentTermAverage,
   calculateStudentSessionAverage,
-  shouldPromote
+  shouldPromote,
+  resolveClassWeights,
+  DEFAULT_WEIGHTS
 };

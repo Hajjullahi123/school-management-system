@@ -406,6 +406,11 @@ model Class {
   createdAt          DateTime            @default(now())
   isResultPublished  Boolean             @default(false)
   expectedSubjects   Int                 @default(0)
+  assignment1Weight  Int?
+  assignment2Weight  Int?
+  test1Weight        Int?
+  test2Weight        Int?
+  examWeight         Int?
   
   school             School              @relation(fields: [schoolId], references: [id])
   

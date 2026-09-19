@@ -451,6 +451,11 @@ model Class {
   showFeesOnReport       Boolean             @default(true)
   showAttendanceOnReport Boolean             @default(true)
   reportLayout           String?             @default("classic")
+  assignment1Weight      Int?
+  assignment2Weight      Int?
+  test1Weight            Int?
+  test2Weight            Int?
+  examWeight             Int?
   attendanceRecords      AttendanceRecord[]
   CBTExam                CBTExam[]
   classTeacher           User?               @relation("ClassTeacher", fields: [classTeacherId], references: [id])

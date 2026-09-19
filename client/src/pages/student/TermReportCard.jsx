@@ -679,135 +679,144 @@ const TermReportCard = () => {
                       const verificationUrl = typeof window !== 'undefined' ? `${window.location.origin}/verify/term/${data.student?.id}/${selectedTerm || data.term?.id}` : '';
 
                       return (
-                        <div className="bg-white border-4 p-3 space-y-2 print:p-2 print:space-y-1.5 rounded-xl shadow-lg" style={{ borderColor: currentReportColor }}>
-                          {/* Header */}
-                          <div className="grid grid-cols-[52px_1fr_96px] items-center gap-2 mb-1 pb-1 border-b-2" style={{ borderColor: currentReportColor }}>
-                            <div className="w-13 h-13 flex-shrink-0 flex items-center justify-center">
-                              {logoUri ? (
-                                <img src={logoUri} alt="School Logo" className="w-full h-full object-contain" />
-                              ) : (
-                                <div className="w-11 h-11 bg-gray-100 border border-gray-300 rounded flex items-center justify-center text-[7.5px] text-gray-400 font-bold uppercase text-center p-0.5">No Logo</div>
-                              )}
-                            </div>
-                            <div className="flex flex-col items-center justify-center text-center space-y-0.5 w-full mx-auto">
-                              <h1 className="text-base font-black uppercase tracking-wider leading-tight text-center mx-auto" style={{ color: currentReportColor }}>
-                                {ss?.name || ss?.schoolName || 'AL-BAYYINAH BASIC / TAHFEEDH SCHOOL'}
-                              </h1>
-                              {ss?.motto && (
-                                <p className="text-[8.5px] font-black italic text-gray-700 uppercase tracking-wide text-center mx-auto">
-                                  "{ss.motto}"
-                                </p>
-                              )}
-                              <p className="text-[8px] font-bold text-gray-600 leading-tight text-center mx-auto">
-                                {ss?.address || 'Kano, Nigeria'}
-                              </p>
-                            </div>
-                            <div className="flex items-center gap-1.5 justify-end">
-                              {/* QR Code */}
-                              <div className="p-0.5 bg-white border border-gray-200 rounded shadow-xs" title="Scan to verify document">
-                                <QRCodeSVG value={verificationUrl} size={38} level="H" includeMargin={false} />
-                              </div>
-                              {/* Student Photo */}
-                              <div className="w-11 h-11 flex-shrink-0 flex items-center justify-center">
-                                {photoUri ? (
-                                  <img src={photoUri} alt="Student" className="w-11 h-11 object-cover rounded-lg border border-gray-300 shadow-xs" />
+                        <div className="bg-white border-4 p-5 sm:p-6 space-y-4 print:p-4 print:space-y-3.5 rounded-xl shadow-lg flex flex-col justify-between" style={{ borderColor: currentReportColor, minHeight: '282mm' }}>
+                          <div className="space-y-3.5 flex-1 flex flex-col justify-between">
+                            {/* Header */}
+                            <div className="grid grid-cols-[72px_1fr_72px] items-center gap-4 pb-2.5 border-b-2" style={{ borderColor: currentReportColor }}>
+                              <div className="w-18 h-18 flex-shrink-0 flex items-center justify-center">
+                                {logoUri ? (
+                                  <img src={logoUri} alt="School Logo" className="w-full h-full object-contain" />
                                 ) : (
-                                  <div className="w-11 h-11 bg-gray-100 border border-gray-300 rounded-lg flex items-center justify-center text-[7.5px] text-gray-400 font-bold uppercase text-center p-0.5">Photo</div>
+                                  <div className="w-16 h-16 bg-gray-100 border border-gray-300 rounded-lg flex items-center justify-center text-[9px] text-gray-400 font-bold uppercase text-center p-0.5">No Logo</div>
+                                )}
+                              </div>
+                              <div className="flex flex-col items-center justify-center text-center space-y-0.5 w-full mx-auto">
+                                <h1 className="text-xl sm:text-2xl font-black uppercase tracking-wider leading-tight text-center mx-auto" style={{ color: currentReportColor }}>
+                                  {ss?.name || ss?.schoolName || 'AL-BAYYINAH BASIC / TAHFEEDH SCHOOL'}
+                                </h1>
+                                {ss?.motto && (
+                                  <p className="text-xs font-black italic text-gray-700 uppercase tracking-wide text-center mx-auto">
+                                    "{ss.motto}"
+                                  </p>
+                                )}
+                                <p className="text-[10px] font-bold text-gray-600 leading-tight text-center mx-auto">
+                                  {ss?.address || 'Kano, Nigeria'}
+                                </p>
+                              </div>
+                              <div className="w-18 h-18 flex-shrink-0 flex items-center justify-center">
+                                {photoUri ? (
+                                  <img src={photoUri} alt="Student" className="w-16 h-18 object-cover rounded-lg border-2 border-gray-300 shadow-xs" />
+                                ) : (
+                                  <div className="w-16 h-18 bg-gray-100 border border-gray-300 rounded-lg flex items-center justify-center text-[9px] text-gray-400 font-bold uppercase text-center p-0.5">Photo</div>
                                 )}
                               </div>
                             </div>
-                          </div>
 
-                          {/* Title Banner */}
-                          <div className="text-center py-0.5 font-black uppercase text-[11px] tracking-widest text-white rounded-md shadow-xs flex items-center justify-center gap-2" style={{ backgroundColor: currentReportColor }}>
-                            <span>✨</span>
-                            <span>EARLY YEARS PROGRESS REPORT</span>
-                            <span>✨</span>
-                          </div>
+                            {/* Title Banner */}
+                            <div className="text-center py-1.5 font-black uppercase text-xs sm:text-sm tracking-widest text-white rounded-md shadow-xs flex items-center justify-center gap-2" style={{ backgroundColor: currentReportColor }}>
+                              <span>✨</span>
+                              <span>EARLY YEARS PROGRESS REPORT</span>
+                              <span>✨</span>
+                            </div>
 
-                          {/* Student Info Grid */}
-                          <div className="bg-slate-50 border border-slate-200 rounded-lg p-1.5 text-[8.5px] font-bold uppercase grid grid-cols-3 gap-x-3 gap-y-0.5">
-                            <div><span className="text-gray-500 font-normal">NAME:</span> <span className="text-black font-black">{getStudentDisplayName(data.student)}</span></div>
-                            <div><span className="text-gray-500 font-normal">GENDER:</span> <span className="text-black">{data.student?.gender || '-'}</span></div>
-                            <div><span className="text-gray-500 font-normal">ADM NO:</span> <span className="text-black">{data.student?.admissionNumber || '-'}</span></div>
-                            <div><span className="text-gray-500 font-normal">CLASS:</span> <span className="text-black">{data.student?.class || '-'}</span></div>
-                            <div><span className="text-gray-500 font-normal">TERM:</span> <span className="text-black">{data.term?.session} - {data.term?.name}</span></div>
-                            <div><span className="text-gray-500 font-normal">ATTENDANCE:</span> <span className="text-black">{data.attendance?.present || 0}/{data.attendance?.total || 0} DAYS ({data.attendance?.percentage || 0}%)</span></div>
-                          </div>
+                            {/* Student Info Grid */}
+                            <div className="bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-[10.5px] font-bold uppercase grid grid-cols-3 gap-x-4 gap-y-1.5">
+                              <div><span className="text-gray-500 font-semibold">NAME:</span> <span className="text-black font-black">{getStudentDisplayName(data.student)}</span></div>
+                              <div><span className="text-gray-500 font-semibold">GENDER:</span> <span className="text-black">{data.student?.gender || '-'}</span></div>
+                              <div><span className="text-gray-500 font-semibold">ADM NO:</span> <span className="text-black">{data.student?.admissionNumber || '-'}</span></div>
+                              <div><span className="text-gray-500 font-semibold">CLASS:</span> <span className="text-black">{data.student?.class || '-'}</span></div>
+                              <div><span className="text-gray-500 font-semibold">TERM:</span> <span className="text-black">{data.term?.session} - {data.term?.name}</span></div>
+                              <div><span className="text-gray-500 font-semibold">ATTENDANCE:</span> <span className="text-black">{data.attendance?.present || 0}/{data.attendance?.total || 0} DAYS ({data.attendance?.percentage || 0}%)</span></div>
+                            </div>
 
-                          {/* Kindergarten Rating Legend / Scale */}
-                          <div className="bg-amber-50/60 border border-amber-200/80 rounded-lg p-1 text-[7.5px] font-bold text-center uppercase tracking-wide flex justify-around items-center">
-                            <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300">5 / EX: EXCEEDING</span>
-                            <span className="px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 border border-blue-300">4 / MT: MEETING</span>
-                            <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300">3 / DV: DEVELOPING</span>
-                            <span className="px-1.5 py-0.5 rounded bg-orange-100 text-orange-800 border border-orange-300">2 / EM: EMERGING</span>
-                            <span className="px-1.5 py-0.5 rounded bg-rose-100 text-rose-800 border border-rose-300">1 / NT: NOT TAUGHT</span>
-                          </div>
+                            {/* Kindergarten Rating Legend / Scale */}
+                            <div className="bg-amber-50/70 border border-amber-200 rounded-lg p-2 text-[9.5px] sm:text-[10px] font-bold text-center uppercase tracking-wide flex justify-around items-center gap-1">
+                              <span className="px-2.5 py-1 rounded-md bg-emerald-100 text-emerald-900 border border-emerald-300 font-black">5 / EX: EXCEEDING</span>
+                              <span className="px-2.5 py-1 rounded-md bg-blue-100 text-blue-900 border border-blue-300 font-black">4 / MT: MEETING</span>
+                              <span className="px-2.5 py-1 rounded-md bg-amber-100 text-amber-900 border border-amber-300 font-black">3 / DV: DEVELOPING</span>
+                              <span className="px-2.5 py-1 rounded-md bg-orange-100 text-orange-900 border border-orange-300 font-black">2 / EM: EMERGING</span>
+                              <span className="px-2.5 py-1 rounded-md bg-rose-100 text-rose-900 border border-rose-300 font-black">1 / NT: NOT TAUGHT</span>
+                            </div>
 
-                          {/* 2-Column Domains Layout */}
-                          <div className="grid grid-cols-2 gap-2.5 items-start">
-                            {[leftDomains, rightDomains].map((colDomains, colIdx) => (
-                              <div key={colIdx} className="space-y-2">
-                                {colDomains.map((domain, dIdx) => (
-                                  <div key={dIdx} className="border border-gray-200 rounded-lg overflow-hidden bg-white shadow-xs">
-                                    <div className="px-2 py-0.5 font-black uppercase text-[8.5px] text-white flex justify-between items-center" style={{ backgroundColor: currentReportColor }}>
-                                      <span>{domain.name}</span>
-                                      <span className="text-[7px] font-mono tracking-widest opacity-90">5 4 3 2 1</span>
-                                    </div>
-                                    <div className="divide-y divide-gray-100 text-[8px]">
-                                      {(domain.skills || []).map((skill, sIdx) => {
-                                        const score = Math.round(skill.score || 0);
-                                        return (
-                                          <div key={sIdx} className="p-0.5 px-2 flex justify-between items-center hover:bg-slate-50">
-                                            <span className="font-semibold text-slate-700 leading-tight pr-1">{skill.name}</span>
-                                            <div className="flex items-center gap-1 font-mono text-[8px] flex-shrink-0">
-                                              {[5, 4, 3, 2, 1].map(val => (
-                                                <span key={val} className={`w-3.5 h-3.5 flex items-center justify-center rounded-full text-[7.5px] ${score === val ? 'font-black text-white shadow-xs' : 'text-gray-300'}`} style={{ backgroundColor: score === val ? currentReportColor : 'transparent' }}>
-                                                  {score === val ? val : '·'}
-                                                </span>
-                                              ))}
+                            {/* 2-Column Domains Layout */}
+                            <div className="grid grid-cols-2 gap-4 items-start">
+                              {[leftDomains, rightDomains].map((colDomains, colIdx) => (
+                                <div key={colIdx} className="space-y-3">
+                                  {colDomains.map((domain, dIdx) => (
+                                    <div key={dIdx} className="border border-gray-300 rounded-lg overflow-hidden bg-white shadow-xs">
+                                      <div className="px-3 py-1.5 font-black uppercase text-[11px] sm:text-xs text-white flex justify-between items-center" style={{ backgroundColor: currentReportColor }}>
+                                        <span>{domain.name}</span>
+                                        <span className="text-[9px] font-mono tracking-widest opacity-90">5 4 3 2 1</span>
+                                      </div>
+                                      <div className="divide-y divide-gray-100">
+                                        {(domain.skills || []).map((skill, sIdx) => {
+                                          const score = Math.round(skill.score || 0);
+                                          return (
+                                            <div key={sIdx} className="py-1.5 px-3 flex justify-between items-center hover:bg-slate-50">
+                                              <span className="font-bold text-slate-800 text-[10px] sm:text-[10.5px] leading-tight pr-2">{skill.name}</span>
+                                              <div className="flex items-center gap-1 font-mono text-[9px] flex-shrink-0">
+                                                {[5, 4, 3, 2, 1].map(val => (
+                                                  <span key={val} className={`w-5 h-5 flex items-center justify-center rounded-full text-[9px] ${score === val ? 'font-black text-white shadow-xs' : 'text-gray-300'}`} style={{ backgroundColor: score === val ? currentReportColor : 'transparent' }}>
+                                                    {score === val ? val : '·'}
+                                                  </span>
+                                                ))}
+                                              </div>
                                             </div>
-                                          </div>
-                                        );
-                                      })}
+                                          );
+                                        })}
+                                      </div>
                                     </div>
-                                  </div>
-                                ))}
+                                  ))}
+                                </div>
+                              ))}
+                            </div>
+
+                            {/* Comments Section */}
+                            <div className="grid grid-cols-2 gap-3.5">
+                              <div className="border border-emerald-300 bg-emerald-50/40 rounded-lg p-2.5 min-h-[52px] flex flex-col justify-center">
+                                <p className="font-black text-[9px] uppercase mb-0.5 tracking-wider" style={{ color: currentReportColor }}>TEACHER'S COMMENT</p>
+                                <p className="italic text-[9.5px] sm:text-[10px] font-medium text-slate-800 leading-snug">"{data.developmentPlan?.teacherComment || 'The student is an energetic and engaged learner who has made good progress this term.'}"</p>
                               </div>
-                            ))}
-                          </div>
-
-                          {/* Comments Section */}
-                          <div className="grid grid-cols-2 gap-2 text-[8.5px]">
-                            <div className="border border-emerald-200 bg-emerald-50/30 rounded-lg p-1.5 min-h-[32px]">
-                              <p className="font-black text-[7.5px] uppercase mb-0.5 tracking-wider" style={{ color: currentReportColor }}>TEACHER'S COMMENT</p>
-                              <p className="italic text-[8px] text-slate-700">"{data.developmentPlan?.teacherComment || 'The student is an energetic and engaged learner who has made good progress this term.'}"</p>
-                            </div>
-                            <div className="border border-teal-200 bg-teal-50/30 rounded-lg p-1.5 min-h-[32px]">
-                              <p className="font-black text-[7.5px] uppercase mb-0.5 tracking-wider" style={{ color: currentReportColor }}>HEAD TEACHER'S COMMENT</p>
-                              <p className="italic text-[8px] text-slate-700">"{data.developmentPlan?.headTeacherComment || 'Has shown encouraging progress this term. Should continue to practise consistently.'}"</p>
+                              <div className="border border-teal-300 bg-teal-50/40 rounded-lg p-2.5 min-h-[52px] flex flex-col justify-center">
+                                <p className="font-black text-[9px] uppercase mb-0.5 tracking-wider" style={{ color: currentReportColor }}>HEAD TEACHER'S COMMENT</p>
+                                <p className="italic text-[9.5px] sm:text-[10px] font-medium text-slate-800 leading-snug">"{data.developmentPlan?.headTeacherComment || 'Has shown encouraging progress this term. Should continue to practise consistently.'}"</p>
+                              </div>
                             </div>
                           </div>
 
-                          {/* Signatures & Footer */}
-                          <div className="grid grid-cols-2 gap-6 pt-1 px-6 text-center text-[8px] uppercase font-bold">
-                            <div>
-                              <p className="mb-2 text-[7.5px] text-gray-600">CLASS TEACHER SIGNATURE</p>
-                              <div className="border-b border-gray-400 w-full mb-0.5"></div>
-                              <p className="text-[7px] text-gray-500">DATE: ______________</p>
-                            </div>
-                            <div>
-                              <p className="mb-2 text-[7.5px] text-gray-600">HEAD TEACHER SIGNATURE</p>
-                              <div className="border-b border-gray-400 w-full mb-0.5"></div>
-                              <p className="text-[7px] text-gray-500">DATE: ______________</p>
-                            </div>
-                          </div>
+                          {/* Footer Block with Signatures & Bottom QR Code */}
+                          <div className="pt-3 border-t-2 border-gray-200 space-y-2.5">
+                            <div className="grid grid-cols-[auto_1fr_1fr] items-center gap-6">
+                              {/* QR Code at Bottom Left */}
+                              <div className="flex items-center gap-2.5 bg-slate-50 border border-slate-200 p-2 rounded-lg">
+                                <QRCodeSVG value={verificationUrl} size={50} level="H" includeMargin={false} />
+                                <div className="text-[8px] font-bold text-gray-600 uppercase leading-tight pr-1">
+                                  <p className="font-black text-black text-[8.5px]">Scan to Verify</p>
+                                  <p className="text-gray-500">Authentic Record</p>
+                                </div>
+                              </div>
 
-                          {/* Footer Info */}
-                          <div className="flex justify-between items-center text-[7px] text-gray-400 pt-1 border-t border-gray-200">
-                            <span>Early Years Progress Report</span>
-                            <span>Official Authenticated Record</span>
-                            <span>Page 1 of 1</span>
+                              {/* Class Teacher Signature */}
+                              <div className="text-center font-bold uppercase">
+                                <p className="mb-4 text-[9.5px] text-gray-600">CLASS TEACHER SIGNATURE</p>
+                                <div className="border-b border-gray-400 w-full mb-1"></div>
+                                <p className="text-[8.5px] text-gray-500">DATE: ______________</p>
+                              </div>
+
+                              {/* Head Teacher Signature */}
+                              <div className="text-center font-bold uppercase">
+                                <p className="mb-4 text-[9.5px] text-gray-600">HEAD TEACHER SIGNATURE</p>
+                                <div className="border-b border-gray-400 w-full mb-1"></div>
+                                <p className="text-[8.5px] text-gray-500">DATE: ______________</p>
+                              </div>
+                            </div>
+
+                            {/* Bottom Footer Info */}
+                            <div className="flex justify-between items-center text-[8.5px] font-semibold text-gray-400 pt-1.5 border-t border-gray-200">
+                              <span>Early Years Progress Report</span>
+                              <span>Official Authenticated Record</span>
+                              <span>Page 1 of 1</span>
+                            </div>
                           </div>
                         </div>
                       );
@@ -817,7 +826,7 @@ const TermReportCard = () => {
                       return (
                         <div className="space-y-6">
                           {/* PAGE 1 */}
-                          <div className="bg-white border-4 p-4 space-y-2 print:p-3 print:space-y-1" style={{ borderColor: currentReportColor }}>
+                          <div className="bg-white border-4 p-4 space-y-2 print:p-3 print:space-y-1 print:break-after-page" style={{ borderColor: currentReportColor, pageBreakAfter: 'always', breakAfter: 'page' }}>
                             {/* Header */}
                             <div className="grid grid-cols-[96px_1fr_96px] items-center gap-4 mb-2 pb-2 border-b-2 border-black">
                               {/* Logo */}
@@ -1021,7 +1030,7 @@ const TermReportCard = () => {
                           </div>
 
                           {/* PAGE 2 */}
-                          <div className="bg-white border-4 border-black p-4 space-y-3 print:p-3 print:space-y-2 print:break-before-page">
+                          <div className="bg-white border-4 border-black p-4 space-y-3 print:p-3 print:space-y-2 print:break-before-page" style={{ pageBreakBefore: 'always', breakBefore: 'page' }}>
                             <div className="text-center border-b-2 border-black pb-2">
                               <h2 className="text-sm font-black uppercase tracking-wider text-black">EARLY YEARS PROGRESS REPORT</h2>
                             </div>
