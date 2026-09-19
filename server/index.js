@@ -533,11 +533,20 @@ if (process.env.NODE_ENV === 'production') {
     if (req.url.startsWith('/uploads/') || req.url.startsWith('/api/') || req.url.startsWith('/assets/')) {
       return res.status(404).json({ error: 'File or route not found' });
     }
-    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-    res.set('Pragma', 'no-cache');
-    res.set('Expires', '0');
-    res.set('Surrogate-Control', 'no-store');
-    res.sendFile(path.join(clientDistPath, 'index.html'));
+    const indexPath = path.join(clientDistPath, 'index.html');
+    if (fs.existsSync(indexPath)) {
+      res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.set('Pragma', 'no-cache');
+      res.set('Expires', '0');
+      res.set('Surrogate-Control', 'no-store');
+      return res.sendFile(indexPath);
+    }
+    return res.status(200).json({
+      status: 'online',
+      service: 'EduTech Systems API Backend Server',
+      message: 'API server is running cleanly.',
+      timestamp: new Date().toISOString()
+    });
   });
 }
 
