@@ -1290,7 +1290,7 @@ const TermReportCard = () => {
                     return (
                       <div className="space-y-6">
                       {/* PAGE 1 */}
-                      <div className="bg-white border-4 p-5 sm:p-6 space-y-3 print:p-4 print:space-y-2 rounded-xl flex flex-col justify-between min-h-[282mm] print:min-h-[285mm] w-full box-border" style={{ borderColor: currentReportColor }}>
+                      <div className="bg-white border-4 p-5 sm:p-6 space-y-3 print:p-4 print:space-y-2 rounded-xl flex flex-col justify-between min-h-[270mm] print:min-h-[270mm] w-full box-border" style={{ borderColor: currentReportColor }}>
                         {/* Header */}
                         <div className="grid grid-cols-[96px_1fr_96px] items-center gap-4 mb-2 pb-2 border-b-2 border-black">
                           {/* Logo */}
@@ -1411,8 +1411,8 @@ const TermReportCard = () => {
                           </div>
                         </div>
 
-                        {/* Page 1 Domains (01, 02 & 03) */}
-                        {(data.earlyYearsDomains || []).filter(d => (d.name || '').startsWith('01') || (d.name || '').startsWith('02') || (d.name || '').startsWith('03')).map((domain, dIdx) => {
+                        {/* Page 1 Domains (01 & 02) */}
+                        {(data.earlyYearsDomains || []).filter(d => (d.name || '').startsWith('01') || (d.name || '').startsWith('02')).map((domain, dIdx) => {
                           const headerColors = [
                             'bg-emerald-600 text-white',
                             'bg-indigo-600 text-white'
@@ -1490,7 +1490,7 @@ const TermReportCard = () => {
                       </div>
 
                       {/* PAGE 2 */}
-                      <div className="bg-white border-4 border-black p-5 sm:p-6 space-y-3 print:p-4 print:space-y-2 rounded-xl flex flex-col justify-between min-h-[282mm] print:min-h-[285mm] w-full box-border print:break-before-page" style={{ pageBreakBefore: 'always', breakBefore: 'page' }}>
+                      <div className="bg-white border-4 border-black p-5 sm:p-6 space-y-3 print:p-4 print:space-y-2 rounded-xl flex flex-col justify-between min-h-[270mm] print:min-h-[270mm] w-full box-border print:break-before-page" style={{ pageBreakBefore: 'always', breakBefore: 'page' }}>
                         <div className="text-center border-b-2 border-black pb-2">
                           <h2 className="text-sm font-black uppercase tracking-wider text-black">EARLY YEARS PROGRESS REPORT</h2>
                         </div>
@@ -1569,35 +1569,6 @@ const TermReportCard = () => {
                           );
                         })}
 
-                        {/* PROGRESS AT A GLANCE TABLE */}
-                        <div className="border-2 border-black overflow-hidden">
-                          <div className="bg-black text-white px-3 py-1 font-black text-xs uppercase tracking-wider">
-                            PROGRESS AT A GLANCE
-                          </div>
-                          <table className="w-full border-collapse text-xs">
-                            <thead>
-                              <tr className="bg-gray-100 border-b border-black font-black uppercase text-black text-[11px]">
-                                <th className="p-1.5 text-left w-1/4 border-r border-black">AREA</th>
-                                <th className="p-1.5 text-left w-3/8 border-r border-black">WHAT IS GOING WELL</th>
-                                <th className="p-1.5 text-left w-3/8">NEXT FOCUS</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {(data.progressAtAGlance || [
-                                { area: 'Literacy', goingWell: 'Sound recognition, rhymes and reading direction.', nextFocus: 'Continue vocabulary and sentence development.' },
-                                { area: 'Numeracy', goingWell: 'Counting, number recognition and basic concepts.', nextFocus: 'Reinforce number concepts through daily practice.' },
-                                { area: 'Physical', goingWell: 'Fine-motor control, organised play and safety.', nextFocus: 'Maintain regular pencil, crayon and scissors activities.' },
-                                { area: 'Social / Emotional', goingWell: 'Self-control, confidence and participation.', nextFocus: 'Continue positive reinforcement and independence.' }
-                              ]).map((row, rIdx) => (
-                                <tr key={rIdx} className="border-b border-black last:border-b-0 font-medium text-black">
-                                  <td className="p-1.5 border-r border-black font-black">{row.area}</td>
-                                  <td className="p-1.5 border-r border-black">{row.goingWell}</td>
-                                  <td className="p-1.5">{row.nextFocus}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
                         <div className="flex justify-between text-[10px] text-gray-500 font-bold border-t pt-2">
                           <span>Early Years Assessment & Progress Report</span>
                           <span>Confidential School Record</span>
@@ -1606,9 +1577,52 @@ const TermReportCard = () => {
                       </div>
 
                       {/* PAGE 3 */}
-                      <div className="bg-white border-4 border-black p-5 sm:p-6 space-y-3 print:p-4 print:space-y-2 rounded-xl flex flex-col justify-between min-h-[282mm] print:min-h-[285mm] w-full box-border print:break-before-page" style={{ pageBreakBefore: 'always', breakBefore: 'page' }}>
+                      <div className="bg-white border-4 border-black p-5 sm:p-6 space-y-3 print:p-4 print:space-y-2 rounded-xl flex flex-col justify-between min-h-[270mm] print:min-h-[270mm] w-full box-border print:break-before-page" style={{ pageBreakBefore: 'always', breakBefore: 'page' }}>
                         <div className="text-center border-b-2 border-black pb-2">
-                          <h2 className="text-sm font-black uppercase tracking-wider text-black">COMMENTS & DEVELOPMENT PLAN</h2>
+                          <h2 className="text-sm font-black uppercase tracking-wider text-black">PROGRESS & DEVELOPMENT SUMMARY</h2>
+                        </div>
+
+                        {/* PROGRESS AT A GLANCE TABLE */}
+                        <div className="border-2 border-black overflow-hidden shadow-xs">
+                          <div className="bg-gradient-to-r from-indigo-900 via-purple-900 to-pink-900 text-white px-3 py-1 font-black text-xs uppercase tracking-wider flex justify-between items-center">
+                            <span>PROGRESS AT A GLANCE</span>
+                            <span className="text-[10px] font-bold text-pink-200">DEVELOPMENT SUMMARY</span>
+                          </div>
+                          <table className="w-full border-collapse text-xs">
+                            <thead>
+                              <tr className="bg-gray-100 border-b-2 border-black font-black uppercase text-black text-[11px]">
+                                <th className="p-1.5 text-left w-1/4 border-r border-black">DEVELOPMENT AREA</th>
+                                <th className="p-1.5 text-left w-3/8 border-r border-black text-emerald-900">WHAT IS GOING WELL</th>
+                                <th className="p-1.5 text-left w-3/8 text-indigo-900">NEXT FOCUS & GOALS</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {(data.progressAtAGlance || [
+                                { area: 'Literacy', goingWell: 'Sound recognition, rhymes and reading direction.', nextFocus: 'Continue vocabulary and sentence development.' },
+                                { area: 'Numeracy', goingWell: 'Counting, number recognition and basic concepts.', nextFocus: 'Reinforce number concepts through daily practice.' },
+                                { area: 'Physical', goingWell: 'Fine-motor control, organised play and safety.', nextFocus: 'Maintain regular pencil, crayon and scissors activities.' },
+                                { area: 'Social / Emotional', goingWell: 'Self-control, confidence and participation.', nextFocus: 'Continue positive reinforcement and independence.' }
+                              ]).map((row, rIdx) => {
+                                const areaPillColors = [
+                                  'bg-emerald-100 text-emerald-900 border-emerald-300',
+                                  'bg-sky-100 text-sky-900 border-sky-300',
+                                  'bg-purple-100 text-purple-900 border-purple-300',
+                                  'bg-amber-100 text-amber-900 border-amber-300'
+                                ];
+                                return (
+                                  <tr key={rIdx} className="border-b border-gray-300 last:border-b-0 font-medium text-black hover:bg-gray-50">
+                                    <td className="p-1 border-r border-black font-black align-middle">
+                                      <span className={`inline-flex items-center px-1.5 py-0.5 rounded border text-[11px] sm:text-[11.5px] font-black leading-none ${areaPillColors[rIdx % areaPillColors.length]}`}>
+                                        {row.area}
+                                      </span>
+                                    </td>
+                                    <td className="p-1 border-r border-black bg-emerald-50/20 font-bold text-black text-[11px] sm:text-[11.5px] leading-snug">{row.goingWell}</td>
+                                    <td className="p-1 bg-indigo-50/20 font-bold text-black text-[11px] sm:text-[11.5px] leading-snug">{row.nextFocus}</td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
                         </div>
 
                         {/* TEACHER'S OVERALL COMMENT */}

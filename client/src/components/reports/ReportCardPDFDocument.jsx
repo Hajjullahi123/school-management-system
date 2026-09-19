@@ -1437,8 +1437,21 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
                     </View>
                   ))}
 
+                  <View style={{ position: 'absolute', bottom: 15, left: 25, right: 25, flexDirection: 'row', justifyContent: 'space-between', fontSize: 7, color: '#6B7280' }}>
+                    <Text>Early Years Assessment & Progress Report</Text>
+                    <Text>Confidential School Record</Text>
+                    <Text>Page 2 of 3</Text>
+                  </View>
+                </Page>
+
+                {/* PAGE 3: PROGRESS AT A GLANCE, COMMENTS & DEVELOPMENT PLAN */}
+                <Page size="A4" style={[styles.page, { padding: 25 }]}>
+                  <View style={{ textAlign: 'center', marginBottom: 8 }}>
+                    <Text style={{ fontSize: 13, fontWeight: 'bold', textTransform: 'uppercase' }}>PROGRESS & DEVELOPMENT SUMMARY</Text>
+                  </View>
+
                   {/* PROGRESS AT A GLANCE TABLE */}
-                  <View style={{ marginTop: 6, marginBottom: 8 }}>
+                  <View style={{ marginTop: 2, marginBottom: 10 }}>
                     <Text style={{ fontSize: 9, fontWeight: 'bold', textTransform: 'uppercase', marginBottom: 2 }}>PROGRESS AT A GLANCE</Text>
                     <View style={{ borderWidth: 1, borderColor: '#000000' }}>
                       <View style={{ flexDirection: 'row', backgroundColor: '#F3F4F6', borderBottomWidth: 1, borderColor: '#000000', fontWeight: 'bold', fontSize: 8, height: 16, alignItems: 'center' }}>
@@ -1454,19 +1467,6 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
                         </View>
                       ))}
                     </View>
-                  </View>
-
-                  <View style={{ position: 'absolute', bottom: 15, left: 25, right: 25, flexDirection: 'row', justifyContent: 'space-between', fontSize: 7, color: '#6B7280' }}>
-                    <Text>Early Years Assessment & Progress Report</Text>
-                    <Text>Confidential School Record</Text>
-                    <Text>Page 2 of 3</Text>
-                  </View>
-                </Page>
-
-                {/* PAGE 3: COMMENTS & DEVELOPMENT PLAN */}
-                <Page size="A4" style={[styles.page, { padding: 25 }]}>
-                  <View style={{ textAlign: 'center', marginBottom: 10 }}>
-                    <Text style={{ fontSize: 13, fontWeight: 'bold', textTransform: 'uppercase' }}>COMMENTS & DEVELOPMENT PLAN</Text>
                   </View>
 
                   {/* TEACHER'S OVERALL COMMENT */}

@@ -1207,6 +1207,19 @@ const BulkReportDownload = () => {
                                     </div>
                                   ))}
   
+                                  <div className="flex justify-between text-[10px] text-gray-500 font-bold border-t pt-2">
+                                    <span>Early Years Assessment & Progress Report</span>
+                                    <span>Confidential School Record</span>
+                                    <span>Page 2 of 3</span>
+                                  </div>
+                                </div>
+  
+                                {/* PAGE 3 */}
+                                <div className="bg-white border-4 border-black p-6 space-y-4 print:p-4 print:space-y-3 print:break-before-page">
+                                  <div className="text-center border-b-2 border-black pb-2">
+                                    <h2 className="text-lg font-black uppercase tracking-wider text-black">PROGRESS & DEVELOPMENT SUMMARY</h2>
+                                  </div>
+
                                   <div className="border-2 border-black overflow-hidden">
                                     <div className="bg-black text-white px-3 py-1 font-black text-xs uppercase tracking-wider">
                                       PROGRESS AT A GLANCE
@@ -1234,18 +1247,6 @@ const BulkReportDownload = () => {
                                         ))}
                                       </tbody>
                                     </table>
-                                  </div>
-                                  <div className="flex justify-between text-[10px] text-gray-500 font-bold border-t pt-2">
-                                    <span>Early Years Assessment & Progress Report</span>
-                                    <span>Confidential School Record</span>
-                                    <span>Page 2 of 3</span>
-                                  </div>
-                                </div>
-  
-                                {/* PAGE 3 */}
-                                <div className="bg-white border-4 border-black p-6 space-y-4 print:p-4 print:space-y-3 print:break-before-page">
-                                  <div className="text-center border-b-2 border-black pb-2">
-                                    <h2 className="text-lg font-black uppercase tracking-wider text-black">COMMENTS & DEVELOPMENT PLAN</h2>
                                   </div>
   
                                   <div className="space-y-1">
