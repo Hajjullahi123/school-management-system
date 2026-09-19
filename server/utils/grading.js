@@ -337,7 +337,6 @@ module.exports = {
   calculatePositions,
   calculateStudentTermAverage,
   calculateStudentSessionAverage,
-  shouldPromote,
   resolveClassWeights,
   DEFAULT_WEIGHTS
 };
