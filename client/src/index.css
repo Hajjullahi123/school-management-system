@@ -200,8 +200,8 @@ nav a svg,
     print-color-adjust: exact !important;
     margin: 0 !important;
     padding: 0 !important;
-    width: 210mm !important;
-    height: auto !important;
+    width: 100% !important;
+    height: 100% !important;
     overflow: visible !important;
   }
 
@@ -214,17 +214,20 @@ nav a svg,
   main, .space-y-6, .space-y-8, .space-y-4, .space-y-12, .space-y-20, .mb-20, .my-8, .print-container, #root {
     margin: 0 !important;
     padding: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
   }
 
   /* Reset scalers and mobile wrappers for crisp 1:1 print */
   .report-card-scaler {
     transform: none !important;
+    -webkit-transform: none !important;
     scale: 1 !important;
     zoom: normal !important;
-    width: 210mm !important;
-    max-width: 210mm !important;
-    min-width: 210mm !important;
-    margin: 0 auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 100% !important;
+    margin: 0 !important;
     padding: 0 !important;
   }
 
@@ -235,18 +238,19 @@ nav a svg,
     overflow: visible !important;
     margin: 0 !important;
     padding: 0 !important;
+    width: 100% !important;
   }
 
-  /* A4 Print Container: Allow multi-page overflow and page breaking for 2-page & 3-page templates */
+  /* A4 Print Container: Fill 100% width and page height for full-bleed printing */
   .emerald-print-A4 {
-    width: 210mm !important;
-    max-width: 210mm !important;
-    min-width: 210mm !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 100% !important;
     height: auto !important;
-    min-height: 280mm !important;
+    min-height: 98vh !important;
     max-height: none !important;
     padding: 0 !important;
-    margin: 0 auto !important;
+    margin: 0 !important;
     box-sizing: border-box !important;
     position: relative !important;
     background: white !important;
