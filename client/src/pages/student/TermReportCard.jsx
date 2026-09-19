@@ -664,6 +664,7 @@ const TermReportCard = () => {
                     // Class-specific template suffix (e.g., early_years_1-page) wins over school-wide setting.
                     const classLayoutSuffix = (layoutRawDB && layoutRawDB.startsWith('early_years_')) ? layoutRawDB.replace('early_years_', '') : null;
                     let earlyYearsPageFormat = classLayoutSuffix || data.reportSettings?.earlyYearsPageFormat || (data.schoolSettings || schoolSettings)?.earlyYearsPageFormat || '3-page';
+                    const allDomains = data.earlyYearsDomains || [];
                     const page1Domains = allDomains.filter(d => (d.name || '').startsWith('01') || (d.name || '').startsWith('02') || (d.name || '').startsWith('03'));
                     const extraDomains = allDomains.filter(d => !(d.name || '').startsWith('01') && !(d.name || '').startsWith('02') && !(d.name || '').startsWith('03'));
                     
