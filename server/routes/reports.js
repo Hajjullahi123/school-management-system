@@ -29,6 +29,17 @@ const formatEarlyYearsCode = (scoreOrRating) => {
   return 'A';
 };
 
+const calculateEarlyYearsProgress = (currCode, prevCode) => {
+  if (!prevCode || prevCode === '—') return 'New';
+  if (currCode === prevCode) return 'Maintained';
+  const rankMap = { 'A': 4, 'P': 3, 'W': 2, 'NA': 1, '—': 0 };
+  const currRank = rankMap[currCode] || 0;
+  const prevRank = rankMap[prevCode] || 0;
+  if (currRank > prevRank) return 'Improved';
+  if (currRank < prevRank) return 'Needs Attention';
+  return 'Maintained';
+};
+
 async function getEarlyYearsDomainsForClass(schoolId, classId) {
   let domains = [];
   if (classId) {
@@ -1323,6 +1334,9 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
       orderBy: { name: 'asc' }
     });
 
+    // Fetch early years domains once for class
+    const earlyYearsDomainsRaw = await getEarlyYearsDomainsForClass(req.schoolId, parseInt(classId));
+
     // Fetch all report extras for the class+term
     const allReportExtras = await prisma.studentReportCard.findMany({
       where: { termId: parseInt(termId), schoolId: req.schoolId }
@@ -1330,11 +1344,25 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
     const extrasMap = {};
     allReportExtras.forEach(e => { extrasMap[e.studentId] = e; });
 
-    // Fetch previous terms results if it's the final term
+    // Fetch previous terms results & report extras
     const studentIds = students.map(s => s.id);
     let allPreviousResults = [];
+    let prevExtrasMap = {};
     const isFinalTerm = termIndex === allTermsInSession.length - 1;
     const totalTerms = allTermsInSession.length;
+
+    if (termIndex > 0) {
+      const prevTerm = allTermsInSession[termIndex - 1];
+      const allPrevReportExtras = await prisma.studentReportCard.findMany({
+        where: {
+          studentId: { in: studentIds },
+          academicSessionId: term.academicSessionId,
+          termId: prevTerm.id,
+          schoolId: req.schoolId
+        }
+      });
+      allPrevReportExtras.forEach(e => { prevExtrasMap[e.studentId] = e; });
+    }
 
     if (isFinalTerm && totalTerms > 1) {
       allPreviousResults = await prisma.result.findMany({
@@ -1424,6 +1452,8 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
       const termPosition = positionMap[student.id] || '-';
 
       let ratings = [];
+      let devPlanFromRatings = null;
+      let progressFromRatings = null;
       let manualAttendance = null;
       try {
         const parsed = reportExtras?.psychomotorRatings ? JSON.parse(reportExtras.psychomotorRatings) : null;
@@ -1431,9 +1461,24 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
           ratings = parsed;
         } else if (parsed && typeof parsed === 'object') {
           ratings = Array.isArray(parsed.ratings) ? parsed.ratings : [];
+          devPlanFromRatings = parsed.developmentPlan || null;
+          progressFromRatings = parsed.progressAtAGlance || null;
           manualAttendance = parsed.attendanceOverride || null;
         }
       } catch (e) { ratings = []; }
+
+      let previousRatings = [];
+      const prevReportExtra = prevExtrasMap[student.id];
+      if (prevReportExtra && prevReportExtra.psychomotorRatings) {
+        try {
+          const parsedPrev = JSON.parse(prevReportExtra.psychomotorRatings);
+          if (Array.isArray(parsedPrev)) {
+            previousRatings = parsedPrev;
+          } else if (parsedPrev && typeof parsedPrev === 'object') {
+            previousRatings = Array.isArray(parsedPrev.ratings) ? parsedPrev.ratings : [];
+          }
+        } catch (e) { previousRatings = []; }
+      }
 
       const feeSummary = feeMap[student.id];
 
@@ -1567,6 +1612,61 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
           return { name: d.name, score: rating && rating.score !== null && rating.score !== undefined ? rating.score : 3, maxScore: d.maxScore || 5 };
         }),
         feeSummary: feeSummary,
+        earlyYearsDomains: earlyYearsDomainsRaw.map(d => ({
+          id: d.id,
+          name: d.name,
+          code: d.code,
+          skills: (d.skills || []).map(s => {
+            const rating = ratings.find(r => r.skillId === s.id || r.domainId === s.id || r.name === s.name || r.name === `${d.name} - ${s.name}`);
+            const prevRating = previousRatings.find(r => r.skillId === s.id || r.domainId === s.id || r.name === s.name || r.name === `${d.name} - ${s.name}`);
+
+            const currScore = rating && rating.score !== null && rating.score !== undefined ? rating.score : 5;
+            const prevScore = prevRating && prevRating.score !== null && prevRating.score !== undefined ? prevRating.score : null;
+
+            const currCode = formatEarlyYearsCode(currScore);
+            const prevCode = prevScore !== null ? formatEarlyYearsCode(prevScore) : '—';
+            const progress = calculateEarlyYearsProgress(currCode, prevCode);
+
+            return {
+              id: s.id,
+              name: s.name,
+              score: currScore,
+              current: currCode,
+              previous: prevCode,
+              progress: progress
+            };
+          })
+        })),
+        progressAtAGlance: (() => {
+          const raw = reportExtras?.progressAtAGlance || progressFromRatings;
+          if (raw) {
+            if (Array.isArray(raw)) return raw;
+            if (typeof raw === 'object') return raw;
+            try { return JSON.parse(raw); } catch (e) { console.error('Error parsing progressAtAGlance:', e); }
+          }
+          return [
+            { area: 'Literacy', goingWell: 'Sound recognition, rhymes and reading direction.', nextFocus: 'Continue vocabulary and sentence development.' },
+            { area: 'Numeracy', goingWell: 'Counting, number recognition and basic concepts.', nextFocus: 'Reinforce number concepts through daily practice.' },
+            { area: 'Physical', goingWell: 'Fine-motor control, organised play and safety.', nextFocus: 'Maintain regular pencil, crayon and scissors activities.' },
+            { area: 'Social / Emotional', goingWell: 'Self-control, confidence and participation.', nextFocus: 'Continue positive reinforcement and independence.' }
+          ];
+        })(),
+        developmentPlan: (() => {
+          const raw = reportExtras?.developmentPlan || devPlanFromRatings;
+          if (raw) {
+            if (typeof raw === 'object') return raw;
+            try { return JSON.parse(raw); } catch (e) { console.error('Error parsing developmentPlan:', e); }
+          }
+          return {
+            teacherComment: reportExtras?.formMasterRemark || (studentResults.length > 0 ? getRemark(getGrade(termAverage, schoolSettings.gradingSystem), schoolSettings.gradingSystem) : 'The student is an energetic and engaged learner who has made clear progress during the term. She demonstrates strong performance in areas of interest and is developing confidence across literacy, numeracy and classroom activities.'),
+            literacyComment: 'Recognises letter sounds confidently and is developing ability to use complete sentences and appropriate vocabulary.',
+            numeracyComment: 'Demonstrates strong understanding of basic numeracy concepts and applies counting and number skills confidently.',
+            atSchoolNextStep: 'Continue guided literacy and numeracy practice; reinforce independent classroom routines.',
+            atHomeNextStep: 'Read together, practise sounds and counting, and use everyday objects for sorting and number games.',
+            headTeacherComment: reportExtras?.principalRemark || (studentResults.length > 0 ? getRemark(getGrade(termAverage, schoolSettings.gradingSystem), schoolSettings.gradingSystem) : 'Has shown encouraging progress this term. Should continue to practise consistently and maintain a positive attitude toward learning.')
+          };
+        })(),
+        aiNarrative: reportExtras?.aiNarrative || null,
         reportSettings: {
           showPositionOnReport: schoolSettings.showPositionOnReport && (classInfo?.showPositionOnReport !== false),
           showFeesOnReport: schoolSettings.showFeesOnReport && (classInfo?.showFeesOnReport !== false),
