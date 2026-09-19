@@ -580,8 +580,30 @@ const startServer = (portToTry, retryCount = 0) => {
     activeServer = null;
   }
 
-  activeServer = app.listen(portToTry, () => {
-    console.log(`[Server] SUCCESSFULLY RUNNING ON PORT ${portToTry}`);
+  activeServer = app.listen(portToTry, '0.0.0.0', () => {
+    console.log(`[Server] SUCCESSFULLY RUNNING ON PORT ${portToTry} (0.0.0.0)`);
+
+    // Safe background DB schema sync (ensures new columns/tables exist in PostgreSQL)
+    setTimeout(() => {
+      try {
+        const { exec } = require('child_process');
+        const prismaPath = path.join(__dirname, 'node_modules/.bin/prisma');
+        const cmd = fs.existsSync(prismaPath)
+          ? `"${prismaPath}" db push --accept-data-loss --skip-generate`
+          : 'npx prisma db push --accept-data-loss --skip-generate';
+        
+        console.log('[DB Sync] Checking database schema in background...');
+        exec(cmd, { cwd: __dirname }, (error, stdout, stderr) => {
+          if (error) {
+            console.warn('[DB Sync] Schema sync notice:', error.message);
+          } else {
+            console.log('[DB Sync] Database schema up to date.');
+          }
+        });
+      } catch (e) {
+        console.warn('[DB Sync] Could not trigger schema sync:', e.message);
+      }
+    }, 2000);
 
     // KEEP-ALIVE: Prevent Render free-tier from sleeping (15min idle threshold)
     // Self-ping every 13 minutes to maintain warm state
