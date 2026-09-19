@@ -1,5 +1,5 @@
 // Stability Overhaul v2
-// Build Marker: Force Coolify rebuild - 2026-09-19 07:38
+// Build Marker: Clean Node Start Fix - 2026-09-19 07:48
 const express = require('express');
 require('express-async-errors');
 const cors = require('cors');
