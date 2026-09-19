@@ -727,13 +727,16 @@ const TermReportCard = () => {
                             </div>
 
                             {/* Student Info Grid */}
-                            <div className="bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-[10.5px] font-bold uppercase grid grid-cols-3 gap-x-4 gap-y-1.5">
-                              <div><span className="text-gray-500 font-semibold">NAME:</span> <span className="text-black font-black">{getStudentDisplayName(data.student)}</span></div>
-                              <div><span className="text-gray-500 font-semibold">GENDER:</span> <span className="text-black">{data.student?.gender || '-'}</span></div>
-                              <div><span className="text-gray-500 font-semibold">ADM NO:</span> <span className="text-black">{data.student?.admissionNumber || '-'}</span></div>
-                              <div><span className="text-gray-500 font-semibold">CLASS:</span> <span className="text-black">{data.student?.class || '-'}</span></div>
-                              <div><span className="text-gray-500 font-semibold">TERM:</span> <span className="text-black">{data.term?.session} - {data.term?.name}</span></div>
-                              <div><span className="text-gray-500 font-semibold">ATTENDANCE:</span> <span className="text-black">{data.attendance?.present || 0}/{data.attendance?.total || 0} DAYS ({data.attendance?.percentage || 0}%)</span></div>
+                            <div className="bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-[12px] sm:text-[14px] font-bold uppercase grid grid-cols-3 gap-x-4 gap-y-2">
+                              <div><span className="text-gray-600 font-bold">NAME:</span> <span className="text-black font-black">{getStudentDisplayName(data.student)}</span></div>
+                              <div><span className="text-gray-600 font-bold">GENDER:</span> <span className="text-black font-black">{data.student?.gender || '-'}</span></div>
+                              <div><span className="text-gray-600 font-bold">ADM NO:</span> <span className="text-black font-black">{data.student?.admissionNumber || '-'}</span></div>
+                              <div><span className="text-gray-600 font-bold">CLASS:</span> <span className="text-black font-black">{data.student?.class || '-'}</span></div>
+                              <div><span className="text-gray-600 font-bold">FORM MASTER:</span> <span className="text-black font-black">{data.student?.formMaster || data.student?.classTeacher || 'Assigned Teacher'}</span></div>
+                              <div><span className="text-gray-600 font-bold">ATTENDANCE:</span> <span className="text-black font-black">{data.attendance?.present || 0}/{data.attendance?.total || 0} DAYS ({data.attendance?.percentage || 0}%)</span></div>
+                              <div><span className="text-gray-600 font-bold">TERM:</span> <span className="text-black font-black">{data.term?.session} - {data.term?.name}</span></div>
+                              <div><span className="text-gray-600 font-bold">TERM ENDED:</span> <span className="text-black font-black">{data.term?.endDate || data.term?.termEnded ? formatDateVerbose(data.term?.endDate || data.term?.termEnded) : (data.term?.closingDate ? formatDateVerbose(data.term.closingDate) : '18 July 2026')}</span></div>
+                              <div><span className="text-gray-600 font-bold">NEXT TERM:</span> <span className="text-black font-black">{data.term?.nextTermBegins ? formatDateVerbose(data.term?.nextTermBegins) : '4 May 2026'}</span></div>
                             </div>
 
                             {/* Kindergarten Rating Legend / Scale */}
@@ -760,7 +763,7 @@ const TermReportCard = () => {
                                           const score = Math.round(skill.score || 0);
                                           return (
                                             <div key={sIdx} className="py-1.5 px-3 flex justify-between items-center hover:bg-slate-50">
-                                              <span className="font-bold text-slate-800 text-[10px] sm:text-[10.5px] leading-tight pr-2">{skill.name}</span>
+                                              <span className="font-bold text-slate-900 text-[13px] sm:text-[14px] leading-tight pr-2">{skill.name}</span>
                                               <div className="flex items-center gap-1 font-mono text-[9px] flex-shrink-0">
                                                 {[5, 4, 3, 2, 1].map(val => (
                                                   <span key={val} className={`w-5 h-5 flex items-center justify-center rounded-full text-[9px] ${score === val ? 'font-black text-white shadow-xs' : 'text-gray-300'}`} style={{ backgroundColor: score === val ? currentReportColor : 'transparent' }}>
@@ -781,12 +784,12 @@ const TermReportCard = () => {
                             {/* Comments Section */}
                             <div className="grid grid-cols-2 gap-3.5">
                               <div className="border border-emerald-300 bg-emerald-50/40 rounded-lg p-2.5 min-h-[52px] flex flex-col justify-center">
-                                <p className="font-black text-[9px] uppercase mb-0.5 tracking-wider" style={{ color: currentReportColor }}>TEACHER'S COMMENT</p>
-                                <p className="italic text-[9.5px] sm:text-[10px] font-medium text-slate-800 leading-snug">"{data.developmentPlan?.teacherComment || 'The student is an energetic and engaged learner who has made good progress this term.'}"</p>
+                                <p className="font-black text-[11px] uppercase mb-0.5 tracking-wider" style={{ color: currentReportColor }}>TEACHER'S COMMENT</p>
+                                <p className="italic text-[13px] sm:text-[14px] font-bold text-slate-900 leading-snug">"{data.developmentPlan?.teacherComment || 'The student is an energetic and engaged learner who has made good progress this term.'}"</p>
                               </div>
                               <div className="border border-teal-300 bg-teal-50/40 rounded-lg p-2.5 min-h-[52px] flex flex-col justify-center">
-                                <p className="font-black text-[9px] uppercase mb-0.5 tracking-wider" style={{ color: currentReportColor }}>HEAD TEACHER'S COMMENT</p>
-                                <p className="italic text-[9.5px] sm:text-[10px] font-medium text-slate-800 leading-snug">"{data.developmentPlan?.headTeacherComment || 'Has shown encouraging progress this term. Should continue to practise consistently.'}"</p>
+                                <p className="font-black text-[11px] uppercase mb-0.5 tracking-wider" style={{ color: currentReportColor }}>HEAD TEACHER'S COMMENT</p>
+                                <p className="italic text-[13px] sm:text-[14px] font-bold text-slate-900 leading-snug">"{data.developmentPlan?.headTeacherComment || 'Has shown encouraging progress this term. Should continue to practise consistently.'}"</p>
                               </div>
                             </div>
                           </div>
@@ -805,16 +808,18 @@ const TermReportCard = () => {
 
                               {/* Class Teacher Signature */}
                               <div className="text-center font-bold uppercase">
-                                <p className="mb-4 text-[9.5px] text-gray-600">CLASS TEACHER SIGNATURE</p>
-                                <div className="border-b border-gray-400 w-full mb-1"></div>
-                                <p className="text-[8.5px] text-gray-500">DATE: ______________</p>
+                                <p className="mb-1 text-[11px] text-gray-700">CLASS TEACHER SIGNATURE</p>
+                                <p className="text-[13px] sm:text-[14px] font-black text-black">{data.student?.formMaster || 'Class Teacher'}</p>
+                                <div className="border-b border-gray-400 w-full my-1"></div>
+                                <p className="text-[10px] text-gray-600">DATE: ______________</p>
                               </div>
 
                               {/* Head Teacher Signature */}
                               <div className="text-center font-bold uppercase">
-                                <p className="mb-4 text-[9.5px] text-gray-600">HEAD TEACHER SIGNATURE</p>
-                                <div className="border-b border-gray-400 w-full mb-1"></div>
-                                <p className="text-[8.5px] text-gray-500">DATE: ______________</p>
+                                <p className="mb-1 text-[11px] text-gray-700">HEAD TEACHER SIGNATURE</p>
+                                <p className="text-[13px] sm:text-[14px] font-black text-black">Head Teacher</p>
+                                <div className="border-b border-gray-400 w-full my-1"></div>
+                                <p className="text-[10px] text-gray-600">DATE: ______________</p>
                               </div>
                             </div>
 
@@ -881,23 +886,29 @@ const TermReportCard = () => {
                             </div>
 
                             {/* Student Details Table */}
-                            <table className="w-full border-2 border-black border-collapse text-xs sm:text-[12.5px] font-bold uppercase">
+                            <table className="w-full border-2 border-black border-collapse text-[13px] sm:text-[14px] font-bold uppercase">
                               <tbody>
                                 <tr className="border-b border-black">
                                   <td className="border-r border-black p-1.5 w-[15%] bg-gray-100 font-black text-slate-800">STUDENT</td>
-                                  <td className="border-r border-black p-1.5 w-[45%] font-black text-black">{getStudentDisplayName(data.student)}</td>
+                                  <td className="border-r border-black p-1.5 w-[35%] font-black text-black">{getStudentDisplayName(data.student)}</td>
                                   <td className="border-r border-black p-1.5 w-[15%] bg-gray-100 font-black text-slate-800">CLASS</td>
-                                  <td className="p-1.5 w-[25%] font-black text-black">{data.student?.class}</td>
+                                  <td className="p-1.5 w-[35%] font-black text-black">{data.student?.class}</td>
                                 </tr>
                                 <tr className="border-b border-black">
                                   <td className="border-r border-black p-1.5 bg-gray-100 font-black text-slate-800">DATE OF BIRTH</td>
                                   <td className="border-r border-black p-1.5 font-bold text-black">{formatDateVerbose(data.student?.dateOfBirth)}</td>
-                                  <td className="border-r border-black p-1.5 bg-gray-100 font-black text-slate-800">SESSION</td>
-                                  <td className="p-1.5 font-bold text-black">{data.term?.session}</td>
+                                  <td className="border-r border-black p-1.5 bg-gray-100 font-black text-slate-800">FORM MASTER</td>
+                                  <td className="p-1.5 font-black text-black">{data.student?.formMaster || 'Assigned Teacher'}</td>
+                                </tr>
+                                <tr className="border-b border-black">
+                                  <td className="border-r border-black p-1.5 bg-gray-100 font-black text-slate-800">SESSION & TERM</td>
+                                  <td className="border-r border-black p-1.5 font-bold text-black">{data.term?.session} - {data.term?.name}</td>
+                                  <td className="border-r border-black p-1.5 bg-gray-100 font-black text-slate-800">TERM ENDED</td>
+                                  <td className="p-1.5 font-bold text-black">{data.term?.endDate || data.term?.termEnded ? formatDateVerbose(data.term?.endDate || data.term?.termEnded) : (data.term?.closingDate ? formatDateVerbose(data.term.closingDate) : '18 July 2026')}</td>
                                 </tr>
                                 <tr>
-                                  <td className="border-r border-black p-1.5 bg-gray-100 font-black text-slate-800">TERM</td>
-                                  <td className="border-r border-black p-1.5 font-bold text-black">{data.term?.name}</td>
+                                  <td className="border-r border-black p-1.5 bg-gray-100 font-black text-slate-800">NEXT TERM BEGINS</td>
+                                  <td className="border-r border-black p-1.5 font-bold text-black">{data.term?.nextTermBegins ? formatDateVerbose(data.term?.nextTermBegins) : '4 May 2026'}</td>
                                   <td className="border-r border-black p-1.5 bg-gray-100 font-black text-slate-800">REPORT STATUS</td>
                                   <td className="p-1.5 font-black text-emerald-800">Published</td>
                                 </tr>
@@ -1102,7 +1113,7 @@ const TermReportCard = () => {
                                         };
 
                                         return (
-                                          <tr key={sIdx} className="border-b border-gray-200 last:border-b-0 min-h-[24px] align-middle font-medium text-black text-[12px] sm:text-[12.5px] hover:bg-gray-50/50">
+                                          <tr key={sIdx} className="border-b border-gray-200 last:border-b-0 min-h-[26px] align-middle font-medium text-black text-[13.5px] sm:text-[14px] hover:bg-gray-50/50">
                                             <td className="p-1 border-r border-black font-black text-black">{skill.name}</td>
                                             <td className="p-1 text-center border-r border-black">{renderGradeBadge(curVal)}</td>
                                             <td className="p-1 text-center border-r border-black">{renderGradeBadge(prevVal)}</td>
@@ -1146,12 +1157,12 @@ const TermReportCard = () => {
                                     return (
                                       <tr key={rIdx} className="border-b border-gray-300 last:border-b-0 font-medium text-black hover:bg-gray-50">
                                         <td className="p-1 border-r border-black font-black align-middle">
-                                          <span className={`inline-flex items-center px-2 py-0.5 rounded border text-[11px] sm:text-[11.5px] font-black leading-none ${areaPillColors[rIdx % areaPillColors.length]}`}>
+                                          <span className={`inline-flex items-center px-2 py-0.5 rounded border text-[12px] sm:text-[13px] font-black leading-none ${areaPillColors[rIdx % areaPillColors.length]}`}>
                                             {row.area}
                                           </span>
                                         </td>
-                                        <td className="p-1.5 border-r border-black bg-emerald-50/20 font-bold text-black text-[12px] sm:text-[12.5px] leading-snug">{row.goingWell}</td>
-                                        <td className="p-1.5 bg-indigo-50/20 font-bold text-black text-[12px] sm:text-[12.5px] leading-snug">{row.nextFocus}</td>
+                                        <td className="p-1.5 border-r border-black bg-emerald-50/20 font-bold text-black text-[13px] sm:text-[14px] leading-snug">{row.goingWell}</td>
+                                        <td className="p-1.5 bg-indigo-50/20 font-bold text-black text-[13px] sm:text-[14px] leading-snug">{row.nextFocus}</td>
                                       </tr>
                                     );
                                   })}
@@ -1161,24 +1172,24 @@ const TermReportCard = () => {
 
                             {/* TEACHER'S OVERALL COMMENT */}
                             <div className="space-y-1">
-                              <p className="text-[12.5px] sm:text-[13px] font-black uppercase text-black tracking-wide">TEACHER'S OVERALL COMMENT</p>
-                              <div className="border-2 border-black p-2.5 text-[12px] sm:text-[12.5px] italic font-bold leading-snug bg-gray-50 text-black">
+                              <p className="text-[13.5px] sm:text-[14px] font-black uppercase text-black tracking-wide">TEACHER'S OVERALL COMMENT</p>
+                              <div className="border-2 border-black p-2.5 text-[13px] sm:text-[14px] italic font-bold leading-relaxed bg-gray-50 text-black">
                                 "{data.developmentPlan?.teacherComment || 'The student is an energetic and engaged learner who has made clear progress during the term. She demonstrates strong performance in areas of interest and is developing confidence across literacy, numeracy and classroom activities.'}"
                               </div>
                             </div>
 
                             {/* SUBJECT / DEVELOPMENT COMMENTS */}
                             <div className="space-y-1">
-                              <p className="text-[12.5px] sm:text-[13px] font-black uppercase text-black tracking-wide">SUBJECT / DEVELOPMENT COMMENTS</p>
+                              <p className="text-[13.5px] sm:text-[14px] font-black uppercase text-black tracking-wide">SUBJECT / DEVELOPMENT COMMENTS</p>
                               <table className="w-full border-2 border-black border-collapse text-xs">
                                 <tbody>
                                   <tr className="border-b border-black">
-                                    <td className="p-1.5 w-1/4 font-black border-r border-black bg-gray-100 uppercase text-black text-[11.5px]">LITERACY</td>
-                                    <td className="p-1.5 italic font-bold text-black text-[12px] sm:text-[12.5px] leading-snug">{data.developmentPlan?.literacyComment || 'Recognises letter sounds confidently and is developing ability to use complete sentences and appropriate vocabulary.'}</td>
+                                    <td className="p-1.5 w-1/4 font-black border-r border-black bg-gray-100 uppercase text-black text-[12.5px] sm:text-[13px]">LITERACY</td>
+                                    <td className="p-1.5 italic font-bold text-black text-[13px] sm:text-[14px] leading-snug">{data.developmentPlan?.literacyComment || 'Recognises letter sounds confidently and is developing ability to use complete sentences and appropriate vocabulary.'}</td>
                                   </tr>
                                   <tr>
-                                    <td className="p-1.5 w-1/4 font-black border-r border-black bg-gray-100 uppercase text-black text-[11.5px]">NUMERACY</td>
-                                    <td className="p-1.5 italic font-bold text-black text-[12px] sm:text-[12.5px] leading-snug">{data.developmentPlan?.numeracyComment || 'Demonstrates strong understanding of basic numeracy concepts and applies counting and number skills confidently.'}</td>
+                                    <td className="p-1.5 w-1/4 font-black border-r border-black bg-gray-100 uppercase text-black text-[12.5px] sm:text-[13px]">NUMERACY</td>
+                                    <td className="p-1.5 italic font-bold text-black text-[13px] sm:text-[14px] leading-snug">{data.developmentPlan?.numeracyComment || 'Demonstrates strong understanding of basic numeracy concepts and applies counting and number skills confidently.'}</td>
                                   </tr>
                                 </tbody>
                               </table>
@@ -1186,18 +1197,18 @@ const TermReportCard = () => {
 
                             {/* RECOMMENDED NEXT STEPS */}
                             <div className="space-y-1">
-                              <p className="text-[12.5px] sm:text-[13px] font-black uppercase text-black tracking-wide">RECOMMENDED NEXT STEPS</p>
+                              <p className="text-[13.5px] sm:text-[14px] font-black uppercase text-black tracking-wide">RECOMMENDED NEXT STEPS</p>
                               <table className="w-full border-2 border-black border-collapse text-xs">
                                 <thead>
-                                  <tr className="bg-gray-100 border-b border-black font-black uppercase text-black text-[11px] sm:text-[11.5px]">
+                                  <tr className="bg-gray-100 border-b border-black font-black uppercase text-black text-[12px] sm:text-[12.5px]">
                                     <th className="p-1.5 text-left w-1/2 border-r border-black">At School</th>
                                     <th className="p-1.5 text-left w-1/2">At Home</th>
                                   </tr>
                                 </thead>
                                 <tbody>
                                   <tr>
-                                    <td className="p-1.5 border-r border-black font-bold text-black text-[12px] sm:text-[12.5px] leading-snug">{data.developmentPlan?.atSchoolNextStep || 'Continue guided literacy and numeracy practice; reinforce independent classroom routines.'}</td>
-                                    <td className="p-1.5 font-bold text-black text-[12px] sm:text-[12.5px] leading-snug">{data.developmentPlan?.atHomeNextStep || 'Read together, practise sounds and counting, and use everyday objects for sorting and number games.'}</td>
+                                    <td className="p-1.5 border-r border-black font-bold text-black text-[13px] sm:text-[14px] leading-snug">{data.developmentPlan?.atSchoolNextStep || 'Continue guided literacy and numeracy practice; reinforce independent classroom routines.'}</td>
+                                    <td className="p-1.5 font-bold text-black text-[13px] sm:text-[14px] leading-snug">{data.developmentPlan?.atHomeNextStep || 'Read together, practise sounds and counting, and use everyday objects for sorting and number games.'}</td>
                                   </tr>
                                 </tbody>
                               </table>
@@ -1205,22 +1216,22 @@ const TermReportCard = () => {
 
                             {/* HEAD TEACHER'S COMMENT */}
                             <div className="space-y-1">
-                              <p className="text-[12.5px] sm:text-[13px] font-black uppercase text-black tracking-wide">HEAD TEACHER'S COMMENT</p>
-                              <div className="border-2 border-black p-2.5 text-[12px] sm:text-[12.5px] italic font-bold leading-snug bg-gray-50 text-black">
+                              <p className="text-[13.5px] sm:text-[14px] font-black uppercase text-black tracking-wide">HEAD TEACHER'S COMMENT</p>
+                              <div className="border-2 border-black p-2.5 text-[13px] sm:text-[14px] italic font-bold leading-relaxed bg-gray-50 text-black">
                                 "{data.developmentPlan?.headTeacherComment || 'Has shown encouraging progress this term. Should continue to practise consistently and maintain a positive attitude toward learning.'}"
                               </div>
                             </div>
 
                             {/* Signatures */}
-                            <div className="grid grid-cols-2 max-w-xl mx-auto gap-8 pt-2 text-center text-xs font-black uppercase text-black">
+                            <div className="grid grid-cols-2 max-w-xl mx-auto gap-8 pt-2 text-center text-[13px] sm:text-[14px] font-black uppercase text-black">
                               <div className="space-y-1">
-                                <p>CLASS TEACHER</p>
+                                <p>CLASS TEACHER: {data.student?.formMaster || 'Assigned Teacher'}</p>
                                 <div className="border-b-2 border-black h-7 flex items-center justify-center">
                                   {data.student?.formMasterSignatureUrl && (
                                     <img src={data.student.formMasterSignatureUrl.startsWith('data:') || data.student.formMasterSignatureUrl.startsWith('http') ? data.student.formMasterSignatureUrl : `${API_BASE_URL}${data.student.formMasterSignatureUrl}`} alt="Teacher Signature" className="h-full w-auto mix-blend-multiply" />
                                   )}
                                 </div>
-                                <p className="text-[9.5px] font-normal">Date: ______________</p>
+                                <p className="text-[10px] font-bold text-gray-700">Date: ______________</p>
                               </div>
                               <div className="space-y-1">
                                 <p>HEAD TEACHER</p>
@@ -1229,7 +1240,7 @@ const TermReportCard = () => {
                                     <img src={data.term.principalSignatureUrl.startsWith('data:') || data.term.principalSignatureUrl.startsWith('http') ? data.term.principalSignatureUrl : `${API_BASE_URL}${data.term.principalSignatureUrl}`} alt="Principal Signature" className="h-full w-auto mix-blend-multiply" />
                                   )}
                                 </div>
-                                <p className="text-[9.5px] font-normal">Date: ______________</p>
+                                <p className="text-[10px] font-bold text-gray-700">Date: ______________</p>
                               </div>
                             </div>
 

@@ -771,16 +771,21 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
                     </View>
 
                     {/* Student Info Table */}
-                    <View style={{ backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 4, padding: 4.5, marginBottom: 6, fontSize: 8 }}>
-                      <View style={{ flexDirection: 'row', marginBottom: 3 }}>
+                    <View style={{ backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 4, padding: 5, marginBottom: 6, fontSize: 9 }}>
+                      <View style={{ flexDirection: 'row', marginBottom: 3.5 }}>
                         <Text style={{ width: '33%', fontWeight: 'bold' }}>NAME: <Text style={{ color: '#000' }}>{studentName}</Text></Text>
                         <Text style={{ width: '33%', fontWeight: 'bold' }}>GENDER: <Text style={{ color: '#000' }}>{student.gender || '-'}</Text></Text>
                         <Text style={{ width: '34%', fontWeight: 'bold' }}>ADM NO: <Text style={{ color: '#000' }}>{student.admissionNumber || '-'}</Text></Text>
                       </View>
-                      <View style={{ flexDirection: 'row' }}>
+                      <View style={{ flexDirection: 'row', marginBottom: 3.5 }}>
                         <Text style={{ width: '33%', fontWeight: 'bold' }}>CLASS: <Text style={{ color: '#000' }}>{className}</Text></Text>
-                        <Text style={{ width: '33%', fontWeight: 'bold' }}>SESSION/TERM: <Text style={{ color: '#000' }}>{term.session} - {term.name}</Text></Text>
+                        <Text style={{ width: '33%', fontWeight: 'bold' }}>FORM MASTER: <Text style={{ color: '#000' }}>{student.formMaster || student.classTeacher || 'Assigned Teacher'}</Text></Text>
                         <Text style={{ width: '34%', fontWeight: 'bold' }}>ATTENDANCE: <Text style={{ color: '#000' }}>{attendance.present} / {attendance.total} DAYS ({attendance.percentage}%)</Text></Text>
+                      </View>
+                      <View style={{ flexDirection: 'row' }}>
+                        <Text style={{ width: '33%', fontWeight: 'bold' }}>TERM: <Text style={{ color: '#000' }}>{term.session} - {term.name}</Text></Text>
+                        <Text style={{ width: '33%', fontWeight: 'bold' }}>TERM ENDED: <Text style={{ color: '#000' }}>{term.endDate || term.termEnded ? formatDateVerbose(term.endDate || term.termEnded) : (term.closingDate ? formatDateVerbose(term.closingDate) : '18 July 2026')}</Text></Text>
+                        <Text style={{ width: '34%', fontWeight: 'bold' }}>NEXT TERM: <Text style={{ color: '#000' }}>{term.nextTermBegins ? formatDateVerbose(term.nextTermBegins) : '4 May 2026'}</Text></Text>
                       </View>
                     </View>
 
