@@ -625,7 +625,7 @@ const TermReportCard = () => {
             // Strip page-format suffix so layoutRaw never encodes the page count
             const layoutRaw = isEarlyYears ? 'early_years' : layoutRawDB;
             const layout = layoutRaw;
-            const borderStyle = layout === 'minimal' ? 'border-[2px] border-gray-400' : layout === 'modern' ? 'border-[6px] rounded-2xl' : 'border-[12px]';
+            const borderStyle = isEarlyYears ? 'border-0 print:border-0' : (layout === 'minimal' ? 'border-[2px] border-gray-400' : layout === 'modern' ? 'border-[6px] rounded-2xl' : 'border-[12px]');
 
             const domainSplit = splitDomains(data.psychomotorRatings);
             const gradeAnalysis = getGradeAnalysis(data.subjects || []);
@@ -646,7 +646,7 @@ const TermReportCard = () => {
 
                 <div className="report-card-mobile-wrapper overflow-x-auto pb-8 print:overflow-visible">
                   <div className="report-card-scaler origin-top-left sm:origin-top scale-[0.45] xs:scale-[0.55] sm:scale-100 transition-transform duration-500 print:scale-100 print:transform-none">
-                    <div key={idx} className={`relative bg-white p-8 print:p-0 my-8 print:my-0 shadow-2xl print:shadow-none text-black ${borderStyle} emerald-print-A4 mx-auto w-[210mm] min-w-[210mm]`} style={{ fontFamily: reportFont, borderColor: layout !== 'minimal' ? reportColor : undefined, pageBreakAfter: bulkReports.length > 1 && idx < bulkReports.length - 1 ? 'always' : 'avoid', breakAfter: bulkReports.length > 1 && idx < bulkReports.length - 1 ? 'page' : 'avoid' }}>
+                    <div key={idx} className={`relative bg-white text-black ${borderStyle} emerald-print-A4 mx-auto w-[210mm] min-w-[210mm] ${isEarlyYears ? 'p-0 print:p-0 my-0 print:my-0 shadow-none border-0 print:border-0' : 'p-8 print:p-0 my-8 print:my-0 shadow-2xl print:shadow-none'}`} style={{ fontFamily: reportFont, borderColor: (!isEarlyYears && layout !== 'minimal') ? reportColor : undefined, pageBreakAfter: bulkReports.length > 1 && idx < bulkReports.length - 1 ? 'always' : 'avoid', breakAfter: bulkReports.length > 1 && idx < bulkReports.length - 1 ? 'page' : 'avoid' }}>
 
                 {/* PROTECTION WATERMARK */}
                 <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-[0.03] rotate-[-35deg] overflow-hidden z-0 print:opacity-[0.05]">
@@ -663,8 +663,14 @@ const TermReportCard = () => {
                   {layout === 'early_years' ? (() => {
                     // Class-specific template suffix (e.g., early_years_1-page) wins over school-wide setting.
                     const classLayoutSuffix = (layoutRawDB && layoutRawDB.startsWith('early_years_')) ? layoutRawDB.replace('early_years_', '') : null;
-                    const earlyYearsPageFormat = classLayoutSuffix || data.reportSettings?.earlyYearsPageFormat || (data.schoolSettings || schoolSettings)?.earlyYearsPageFormat || '3-page';
+                    let earlyYearsPageFormat = classLayoutSuffix || data.reportSettings?.earlyYearsPageFormat || (data.schoolSettings || schoolSettings)?.earlyYearsPageFormat || '3-page';
                     const allDomains = data.earlyYearsDomains || [];
+                    const extraDomains = allDomains.filter(d => !(d.name || '').startsWith('01') && !(d.name || '').startsWith('02'));
+                    
+                    // If 3-page format is requested but student only has 1 or 2 domains total (no 03+ domains), auto-adapt to 2-page format to prevent duplicated domain tables and empty pages!
+                    if (earlyYearsPageFormat === '3-page' && extraDomains.length === 0) {
+                      earlyYearsPageFormat = '2-page';
+                    }
                     const ss = data.schoolSettings || schoolSettings;
                     const logoUrl = ss?.logoUrl;
                     const logoUri = logoUrl ? (logoUrl.startsWith('data:') || logoUrl.startsWith('http') ? logoUrl : `${API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL}${logoUrl.startsWith('/') ? logoUrl : '/' + logoUrl}`) : null;
@@ -1404,10 +1410,7 @@ const TermReportCard = () => {
                         </div>
 
                         {/* Page 2 Domains (03, 04, 05+) */}
-                        {((data.earlyYearsDomains || []).filter(d => !(d.name || '').startsWith('01') && !(d.name || '').startsWith('02')).length > 0
-                          ? (data.earlyYearsDomains || []).filter(d => !(d.name || '').startsWith('01') && !(d.name || '').startsWith('02'))
-                          : (data.earlyYearsDomains || [])
-                        ).map((domain, dIdx) => {
+                        {extraDomains.map((domain, dIdx) => {
                           const headerColors = [
                             'bg-purple-600 text-white',
                             'bg-amber-600 text-white',

@@ -709,12 +709,17 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
           const devPlan = data.developmentPlan || {};
           // Class-specific template suffix (e.g., early_years_1-page) wins over school-wide setting.
           const classLayoutSuffix = (layoutRawDB && layoutRawDB.startsWith('early_years_')) ? layoutRawDB.replace('early_years_', '') : null;
-          const earlyYearsPageFormat = classLayoutSuffix || data.reportSettings?.earlyYearsPageFormat || (data.schoolSettings || schoolSettings)?.earlyYearsPageFormat || '3-page';
+          let earlyYearsPageFormat = classLayoutSuffix || data.reportSettings?.earlyYearsPageFormat || (data.schoolSettings || schoolSettings)?.earlyYearsPageFormat || '3-page';
 
           // Filter domains into Page 1 (01, 02) and Page 2 (03, 04, 05, 06+)
           const page1Domains = domains.filter(d => (d.name || '').startsWith('01') || (d.name || '').startsWith('02'));
           const page2Domains = domains.filter(d => !(d.name || '').startsWith('01') && !(d.name || '').startsWith('02'));
-          const finalPage2Domains = page2Domains.length > 0 ? page2Domains : domains;
+
+          // If 3-page format is set but student only has 1 or 2 domains (no 03+ domains), auto adapt to 2-page format to prevent domain duplication and extra pages!
+          if (earlyYearsPageFormat === '3-page' && page2Domains.length === 0) {
+            earlyYearsPageFormat = '2-page';
+          }
+          const finalPage2Domains = page2Domains;
 
           if (earlyYearsPageFormat === '1-page') {
             const halfLength = Math.ceil((domains || []).length / 2);

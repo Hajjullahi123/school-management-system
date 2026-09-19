@@ -426,8 +426,14 @@ const BulkReportDownload = () => {
                           {layout === 'early_years' ? (() => {
                             // Class-specific template suffix (e.g., early_years_1-page) wins over school-wide setting.
                             const classLayoutSuffix = (layoutRawDB && layoutRawDB.startsWith('early_years_')) ? layoutRawDB.replace('early_years_', '') : null;
-                            const earlyYearsPageFormat = classLayoutSuffix || data.reportSettings?.earlyYearsPageFormat || (data.schoolSettings || schoolSettings)?.earlyYearsPageFormat || '3-page';
+                            let earlyYearsPageFormat = classLayoutSuffix || data.reportSettings?.earlyYearsPageFormat || (data.schoolSettings || schoolSettings)?.earlyYearsPageFormat || '3-page';
                             const allDomains = data.earlyYearsDomains || [];
+                            const extraDomains = allDomains.filter(d => !(d.name || '').startsWith('01') && !(d.name || '').startsWith('02'));
+                            
+                            // If 3-page format is requested but student only has 1 or 2 domains total (no 03+ domains), auto-adapt to 2-page format to prevent duplicated domain tables!
+                            if (earlyYearsPageFormat === '3-page' && extraDomains.length === 0) {
+                              earlyYearsPageFormat = '2-page';
+                            }
                             const ss = data.schoolSettings || schoolSettings;
                             const logoUrl = ss?.logoUrl;
                             const logoUri = logoUrl ? (logoUrl.startsWith('data:') || logoUrl.startsWith('http') ? logoUrl : `${API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL}${logoUrl.startsWith('/') ? logoUrl : '/' + logoUrl}`) : null;
@@ -1094,10 +1100,7 @@ const BulkReportDownload = () => {
                                     <h2 className="text-lg font-black uppercase tracking-wider text-black">EARLY YEARS PROGRESS REPORT</h2>
                                   </div>
   
-                                  {((data.earlyYearsDomains || []).filter(d => !(d.name || '').startsWith('01') && !(d.name || '').startsWith('02')).length > 0
-                                    ? (data.earlyYearsDomains || []).filter(d => !(d.name || '').startsWith('01') && !(d.name || '').startsWith('02'))
-                                    : (data.earlyYearsDomains || [])
-                                  ).map((domain, dIdx) => (
+                                  {extraDomains.map((domain, dIdx) => (
                                     <div key={dIdx} className="border-2 border-black overflow-hidden">
                                       <div className="bg-gray-200 px-3 py-1 font-black text-xs uppercase border-b-2 border-black text-black">
                                         {domain.name}
