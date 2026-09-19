@@ -1016,7 +1016,7 @@ const TermReportCard = () => {
                                         };
 
                                         return (
-                                          <tr key={sIdx} className="border-b border-gray-200 last:border-b-0 h-6 font-medium text-black text-[11.5px] sm:text-[12px] hover:bg-gray-50/50">
+                                          <tr key={sIdx} className="border-b border-gray-200 last:border-b-0 min-h-[24px] align-middle font-medium text-black text-[11.5px] sm:text-[12px] hover:bg-gray-50/50">
                                             <td className="p-1 border-r border-black font-bold text-black">{skill.name}</td>
                                             <td className="p-1 text-center border-r border-black">{renderGradeBadge(curVal)}</td>
                                             <td className="p-1 text-center border-r border-black">{renderGradeBadge(prevVal)}</td>
@@ -1037,7 +1037,7 @@ const TermReportCard = () => {
                           </div>
 
                           {/* PAGE 2 */}
-                          <div className="bg-white border-4 border-black p-4 sm:p-5 space-y-2 print:p-3 print:space-y-1.5 rounded-xl flex flex-col justify-between min-h-[270mm] print:min-h-[275mm] print:max-h-[280mm] w-full box-border print:break-before-page" style={{ pageBreakBefore: 'always', breakBefore: 'page' }}>
+                          <div className="bg-white border-4 border-black p-4 sm:p-5 space-y-2 print:p-2.5 print:space-y-1 rounded-xl flex flex-col justify-between min-h-[270mm] print:min-h-[270mm] w-full box-border print:break-before-page" style={{ pageBreakBefore: 'always', breakBefore: 'page' }}>
                             <div className="text-center border-b-2 border-black pb-1">
                               <h2 className="text-xs sm:text-sm font-black uppercase tracking-wider text-black">EARLY YEARS PROGRESS REPORT</h2>
                             </div>
@@ -1102,7 +1102,7 @@ const TermReportCard = () => {
                                         };
 
                                         return (
-                                          <tr key={sIdx} className="border-b border-gray-200 last:border-b-0 h-6 font-medium text-black text-[11px] hover:bg-gray-50/50">
+                                          <tr key={sIdx} className="border-b border-gray-200 last:border-b-0 min-h-[24px] align-middle font-medium text-black text-[11px] hover:bg-gray-50/50">
                                             <td className="p-1 border-r border-black font-bold">{skill.name}</td>
                                             <td className="p-1 text-center border-r border-black">{renderGradeBadge(curVal)}</td>
                                             <td className="p-1 text-center border-r border-black">{renderGradeBadge(prevVal)}</td>
@@ -1145,8 +1145,8 @@ const TermReportCard = () => {
                                     ];
                                     return (
                                       <tr key={rIdx} className="border-b border-gray-300 last:border-b-0 font-medium text-black hover:bg-gray-50">
-                                        <td className="p-1.5 border-r border-black font-black">
-                                          <span className={`inline-block px-2 py-0.5 rounded border text-[11px] font-black ${areaPillColors[rIdx % areaPillColors.length]}`}>
+                                        <td className="p-1 border-r border-black font-black align-middle">
+                                          <span className={`inline-flex items-center px-2 py-0.5 rounded border text-[10.5px] font-black leading-none ${areaPillColors[rIdx % areaPillColors.length]}`}>
                                             {row.area}
                                           </span>
                                         </td>
@@ -1458,7 +1458,7 @@ const TermReportCard = () => {
                                     };
 
                                     return (
-                                      <tr key={sIdx} className="border-b border-gray-200 last:border-b-0 h-6 font-medium text-black hover:bg-gray-50/50">
+                                      <tr key={sIdx} className="border-b border-gray-200 last:border-b-0 min-h-[24px] align-middle font-medium text-black hover:bg-gray-50/50">
                                         <td className="p-1.5 border-r border-black font-bold">{skill.name}</td>
                                         <td className="p-1.5 text-center border-r border-black">{renderGradeBadge(curVal)}</td>
                                         <td className="p-1.5 text-center border-r border-black">{renderGradeBadge(prevVal)}</td>
@@ -1544,7 +1544,7 @@ const TermReportCard = () => {
                                     };
 
                                     return (
-                                      <tr key={sIdx} className="border-b border-gray-200 last:border-b-0 h-6 font-medium text-black hover:bg-gray-50/50">
+                                      <tr key={sIdx} className="border-b border-gray-200 last:border-b-0 min-h-[24px] align-middle font-medium text-black hover:bg-gray-50/50">
                                         <td className="p-1.5 border-r border-black font-bold">{skill.name}</td>
                                         <td className="p-1.5 text-center border-r border-black">{renderGradeBadge(curVal)}</td>
                                         <td className="p-1.5 text-center border-r border-black">{renderGradeBadge(prevVal)}</td>

@@ -1076,7 +1076,7 @@ const BulkReportDownload = () => {
                                         </thead>
                                         <tbody>
                                           {(domain.skills || []).map((skill, sIdx) => (
-                                            <tr key={sIdx} className="border-b border-gray-200 last:border-b-0 h-6 font-medium text-black">
+                                            <tr key={sIdx} className="border-b border-gray-200 last:border-b-0 min-h-[24px] align-middle font-medium text-black">
                                               <td className="p-1.5 border-r border-black font-bold">{skill.name}</td>
                                               <td className="p-1.5 text-center font-black border-r border-black">{skill.current || 'A'}</td>
                                               <td className="p-1.5 text-center border-r border-black">{skill.previous || 'A'}</td>
@@ -1116,7 +1116,7 @@ const BulkReportDownload = () => {
                                         </thead>
                                         <tbody>
                                           {(domain.skills || []).map((skill, sIdx) => (
-                                            <tr key={sIdx} className="border-b border-gray-200 last:border-b-0 h-6 font-medium text-black">
+                                            <tr key={sIdx} className="border-b border-gray-200 last:border-b-0 min-h-[24px] align-middle font-medium text-black">
                                               <td className="p-1.5 border-r border-black font-bold">{skill.name}</td>
                                               <td className="p-1.5 text-center font-black border-r border-black">{skill.current || 'A'}</td>
                                               <td className="p-1.5 text-center border-r border-black">{skill.previous || 'A'}</td>
