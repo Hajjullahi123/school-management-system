@@ -428,7 +428,8 @@ const BulkReportDownload = () => {
                             const classLayoutSuffix = (layoutRawDB && layoutRawDB.startsWith('early_years_')) ? layoutRawDB.replace('early_years_', '') : null;
                             let earlyYearsPageFormat = classLayoutSuffix || data.reportSettings?.earlyYearsPageFormat || (data.schoolSettings || schoolSettings)?.earlyYearsPageFormat || '3-page';
                             const allDomains = data.earlyYearsDomains || [];
-                            const extraDomains = allDomains.filter(d => !(d.name || '').startsWith('01') && !(d.name || '').startsWith('02'));
+                            const page1Domains = allDomains.filter(d => (d.name || '').startsWith('01') || (d.name || '').startsWith('02') || (d.name || '').startsWith('03'));
+                            const extraDomains = allDomains.filter(d => !(d.name || '').startsWith('01') && !(d.name || '').startsWith('02') && !(d.name || '').startsWith('03'));
                             
                             // If 3-page format is requested but student only has 1 or 2 domains total (no 03+ domains), auto-adapt to 2-page format to prevent duplicated domain tables!
                             if (earlyYearsPageFormat === '3-page' && extraDomains.length === 0) {
@@ -599,7 +600,7 @@ const BulkReportDownload = () => {
                               return (
                                 <div className="space-y-6">
                                   {/* PAGE 1 COMPACT */}
-                                  <div className="bg-white border-4 p-5 sm:p-6 space-y-3 print:p-4 print:space-y-2 rounded-xl flex flex-col justify-between min-h-[282mm] print:min-h-[285mm] w-full box-border print:break-after-page" style={{ borderColor: currentReportColor, pageBreakAfter: 'always', breakAfter: 'page' }}>
+                                  <div className="bg-white border-4 p-4 sm:p-5 space-y-2 print:p-2.5 print:space-y-1.5 rounded-xl flex flex-col justify-between w-full box-border min-h-[260mm] print:min-h-0 print:h-auto" style={{ borderColor: currentReportColor }}>
                                     <div className="grid grid-cols-[96px_1fr_96px] items-center gap-4 mb-2 pb-2 border-b-2 border-black">
                                       {/* Logo */}
                                       <div className="w-24 h-24 flex-shrink-0 flex items-center justify-center">
@@ -716,7 +717,7 @@ const BulkReportDownload = () => {
                                        </div>
                                      </div>
      
-                                     {allDomains.map((domain, dIdx) => {
+                                     {page1Domains.map((domain, dIdx) => {
                                        const headerColors = [
                                          'bg-emerald-600 text-white',
                                          'bg-indigo-600 text-white',
@@ -799,10 +800,83 @@ const BulkReportDownload = () => {
                                   </div>
     
                                   {/* PAGE 2 COMPACT */}
-                                  <div className="bg-white border-4 border-black p-5 sm:p-6 space-y-3 print:p-4 print:space-y-2 rounded-xl flex flex-col justify-between min-h-[282mm] print:min-h-[285mm] w-full box-border print:break-before-page" style={{ pageBreakBefore: 'always', breakBefore: 'page' }}>
+                                  <div className="bg-white border-4 border-black p-4 sm:p-5 space-y-2 print:p-2.5 print:space-y-1 rounded-xl flex flex-col justify-between w-full box-border min-h-[260mm] print:min-h-0 print:h-auto print:break-before-page" style={{ pageBreakBefore: 'always', breakBefore: 'page' }}>
                                     <div className="text-center border-b-2 border-black pb-1">
                                       <h2 className="text-base font-black uppercase tracking-wider text-black">EARLY YEARS PROGRESS REPORT</h2>
                                     </div>
+    
+                                    {extraDomains.map((domain, dIdx) => {
+                                      const headerColors = [
+                                        'bg-purple-600 text-white',
+                                        'bg-amber-600 text-white',
+                                        'bg-teal-600 text-white',
+                                        'bg-rose-600 text-white'
+                                      ];
+                                      const domainHeaderBg = headerColors[dIdx % headerColors.length];
+                                      return (
+                                        <div key={dIdx} className="border-2 border-black overflow-hidden shadow-xs">
+                                          <div className={`px-2 py-0.5 font-black text-[10px] uppercase border-b-2 border-black flex justify-between items-center ${domainHeaderBg}`}>
+                                            <span className="pr-2 break-words flex-1 min-w-0">{domain.name}</span>
+                                            <span className="text-[9px] font-bold opacity-80 whitespace-nowrap shrink-0 ml-2">Domain {dIdx + 4}</span>
+                                          </div>
+                                          <table className="w-full border-collapse text-[10px]">
+                                            <thead>
+                                              <tr className="bg-gray-100 border-b border-black text-[10px] font-black uppercase text-black">
+                                                <th className="p-1 text-left border-r border-black">Learning outcome / skill</th>
+                                                <th className="p-1 text-center w-16 border-r border-black">Current</th>
+                                                <th className="p-1 text-center w-16 border-r border-black">Previous</th>
+                                                <th className="p-1 text-center w-24">Progress</th>
+                                              </tr>
+                                            </thead>
+                                            <tbody>
+                                              {(domain.skills || []).map((skill, sIdx) => {
+                                                const curVal = (skill.current || 'A').toUpperCase();
+                                                const prevVal = (skill.previous || 'A').toUpperCase();
+                                                const progVal = (skill.progress || 'Maintained').trim();
+
+                                                const renderGradeBadge = (val) => {
+                                                  if (val === 'A') return <span className="inline-block px-1.5 py-0.2 rounded font-black text-[10px] bg-emerald-500 text-white shadow-2xs">A</span>;
+                                                  if (val === 'P') return <span className="inline-block px-1.5 py-0.2 rounded font-black text-[10px] bg-sky-500 text-white shadow-2xs">P</span>;
+                                                  if (val === 'W') return <span className="inline-block px-1.5 py-0.2 rounded font-black text-[10px] bg-amber-500 text-white shadow-2xs">W</span>;
+                                                  return <span className="inline-block px-1.5 py-0.2 rounded font-black text-[10px] bg-slate-400 text-white">NA</span>;
+                                                };
+
+                                                const renderProgressBadge = (val) => {
+                                                  if (val.toLowerCase().includes('improv')) {
+                                                    return (
+                                                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-full font-bold text-[9px] bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                                        <span className="font-black text-emerald-600">↑</span> Improved
+                                                      </span>
+                                                    );
+                                                  }
+                                                  if (val.toLowerCase().includes('maintain')) {
+                                                    return (
+                                                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-full font-bold text-[9px] bg-sky-100 text-sky-800 border border-sky-300">
+                                                        <span className="font-black text-sky-600">→</span> Maintained
+                                                      </span>
+                                                    );
+                                                  }
+                                                  return (
+                                                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-full font-bold text-[9px] bg-amber-100 text-amber-800 border border-amber-300">
+                                                      <span className="font-black text-amber-600">⚡</span> Needs Support
+                                                    </span>
+                                                  );
+                                                };
+
+                                                return (
+                                                  <tr key={sIdx} className="border-b border-gray-200 last:border-b-0 h-5 font-medium text-black">
+                                                    <td className="p-1 border-r border-black font-bold text-[11px]">{skill.name}</td>
+                                                    <td className="p-1 text-center border-r border-black">{renderGradeBadge(curVal)}</td>
+                                                    <td className="p-1 text-center border-r border-black">{renderGradeBadge(prevVal)}</td>
+                                                    <td className="p-1 text-center">{renderProgressBadge(progVal)}</td>
+                                                  </tr>
+                                                );
+                                              })}
+                                            </tbody>
+                                          </table>
+                                        </div>
+                                      );
+                                    })}
     
                                     <div className="border-2 border-black overflow-hidden">
                                       <div className="bg-black text-white px-2 py-0.5 font-black text-[10px] uppercase tracking-wider">

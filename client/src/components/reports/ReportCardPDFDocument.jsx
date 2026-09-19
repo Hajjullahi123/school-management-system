@@ -1004,8 +1004,8 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
                     </View>
                   </View>
 
-                  {/* All Domains */}
-                  {domains.map((domain, dIdx) => {
+                  {/* Page 1 Domains */}
+                  {page1Domains.map((domain, dIdx) => {
                     const domainColors = ['#059669', '#4f46e5', '#7c3aed', '#d97706', '#0d9488', '#e11d48'];
                     const headerBg = domainColors[dIdx % domainColors.length];
                     return (
@@ -1075,11 +1075,75 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
                   </View>
                 </Page>
 
-                {/* PAGE 2: PROGRESS AT A GLANCE, COMMENTS & DEVELOPMENT PLAN */}
+                {/* PAGE 2: REMAINING DOMAINS, PROGRESS AT A GLANCE, COMMENTS & DEVELOPMENT PLAN */}
                 <Page size="A4" style={[styles.page, { padding: 20 }]}>
                   <View style={{ textAlign: 'center', marginBottom: 8 }}>
                     <Text style={{ fontSize: 12, fontWeight: 'bold', textTransform: 'uppercase' }}>EARLY YEARS PROGRESS REPORT</Text>
                   </View>
+
+                  {/* Page 2 Remaining Domains */}
+                  {finalPage2Domains.map((domain, dIdx) => {
+                    const domainColors = ['#7c3aed', '#d97706', '#0d9488', '#e11d48'];
+                    const headerBg = domainColors[dIdx % domainColors.length];
+                    return (
+                      <View key={dIdx} style={{ marginBottom: 4 }}>
+                        <Text style={{ fontSize: 8, fontWeight: 'bold', backgroundColor: headerBg, color: '#FFFFFF', padding: 3, borderWidth: 1, borderColor: '#000000', textTransform: 'uppercase' }}>
+                          {domain.name}
+                        </Text>
+                        <View style={{ borderWidth: 1, borderTopWidth: 0, borderColor: '#000000' }}>
+                          <View style={{ flexDirection: 'row', backgroundColor: '#F9FAFB', borderBottomWidth: 1, borderColor: '#000000', fontWeight: 'bold', fontSize: 7, height: 14, alignItems: 'center' }}>
+                            <Text style={{ flex: 1, paddingLeft: 4 }}>Learning outcome / skill</Text>
+                            <Text style={{ width: 50, textAlign: 'center', borderLeftWidth: 1, borderColor: '#000000' }}>Current</Text>
+                            <Text style={{ width: 50, textAlign: 'center', borderLeftWidth: 1, borderColor: '#000000' }}>Previous</Text>
+                            <Text style={{ width: 75, textAlign: 'center', borderLeftWidth: 1, borderColor: '#000000' }}>Progress</Text>
+                          </View>
+                          {(domain.skills || []).map((skill, sIdx) => {
+                            const curRating = (skill.current || 'A').toUpperCase();
+                            const prevRating = (skill.previous || 'A').toUpperCase();
+                            const progVal = (skill.progress || 'Maintained').trim();
+
+                            const getBadgeStyle = (val) => {
+                              if (val === 'A') return { bg: '#059669', color: '#FFFFFF' };
+                              if (val === 'P') return { bg: '#0284c7', color: '#FFFFFF' };
+                              if (val === 'W') return { bg: '#d97706', color: '#FFFFFF' };
+                              return { bg: '#64748b', color: '#FFFFFF' };
+                            };
+
+                            const getProgStyle = (val) => {
+                              if (val.toLowerCase().includes('improv')) return { bg: '#d1fae5', color: '#065f46', label: '↑ Improved' };
+                              if (val.toLowerCase().includes('maintain')) return { bg: '#e0f2fe', color: '#0369a1', label: '→ Maintained' };
+                              return { bg: '#fef3c7', color: '#92400e', label: '⚡ Needs Support' };
+                            };
+
+                            const curStyle = getBadgeStyle(curRating);
+                            const prevStyle = getBadgeStyle(prevRating);
+                            const progStyle = getProgStyle(progVal);
+
+                            return (
+                              <View key={sIdx} style={{ flexDirection: 'row', borderBottomWidth: sIdx === domain.skills.length - 1 ? 0 : 1, borderColor: '#E5E7EB', minHeight: 14, alignItems: 'center', fontSize: 7 }}>
+                                <Text style={{ flex: 1, paddingLeft: 4, fontWeight: 'bold' }}>{skill.name}</Text>
+                                <View style={{ width: 50, borderLeftWidth: 1, borderColor: '#000000', alignItems: 'center', justifyContent: 'center' }}>
+                                  <View style={{ backgroundColor: curStyle.bg, borderRadius: 2, paddingHorizontal: 4, paddingVertical: 1 }}>
+                                    <Text style={{ color: curStyle.color, fontWeight: 'bold', fontSize: 6.5 }}>{curRating}</Text>
+                                  </View>
+                                </View>
+                                <View style={{ width: 50, borderLeftWidth: 1, borderColor: '#000000', alignItems: 'center', justifyContent: 'center' }}>
+                                  <View style={{ backgroundColor: prevStyle.bg, borderRadius: 2, paddingHorizontal: 4, paddingVertical: 1 }}>
+                                    <Text style={{ color: prevStyle.color, fontWeight: 'bold', fontSize: 6.5 }}>{prevRating}</Text>
+                                  </View>
+                                </View>
+                                <View style={{ width: 75, borderLeftWidth: 1, borderColor: '#000000', alignItems: 'center', justifyContent: 'center' }}>
+                                  <View style={{ backgroundColor: progStyle.bg, borderRadius: 6, paddingHorizontal: 5, paddingVertical: 1 }}>
+                                    <Text style={{ color: progStyle.color, fontWeight: 'bold', fontSize: 6 }}>{progStyle.label}</Text>
+                                  </View>
+                                </View>
+                              </View>
+                            );
+                          })}
+                        </View>
+                      </View>
+                    );
+                  })}
 
                   {/* PROGRESS AT A GLANCE TABLE */}
                   <View style={{ marginTop: 2, marginBottom: 8 }}>
