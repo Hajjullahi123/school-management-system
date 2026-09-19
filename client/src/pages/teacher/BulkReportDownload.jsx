@@ -594,7 +594,7 @@ const BulkReportDownload = () => {
                               return (
                                 <div className="space-y-6">
                                   {/* PAGE 1 COMPACT */}
-                                  <div className="bg-white border-4 p-4 space-y-2 print:p-3 print:space-y-1" style={{ borderColor: currentReportColor }}>
+                                  <div className="bg-white border-4 p-5 sm:p-6 space-y-3 print:p-4 print:space-y-2 rounded-xl flex flex-col justify-between min-h-[282mm] print:min-h-[285mm] w-full box-border print:break-after-page" style={{ borderColor: currentReportColor, pageBreakAfter: 'always', breakAfter: 'page' }}>
                                     <div className="grid grid-cols-[96px_1fr_96px] items-center gap-4 mb-2 pb-2 border-b-2 border-black">
                                       {/* Logo */}
                                       <div className="w-24 h-24 flex-shrink-0 flex items-center justify-center">
@@ -794,7 +794,7 @@ const BulkReportDownload = () => {
                                   </div>
     
                                   {/* PAGE 2 COMPACT */}
-                                  <div className="bg-white border-4 border-black p-4 space-y-3 print:p-3 print:space-y-2 print:break-before-page">
+                                  <div className="bg-white border-4 border-black p-5 sm:p-6 space-y-3 print:p-4 print:space-y-2 rounded-xl flex flex-col justify-between min-h-[282mm] print:min-h-[285mm] w-full box-border print:break-before-page" style={{ pageBreakBefore: 'always', breakBefore: 'page' }}>
                                     <div className="text-center border-b-2 border-black pb-1">
                                       <h2 className="text-base font-black uppercase tracking-wider text-black">EARLY YEARS PROGRESS REPORT</h2>
                                     </div>

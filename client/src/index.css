@@ -219,8 +219,11 @@ nav a svg,
   /* Reset scalers and mobile wrappers for crisp 1:1 print */
   .report-card-scaler {
     transform: none !important;
+    scale: 1 !important;
+    zoom: normal !important;
     width: 210mm !important;
     max-width: 210mm !important;
+    min-width: 210mm !important;
     margin: 0 auto !important;
     padding: 0 !important;
   }
