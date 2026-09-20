@@ -682,7 +682,9 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
         
         // Layout: Strictly default to 'classic' to mirror web behavior
         const layoutRawDB = data.student?.classModel?.reportLayout || data.reportSettings?.reportLayout || (data.schoolSettings || schoolSettings)?.reportLayout || 'classic';
-        const isEarlyYears = layoutRawDB.startsWith('early_years') || /early|nursery|kg|kindergarten|reception|playgroup|toddler|creche|pre-k|ركن|الركن|روضة|الروضة|تمهيدي|حضانة/i.test(student.class || data.className || '');
+        // Only use class-name regex as a fallback when no explicit non-early-years template is set on the class
+        const hasExplicitClassLayout = data.student?.classModel?.reportLayout && data.student.classModel.reportLayout.trim() !== '';
+        const isEarlyYears = layoutRawDB.startsWith('early_years') || (!hasExplicitClassLayout && /early|nursery|kg|kindergarten|reception|playgroup|toddler|creche|pre-k|ركن|الركن|روضة|الروضة|تمهيدي|حضانة/i.test(student.class || data.className || ''));
         // Strip page-format suffix so layoutRaw never encodes the page count
         const layoutRaw = isEarlyYears ? 'early_years' : layoutRawDB;
         const layout = layoutRaw;
