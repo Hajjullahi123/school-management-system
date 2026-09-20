@@ -95,10 +95,15 @@ export function buildReportHtmlDocument(containerElement, documentTitle = 'Repor
       width: 210mm !important;
       max-width: 210mm !important;
       min-width: 210mm !important;
-      height: auto !important;
-      max-height: none !important;
-      overflow: visible !important;
+      height: 297mm !important;
+      min-height: 297mm !important;
+      max-height: 297mm !important;
+      overflow: hidden !important;
+      padding: 6mm !important;
       margin: 0 auto !important;
+      display: flex !important;
+      flex-direction: column !important;
+      justify-content: space-between !important;
       page-break-after: always !important;
       break-after: page !important;
       page-break-inside: auto !important;

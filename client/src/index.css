@@ -249,12 +249,15 @@ nav a svg,
     height: auto !important;
     min-height: 98vh !important;
     max-height: none !important;
-    padding: 0 !important;
+    padding: 6mm 6mm !important;
     margin: 0 !important;
     box-sizing: border-box !important;
     position: relative !important;
     background: white !important;
     overflow: visible !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
     page-break-inside: auto !important;
     break-inside: auto !important;
     page-break-after: always !important;

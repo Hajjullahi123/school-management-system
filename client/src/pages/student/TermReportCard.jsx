@@ -661,7 +661,7 @@ const TermReportCard = () => {
                     )}
                 </div>
 
-                <div className="relative z-10 space-y-2.5 print:space-y-2">
+                <div className="relative z-10 flex-1 flex flex-col justify-between space-y-2.5 print:space-y-2 h-full">
                   {layout === 'early_years' ? (() => {
                     // Class-specific template suffix (e.g., early_years_1-page) wins over school-wide setting.
                     const classLayoutSuffix = (layoutRawDB && layoutRawDB.startsWith('early_years_')) ? layoutRawDB.replace('early_years_', '') : null;
@@ -1743,7 +1743,8 @@ const TermReportCard = () => {
                     </div>
                     );
                   })() : (
-                    <>
+                    <div className="flex-1 flex flex-col justify-between space-y-2.5 print:space-y-2">
+                      <div className="space-y-2.5 print:space-y-2 flex-1">
                   {/* HEAD SECTION */}
                   <div className="grid grid-cols-[96px_1fr_96px] items-start gap-4 mb-2">
                     <div className="w-24 h-24 flex-shrink-0">
@@ -2127,65 +2128,67 @@ const TermReportCard = () => {
                     </div>
                   </div>
 
-                  {/* SIGNATURES & VERIFICATION */}
-                  <div className="mt-2.5 grid grid-cols-2 gap-8 items-end p-1">
-                    <div className="space-y-1 text-center">
-                      <div className="border-b-2 border-black py-0.5 min-h-[20px] flex items-center justify-center">
-                        {data.student?.formMasterSignatureUrl ? (
-                          <img src={data.student.formMasterSignatureUrl.startsWith('data:') || data.student.formMasterSignatureUrl.startsWith('http') ? data.student.formMasterSignatureUrl : `${API_BASE_URL}${data.student.formMasterSignatureUrl}`} alt="Teacher Signature" className="h-[35px] w-auto mix-blend-multiply" />
-                        ) : (
-                          <span className="font-signature italic text-lg text-black">{data.student?.formMaster}</span>
-                        )}
-                      </div>
-                      <span className="text-[10px] font-black block uppercase text-black">CLASS TEACHER'S SIGNATURE</span>
-                    </div>
-                    <div className="space-y-1 text-center">
-                      <div className="border-b-2 border-black py-0.5 min-h-[20px] flex items-center justify-center">
-                        {data.term?.principalSignatureUrl ? (
-                          <img src={data.term.principalSignatureUrl.startsWith('data:') || data.term.principalSignatureUrl.startsWith('http') ? data.term.principalSignatureUrl : `${API_BASE_URL}${data.term.principalSignatureUrl}`} alt="Principal Signature" className="h-[40px] w-auto mix-blend-multiply" />
-                        ) : (
-                          <span className="text-[9px] text-black font-bold underline decoration-dotted">FOR OFFICIAL USE - PRINCIPAL</span>
-                        )}
-                      </div>
-                      <span className="text-[10px] font-black block uppercase text-black">PRINCIPAL'S SIGNATURE</span>
-                    </div>
-                  </div>
-
-                  {/* DOCUMENT VERIFICATION FOOTER */}
-                  <div className="mt-3 border-t border-gray-200 pt-1.5 flex justify-between items-center bg-transparent">
-                    <div className="flex items-center gap-4">
-                      <div className="group/qr relative bg-white p-1 rounded-lg shadow-sm border border-gray-100 transition-all hover:shadow-md">
-                        <QRCodeSVG 
-                          value={`${window.location.origin}/verify/term/${data.student?.id}/${selectedTerm}`}
-                          size={45}
-                          level="H"
-                          includeMargin={false}
-                          className="grayscale hover:grayscale-0 transition-all duration-500 cursor-help"
-                        />
-                      </div>
-                      <div className="space-y-0.5">
-                        <div className="text-[9px] font-black text-black flex items-center gap-1 uppercase tracking-tighter">
-                          <svg className="w-2.5 h-2.5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M2.166 4.9L10 1.55l7.834 3.35a1 1 0 01.583.912v5.188a10 10 0 01-5.188 8.163l-3.229 1.737a1 1 0 01-.912 0l-3.229-1.737A10 10 0 011.583 11V5.812a1 1 0 01.583-.912z" clipRule="evenodd" />
-                          </svg>
-                          DIGITALLY VERIFIED REPORT
+                  {/* SIGNATURES & VERIFICATION ANCHORED AT BOTTOM */}
+                  <div className="mt-auto pt-2 space-y-2">
+                    {/* SIGNATURES & VERIFICATION */}
+                    <div className="mt-2.5 grid grid-cols-2 gap-8 items-end p-1">
+                      <div className="space-y-1 text-center">
+                        <div className="border-b-2 border-black py-0.5 min-h-[20px] flex items-center justify-center">
+                          {data.student?.formMasterSignatureUrl ? (
+                            <img src={data.student.formMasterSignatureUrl.startsWith('data:') || data.student.formMasterSignatureUrl.startsWith('http') ? data.student.formMasterSignatureUrl : `${API_BASE_URL}${data.student.formMasterSignatureUrl}`} alt="Teacher Signature" className="h-[35px] w-auto mix-blend-multiply" />
+                          ) : (
+                            <span className="font-signature italic text-lg text-black">{data.student?.formMaster}</span>
+                          )}
                         </div>
-                        <div className="text-[8px] font-bold text-black tracking-tight uppercase">Authentic Educational Credential</div>
+                        <span className="text-[10px] font-black block uppercase text-black">CLASS TEACHER'S SIGNATURE</span>
+                      </div>
+                      <div className="space-y-1 text-center">
+                        <div className="border-b-2 border-black py-0.5 min-h-[20px] flex items-center justify-center">
+                          {data.term?.principalSignatureUrl ? (
+                            <img src={data.term.principalSignatureUrl.startsWith('data:') || data.term.principalSignatureUrl.startsWith('http') ? data.term.principalSignatureUrl : `${API_BASE_URL}${data.term.principalSignatureUrl}`} alt="Principal Signature" className="h-[40px] w-auto mix-blend-multiply" />
+                          ) : (
+                            <span className="text-[9px] text-black font-bold underline decoration-dotted">FOR OFFICIAL USE - PRINCIPAL</span>
+                          )}
+                        </div>
+                        <span className="text-[10px] font-black block uppercase text-black">PRINCIPAL'S SIGNATURE</span>
                       </div>
                     </div>
 
-                    <div className="text-right">
-                      <div className="text-[9px] font-black text-black uppercase tracking-tighter">Academic Status</div>
-                      <div className="text-[8px] font-bold text-black uppercase">TERM: {data.term?.name?.toUpperCase()} • GEN: {formatDateVerbose(new Date())}</div>
+                    {/* DOCUMENT VERIFICATION FOOTER */}
+                    <div className="mt-3 border-t border-gray-200 pt-1.5 flex justify-between items-center bg-transparent">
+                      <div className="flex items-center gap-4">
+                        <div className="group/qr relative bg-white p-1 rounded-lg shadow-sm border border-gray-100 transition-all hover:shadow-md">
+                          <QRCodeSVG 
+                            value={`${window.location.origin}/verify/term/${data.student?.id}/${selectedTerm}`}
+                            size={45}
+                            level="H"
+                            includeMargin={false}
+                            className="grayscale hover:grayscale-0 transition-all duration-500 cursor-help"
+                          />
+                        </div>
+                        <div className="space-y-0.5">
+                          <div className="text-[9px] font-black text-black flex items-center gap-1 uppercase tracking-tighter">
+                            <svg className="w-2.5 h-2.5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M2.166 4.9L10 1.55l7.834 3.35a1 1 0 01.583.912v5.188a10 10 0 01-5.188 8.163l-3.229 1.737a1 1 0 01-.912 0l-3.229-1.737A10 10 0 011.583 11V5.812a1 1 0 01.583-.912z" clipRule="evenodd" />
+                            </svg>
+                            DIGITALLY VERIFIED REPORT
+                          </div>
+                          <div className="text-[8px] font-bold text-black tracking-tight uppercase">Authentic Educational Credential</div>
+                        </div>
+                      </div>
+
+                      <div className="text-right">
+                        <div className="text-[9px] font-black text-black uppercase tracking-tighter">Academic Status</div>
+                        <div className="text-[8px] font-bold text-black uppercase">TERM: {data.term?.name?.toUpperCase()} • GEN: {formatDateVerbose(new Date())}</div>
+                      </div>
                     </div>
                   </div>
-                </>
-              )}
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
   );
 })}
           </div>
