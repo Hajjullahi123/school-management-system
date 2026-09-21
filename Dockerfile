@@ -5,7 +5,7 @@ ARG NODE_VERSION=22.19.0
 FROM node:${NODE_VERSION}-slim AS base
 
 LABEL fly_launch_runtime="Node.js"
-LABEL build_version="2026.09.21.1"
+LABEL build_version="2026.09.21.2"
 
 # Node.js app lives here
 WORKDIR /app
@@ -13,15 +13,11 @@ WORKDIR /app
 # Prevent interactive prompts during apt package installation
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install runtime dependencies including openssl and Chromium for Puppeteer
-RUN apt-get -o Acquire::Check-Valid-Until=false -o Acquire::Check-Date=false update --allow-insecure-repositories --allow-unauthenticated || true && \
-    apt-get install -y --allow-unauthenticated --no-install-recommends \
-    openssl ca-certificates chromium \
-    && apt-get clean && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
-
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
-ENV PUPPETEER_CACHE_DIR="/app/.puppeteer-cache"
+# Install essential runtime dependencies (openssl & ca-certificates only, lightweight)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    openssl ca-certificates \
+    && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
 
 # Throw-away build stage to reduce size of final image
@@ -33,7 +29,7 @@ ENV NODE_ENV=development
 # Install packages needed to build node modules
 RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y build-essential node-gyp pkg-config python-is-python3 \
-    && apt-get clean && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
+    && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
 # Install node modules
 COPY package-lock.json package.json ./
