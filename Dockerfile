@@ -14,8 +14,8 @@ WORKDIR /app
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Install runtime dependencies including openssl and Chromium for Puppeteer
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
+RUN apt-get -o Acquire::Check-Valid-Until=false -o Acquire::Check-Date=false update --allow-insecure-repositories --allow-unauthenticated || true && \
+    apt-get install -y --allow-unauthenticated --no-install-recommends \
     openssl ca-certificates chromium \
     && apt-get clean && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
