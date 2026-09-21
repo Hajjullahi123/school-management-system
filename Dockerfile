@@ -5,7 +5,7 @@ ARG NODE_VERSION=22.19.0
 FROM node:${NODE_VERSION}-slim AS base
 
 LABEL fly_launch_runtime="Node.js"
-LABEL build_version="2026.09.19.2"
+LABEL build_version="2026.09.21.1"
 
 # Node.js app lives here
 WORKDIR /app
@@ -13,17 +13,14 @@ WORKDIR /app
 # Prevent interactive prompts during apt package installation
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install runtime dependencies including openssl and Puppeteer (Chromium) requirements
-RUN apt-get -o Acquire::Check-Valid-Until=false -o Acquire::Check-Date=false update --allow-insecure-repositories --allow-unauthenticated || true && \
-    apt-get install -y --allow-unauthenticated --no-install-recommends \
-    openssl ca-certificates \
-    libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libdrm2 \
-    libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 \
-    libgbm1 libpango-1.0-0 libcairo2 \
-    && (apt-get install -y --allow-unauthenticated --no-install-recommends libasound2 || apt-get install -y --allow-unauthenticated --no-install-recommends libasound2t64 || true) \
-    && (apt-get install -y --allow-unauthenticated --no-install-recommends libcups2 || apt-get install -y --allow-unauthenticated --no-install-recommends libcups2t64 || true) \
-    && rm -rf /var/lib/apt/lists/*
+# Install runtime dependencies including openssl and Chromium for Puppeteer
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    openssl ca-certificates chromium \
+    && apt-get clean && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 ENV PUPPETEER_CACHE_DIR="/app/.puppeteer-cache"
 
 
@@ -34,9 +31,9 @@ FROM base AS build
 ENV NODE_ENV=development
 
 # Install packages needed to build node modules
-RUN apt-get -o Acquire::Check-Valid-Until=false -o Acquire::Check-Date=false update --allow-insecure-repositories --allow-unauthenticated || true && \
-    apt-get install --allow-unauthenticated --no-install-recommends -y build-essential node-gyp pkg-config python-is-python3 \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-get update -qq && \
+    apt-get install --no-install-recommends -y build-essential node-gyp pkg-config python-is-python3 \
+    && apt-get clean && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
 # Install node modules
 COPY package-lock.json package.json ./
