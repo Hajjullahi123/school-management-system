@@ -326,8 +326,8 @@ const Login = () => {
 
       {/* Right Side: Login Form */}
       <div id="login-section" className="md:w-1/2 lg:w-2/5 flex items-center justify-center p-8 bg-gray-50 relative">
-        <div className="absolute top-0 right-0 p-8">
-          {/* Back to Home removed as per Login-First requirement */}
+        <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-20">
+          <PWAInstallButton variant="icon" showText={true} />
         </div>
 
         <div className="w-full max-w-md">
@@ -558,6 +558,10 @@ const Login = () => {
             <FiGlobe className="group-hover:animate-spin-slow" />
             Try Live Demo (No Login Required)
           </button>
+
+          <div className="mt-4">
+            <PWAInstallButton variant="banner" />
+          </div>
 
           <div className="mt-12 text-center">
             <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-4">Secured Infrastructure</p>
