@@ -14,12 +14,14 @@ WORKDIR /app
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Install runtime dependencies including openssl and Puppeteer (Chromium) requirements
-RUN apt-get update -qq && \
+RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     openssl ca-certificates \
-    libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 \
+    libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libdrm2 \
     libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 \
-    libgbm1 libasound2 libpango-1.0-0 libcairo2 \
+    libgbm1 libpango-1.0-0 libcairo2 \
+    && (apt-get install -y --no-install-recommends libasound2 || apt-get install -y --no-install-recommends libasound2t64 || true) \
+    && (apt-get install -y --no-install-recommends libcups2 || apt-get install -y --no-install-recommends libcups2t64 || true) \
     && rm -rf /var/lib/apt/lists/*
 
 ENV PUPPETEER_CACHE_DIR="/app/.puppeteer-cache"
