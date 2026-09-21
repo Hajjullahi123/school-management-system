@@ -28,6 +28,9 @@ ENV PUPPETEER_CACHE_DIR="/app/.puppeteer-cache"
 # Throw-away build stage to reduce size of final image
 FROM base AS build
 
+# Ensure devDependencies are installed during build stage
+ENV NODE_ENV=development
+
 # Install packages needed to build node modules
 RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y build-essential node-gyp pkg-config python-is-python3 \
