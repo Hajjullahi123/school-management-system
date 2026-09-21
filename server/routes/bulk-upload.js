@@ -972,7 +972,8 @@ router.post('/results', authenticate, authorize(['admin', 'teacher', 'principal'
       getGrade,
       calculateClassAverage,
       calculatePositions,
-      validateScores
+      validateScores,
+      resolveClassWeights
     } = require('../utils/grading');
 
     // Verify teacher has permission for this subject-class combination
@@ -1009,6 +1010,19 @@ router.post('/results', authenticate, authorize(['admin', 'teacher', 'principal'
       return 'F';
     };
 
+    // Resolve effective class weights (once for all results in this bulk upload)
+    const classData = await prisma.class.findUnique({
+      where: { id: parseInt(classId) },
+      select: {
+        assignment1Weight: true,
+        assignment2Weight: true,
+        test1Weight: true,
+        test2Weight: true,
+        examWeight: true
+      }
+    });
+    const effectiveWeights = resolveClassWeights(school, classData);
+
     for (const resultData of results) {
       try {
         // Validate required fields
@@ -1039,14 +1053,13 @@ router.post('/results', authenticate, authorize(['admin', 'teacher', 'principal'
           continue;
         }
 
-        // Parse and validate scores using school weights
         const validatedScores = validateScores(
           resultData.assignment1,
           resultData.assignment2,
           resultData.test1,
           resultData.test2,
           resultData.exam,
-          school
+          effectiveWeights
         );
 
         // Calculate total score

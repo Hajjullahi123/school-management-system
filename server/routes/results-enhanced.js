@@ -8,7 +8,8 @@ const {
   getGrade,
   validateScores,
   calculateClassAverage,
-  calculatePositions
+  calculatePositions,
+  resolveClassWeights
 } = require('../utils/grading');
 
 // Get results for a student (Dashboard view)
@@ -175,7 +176,7 @@ router.post('/entry', authenticate, authorize(['admin', 'teacher', 'principal', 
       test2Score,
       examScore
     } = req.body;
-    // Get school weights
+    // Get school weights and class custom weights
     const school = await prisma.school.findUnique({
       where: { id: req.schoolId },
       select: {
@@ -188,6 +189,19 @@ router.post('/entry', authenticate, authorize(['admin', 'teacher', 'principal', 
       }
     });
 
+    const classData = classId ? await prisma.class.findUnique({
+      where: { id: parseInt(classId) },
+      select: {
+        assignment1Weight: true,
+        assignment2Weight: true,
+        test1Weight: true,
+        test2Weight: true,
+        examWeight: true
+      }
+    }) : null;
+
+    const effectiveWeights = resolveClassWeights(school, classData);
+
     // Validate scores
     const validatedScores = validateScores(
       assignment1Score,
@@ -195,7 +209,7 @@ router.post('/entry', authenticate, authorize(['admin', 'teacher', 'principal', 
       test1Score,
       test2Score,
       examScore,
-      school
+      effectiveWeights
     );
 
     // Calculate total and grade
@@ -347,7 +361,7 @@ router.post('/batch-entry', authenticate, authorize(['admin', 'teacher', 'princi
     const savedResults = [];
     const errors = [];
 
-    // Get school weights
+    // Get school weights and class custom weights
     const school = await prisma.school.findUnique({
       where: { id: req.schoolId },
       select: {
@@ -360,6 +374,20 @@ router.post('/batch-entry', authenticate, authorize(['admin', 'teacher', 'princi
       }
     });
 
+    const targetClassId = classId || (results && results[0] && results[0].classId);
+    const classData = targetClassId ? await prisma.class.findUnique({
+      where: { id: parseInt(targetClassId) },
+      select: {
+        assignment1Weight: true,
+        assignment2Weight: true,
+        test1Weight: true,
+        test2Weight: true,
+        examWeight: true
+      }
+    }) : null;
+
+    const effectiveWeights = resolveClassWeights(school, classData);
+
     for (const resultData of results) {
       try {
         // Validate scores
@@ -369,7 +397,7 @@ router.post('/batch-entry', authenticate, authorize(['admin', 'teacher', 'princi
           resultData.test1Score,
           resultData.test2Score,
           resultData.examScore,
-          school
+          effectiveWeights
         );
 
         // Calculate total and grade

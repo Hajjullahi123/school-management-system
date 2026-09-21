@@ -1533,13 +1533,16 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
             ? new Date(term.nextTermBeginsDate)
             : (term.endDate ? new Date(new Date(term.endDate).getTime() + 14 * 24 * 60 * 60 * 1000) : null),
           principalSignatureUrl: schoolSettings.principalSignatureUrl || null,
-          weights: {
-            assignment1: schoolSettings.assignment1Weight,
-            assignment2: schoolSettings.assignment2Weight,
-            test1: schoolSettings.test1Weight,
-            test2: schoolSettings.test2Weight,
-            exam: schoolSettings.examWeight
-          }
+          weights: (() => {
+            const effectiveW = resolveClassWeights(schoolSettings, classInfo);
+            return {
+              assignment1: effectiveW.assignment1Weight,
+              assignment2: effectiveW.assignment2Weight,
+              test1: effectiveW.test1Weight,
+              test2: effectiveW.test2Weight,
+              exam: effectiveW.examWeight
+            };
+          })()
         },
         attendance: studentAttendance,
         subjects: (() => {
@@ -3020,7 +3023,16 @@ router.get('/progressive-enhanced/:studentId/:termId', authenticate, async (req,
         session: term.academicSession.name,
         number: termNumber,
         principalSignatureUrl: schoolSettings.principalSignatureUrl,
-        nextTermBegins: nextTerm ? nextTerm.startDate : null
+        nextTermBegins: nextTerm ? nextTerm.startDate : null,
+        weights: (() => {
+          const effectiveW = resolveClassWeights(schoolSettings, student.classModel);
+          return {
+            assignment1: effectiveW.assignment1Weight,
+            assignment2: effectiveW.assignment2Weight,
+            test1: effectiveW.test1Weight,
+            test2: effectiveW.test2Weight
+          };
+        })()
       },
       attendance: {
         totalDays: totalAttendanceDays,
@@ -3089,7 +3101,12 @@ router.get('/bulk-progressive/:classId/:termId', authenticate, authorize(['admin
         showPositionOnReport: true,
         showFeesOnReport: true,
         showAttendanceOnReport: true,
-        reportLayout: true
+        reportLayout: true,
+        assignment1Weight: true,
+        assignment2Weight: true,
+        test1Weight: true,
+        test2Weight: true,
+        examWeight: true
       }
     });
 
@@ -3309,7 +3326,16 @@ router.get('/bulk-progressive/:classId/:termId', authenticate, authorize(['admin
         term: {
           name: term.name, session: term.academicSession.name, number: termNumber,
           principalSignatureUrl: schoolSettings.principalSignatureUrl,
-          nextTermBegins: nextTerm ? nextTerm.startDate : null
+          nextTermBegins: nextTerm ? nextTerm.startDate : null,
+          weights: (() => {
+            const effectiveW = resolveClassWeights(schoolSettings, classInfo);
+            return {
+              assignment1: effectiveW.assignment1Weight,
+              assignment2: effectiveW.assignment2Weight,
+              test1: effectiveW.test1Weight,
+              test2: effectiveW.test2Weight
+            };
+          })()
         },
         attendance: { totalDays: totalAttendanceDays, daysPresent: presentAttendanceDays, daysAbsent: totalAttendanceDays - presentAttendanceDays },
         performance: {

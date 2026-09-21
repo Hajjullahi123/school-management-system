@@ -405,6 +405,13 @@ const ProgressiveReport = () => {
               const logoUri = ss?.logoUrl
                 ? (ss.logoUrl.startsWith('http') || ss.logoUrl.startsWith('data:') ? ss.logoUrl : `${API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL}${ss.logoUrl.startsWith('/') ? ss.logoUrl : '/' + ss.logoUrl}`)
                 : null;
+              // Use class-resolved weights from the API (per-report), falling back to global
+              const reportWeights = {
+                assignment1: data.term?.weights?.assignment1 ?? weights.assignment1,
+                assignment2: data.term?.weights?.assignment2 ?? weights.assignment2,
+                test1: data.term?.weights?.test1 ?? weights.test1,
+                test2: data.term?.weights?.test2 ?? weights.test2
+              };
 
               return (
                 <div key={data.student.id} className="report-card-page bg-white mx-auto mb-12 print:mb-0 shadow-2xl relative overflow-hidden print:shadow-none emerald-print-A4" style={{ width: '210mm', minWidth: '210mm', height: '297mm', minHeight: '297mm', padding: '8mm', boxSizing: 'border-box', pageBreakAfter: index < reports.length - 1 ? 'always' : 'auto', fontFamily: reportFont }}>
@@ -518,7 +525,7 @@ const ProgressiveReport = () => {
                         </div>
                         <div className="p-2 border-r border-black flex flex-col justify-center bg-white">
                           <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-0.5">Overall CA Score</p>
-                          <p className="font-black text-sm text-emerald-800" style={{ color: reportColor }}>{data.performance.totalScore} / {(weights.assignment1 + weights.assignment2 + weights.test1 + weights.test2) * data.subjects.length}</p>
+                          <p className="font-black text-sm text-emerald-800" style={{ color: reportColor }}>{data.performance.totalScore} / {(reportWeights.assignment1 + reportWeights.assignment2 + reportWeights.test1 + reportWeights.test2) * data.subjects.length}</p>
                         </div>
                         <div className="p-2 border-black flex flex-col justify-center bg-white">
                           <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-0.5">Position in Class</p>
@@ -622,11 +629,11 @@ const ProgressiveReport = () => {
                           <thead>
                             <tr className="bg-black text-white uppercase text-[10px] tracking-wider" style={{ backgroundColor: '#000000' }}>
                               <th className="border border-black p-1 text-left w-1/4">Subjects</th>
-                              <th className="border border-black p-0.5 text-center font-normal px-1">Ass. 1<br /><span className="text-[8px] opacity-75">({weights.assignment1})</span></th>
-                              <th className="border border-black p-0.5 text-center font-normal px-1">Ass. 2<br /><span className="text-[8px] opacity-75">({weights.assignment2})</span></th>
-                              <th className="border border-black p-0.5 text-center font-normal px-1">Test 1<br /><span className="text-[8px] opacity-75">({weights.test1})</span></th>
-                              <th className="border border-black p-0.5 text-center font-normal px-1">Test 2<br /><span className="text-[8px] opacity-75">({weights.test2})</span></th>
-                              <th className="border border-black p-1 text-center bg-black/20 font-bold w-16">Total<br /><span className="text-[8px] opacity-75">({weights.assignment1 + weights.assignment2 + weights.test1 + weights.test2})</span></th>
+                              <th className="border border-black p-0.5 text-center font-normal px-1">Ass. 1<br /><span className="text-[8px] opacity-75">({reportWeights.assignment1})</span></th>
+                              <th className="border border-black p-0.5 text-center font-normal px-1">Ass. 2<br /><span className="text-[8px] opacity-75">({reportWeights.assignment2})</span></th>
+                              <th className="border border-black p-0.5 text-center font-normal px-1">Test 1<br /><span className="text-[8px] opacity-75">({reportWeights.test1})</span></th>
+                              <th className="border border-black p-0.5 text-center font-normal px-1">Test 2<br /><span className="text-[8px] opacity-75">({reportWeights.test2})</span></th>
+                              <th className="border border-black p-1 text-center bg-black/20 font-bold w-16">Total<br /><span className="text-[8px] opacity-75">({reportWeights.assignment1 + reportWeights.assignment2 + reportWeights.test1 + reportWeights.test2})</span></th>
                               <th className="border border-black p-1 text-center w-20 tracking-tighter">Avg</th>
                               {showPosition && <th className="border border-black p-1 text-center font-bold">Pos</th>}
                             </tr>

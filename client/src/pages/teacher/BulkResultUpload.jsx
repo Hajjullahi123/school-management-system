@@ -93,14 +93,19 @@ export default function BulkResultUpload() {
   const [groupBy, setGroupBy] = useState('class'); // 'class' or 'subject'
   const [collapsedGroups, setCollapsedGroups] = useState({});
   const { settings: schoolSettings } = useSchoolSettings();
+  const [selectedClassWeights, setSelectedClassWeights] = useState(null);
 
-  const weights = useMemo(() => ({
-    assignment1: schoolSettings?.assignment1Weight !== undefined && schoolSettings?.assignment1Weight !== null ? Number(schoolSettings.assignment1Weight) : 5,
-    assignment2: schoolSettings?.assignment2Weight !== undefined && schoolSettings?.assignment2Weight !== null ? Number(schoolSettings.assignment2Weight) : 5,
-    test1: schoolSettings?.test1Weight !== undefined && schoolSettings?.test1Weight !== null ? Number(schoolSettings.test1Weight) : 10,
-    test2: schoolSettings?.test2Weight !== undefined && schoolSettings?.test2Weight !== null ? Number(schoolSettings.test2Weight) : 10,
-    exam: schoolSettings?.examWeight !== undefined && schoolSettings?.examWeight !== null ? Number(schoolSettings.examWeight) : 70
-  }), [schoolSettings]);
+  const weights = useMemo(() => {
+    const cls = selectedClassWeights;
+    const s = schoolSettings;
+    return {
+      assignment1: cls?.assignment1Weight ?? (s?.assignment1Weight !== undefined && s?.assignment1Weight !== null ? Number(s.assignment1Weight) : 5),
+      assignment2: cls?.assignment2Weight ?? (s?.assignment2Weight !== undefined && s?.assignment2Weight !== null ? Number(s.assignment2Weight) : 5),
+      test1: cls?.test1Weight ?? (s?.test1Weight !== undefined && s?.test1Weight !== null ? Number(s.test1Weight) : 10),
+      test2: cls?.test2Weight ?? (s?.test2Weight !== undefined && s?.test2Weight !== null ? Number(s.test2Weight) : 10),
+      exam: cls?.examWeight ?? (s?.examWeight !== undefined && s?.examWeight !== null ? Number(s.examWeight) : 70)
+    };
+  }, [schoolSettings, selectedClassWeights]);
 
   const headers = useMemo(() => ({
     assignment1: `1st Assignment (${weights.assignment1})`,
@@ -115,6 +120,30 @@ export default function BulkResultUpload() {
       fetchData();
     }
   }, [user, schoolSettings]);
+
+  // Fetch class weights when assignment is selected
+  useEffect(() => {
+    if (selectedAssignment?.classId) {
+      api.get(`/api/classes/${selectedAssignment.classId}`)
+        .then(res => res.ok ? res.json() : null)
+        .then(data => {
+          if (data) {
+            setSelectedClassWeights({
+              assignment1Weight: data.assignment1Weight ?? null,
+              assignment2Weight: data.assignment2Weight ?? null,
+              test1Weight: data.test1Weight ?? null,
+              test2Weight: data.test2Weight ?? null,
+              examWeight: data.examWeight ?? null
+            });
+          } else {
+            setSelectedClassWeights(null);
+          }
+        })
+        .catch(() => setSelectedClassWeights(null));
+    } else {
+      setSelectedClassWeights(null);
+    }
+  }, [selectedAssignment?.classId]);
 
   const fetchData = async () => {
     try {

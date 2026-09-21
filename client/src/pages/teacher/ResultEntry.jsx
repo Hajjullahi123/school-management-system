@@ -10,14 +10,19 @@ const ResultEntry = () => {
   const navigate = useNavigate();
   const { settings: schoolSettings } = useSchoolSettings();
 
-  // Assessment Weights
-  const weights = useMemo(() => ({
-    assignment1: schoolSettings?.assignment1Weight !== undefined && schoolSettings?.assignment1Weight !== null ? Number(schoolSettings.assignment1Weight) : 5,
-    assignment2: schoolSettings?.assignment2Weight !== undefined && schoolSettings?.assignment2Weight !== null ? Number(schoolSettings.assignment2Weight) : 5,
-    test1: schoolSettings?.test1Weight !== undefined && schoolSettings?.test1Weight !== null ? Number(schoolSettings.test1Weight) : 10,
-    test2: schoolSettings?.test2Weight !== undefined && schoolSettings?.test2Weight !== null ? Number(schoolSettings.test2Weight) : 10,
-    exam: schoolSettings?.examWeight !== undefined && schoolSettings?.examWeight !== null ? Number(schoolSettings.examWeight) : 70
-  }), [schoolSettings]);
+  // Assessment Weights - resolved using class overrides if available
+  const [selectedClassData, setSelectedClassData] = useState(null);
+  const weights = useMemo(() => {
+    const cls = selectedClassData;
+    const s = schoolSettings;
+    return {
+      assignment1: cls?.assignment1Weight ?? (s?.assignment1Weight !== undefined && s?.assignment1Weight !== null ? Number(s.assignment1Weight) : 5),
+      assignment2: cls?.assignment2Weight ?? (s?.assignment2Weight !== undefined && s?.assignment2Weight !== null ? Number(s.assignment2Weight) : 5),
+      test1: cls?.test1Weight ?? (s?.test1Weight !== undefined && s?.test1Weight !== null ? Number(s.test1Weight) : 10),
+      test2: cls?.test2Weight ?? (s?.test2Weight !== undefined && s?.test2Weight !== null ? Number(s.test2Weight) : 10),
+      exam: cls?.examWeight ?? (s?.examWeight !== undefined && s?.examWeight !== null ? Number(s.examWeight) : 70)
+    };
+  }, [schoolSettings, selectedClassData]);
 
   // Data States
   const [academicSessions, setAcademicSessions] = useState([]);
@@ -157,6 +162,15 @@ const ResultEntry = () => {
         throw new Error(`Failed to fetch students: ${studentsResponse.statusText}`);
       }
       const classData = await studentsResponse.json();
+
+      // Store class weight overrides for this class
+      setSelectedClassData({
+        assignment1Weight: classData.assignment1Weight ?? null,
+        assignment2Weight: classData.assignment2Weight ?? null,
+        test1Weight: classData.test1Weight ?? null,
+        test2Weight: classData.test2Weight ?? null,
+        examWeight: classData.examWeight ?? null
+      });
 
       // Sort students alphabetically and filter duplicates
       const uniqueStudents = [];
