@@ -29,7 +29,12 @@ router.get('/', authenticate, async (req, res) => {
               select: {
                 id: true,
                 name: true,
-                arm: true
+                arm: true,
+                assignment1Weight: true,
+                assignment2Weight: true,
+                test1Weight: true,
+                test2Weight: true,
+                examWeight: true
               }
             },
             subject: {
@@ -86,7 +91,12 @@ router.get('/teacher/:teacherId', authenticate, async (req, res) => {
               select: {
                 id: true,
                 name: true,
-                arm: true
+                arm: true,
+                assignment1Weight: true,
+                assignment2Weight: true,
+                test1Weight: true,
+                test2Weight: true,
+                examWeight: true
               }
             },
             subject: {

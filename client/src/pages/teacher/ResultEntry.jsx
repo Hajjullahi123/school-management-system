@@ -10,19 +10,28 @@ const ResultEntry = () => {
   const navigate = useNavigate();
   const { settings: schoolSettings } = useSchoolSettings();
 
-  // Assessment Weights - resolved using class overrides if available
-  const [selectedClassData, setSelectedClassData] = useState(null);
+  // Target class object from state, fetched classes, or teacher assignments
+  const currentClassObj = useMemo(() => {
+    if (selectedClassData) return selectedClassData;
+    if (!selectedClass) return null;
+    const foundClass = classes.find(c => Number(c.id) === Number(selectedClass));
+    if (foundClass) return foundClass;
+    const foundAssign = teacherAssignments.find(ta => Number(ta.class?.id) === Number(selectedClass) || Number(ta.classId) === Number(selectedClass));
+    if (foundAssign?.class) return foundAssign.class;
+    return null;
+  }, [selectedClass, selectedClassData, classes, teacherAssignments]);
+
   const weights = useMemo(() => {
-    const cls = selectedClassData;
+    const cls = currentClassObj;
     const s = schoolSettings;
     return {
-      assignment1: cls?.assignment1Weight ?? (s?.assignment1Weight !== undefined && s?.assignment1Weight !== null ? Number(s.assignment1Weight) : 5),
-      assignment2: cls?.assignment2Weight ?? (s?.assignment2Weight !== undefined && s?.assignment2Weight !== null ? Number(s.assignment2Weight) : 5),
-      test1: cls?.test1Weight ?? (s?.test1Weight !== undefined && s?.test1Weight !== null ? Number(s.test1Weight) : 10),
-      test2: cls?.test2Weight ?? (s?.test2Weight !== undefined && s?.test2Weight !== null ? Number(s.test2Weight) : 10),
-      exam: cls?.examWeight ?? (s?.examWeight !== undefined && s?.examWeight !== null ? Number(s.examWeight) : 70)
+      assignment1: cls?.assignment1Weight !== undefined && cls?.assignment1Weight !== null ? Number(cls.assignment1Weight) : (s?.assignment1Weight !== undefined && s?.assignment1Weight !== null ? Number(s.assignment1Weight) : 5),
+      assignment2: cls?.assignment2Weight !== undefined && cls?.assignment2Weight !== null ? Number(cls.assignment2Weight) : (s?.assignment2Weight !== undefined && s?.assignment2Weight !== null ? Number(s.assignment2Weight) : 5),
+      test1: cls?.test1Weight !== undefined && cls?.test1Weight !== null ? Number(cls.test1Weight) : (s?.test1Weight !== undefined && s?.test1Weight !== null ? Number(s.test1Weight) : 10),
+      test2: cls?.test2Weight !== undefined && cls?.test2Weight !== null ? Number(cls.test2Weight) : (s?.test2Weight !== undefined && s?.test2Weight !== null ? Number(s.test2Weight) : 10),
+      exam: cls?.examWeight !== undefined && cls?.examWeight !== null ? Number(cls.examWeight) : (s?.examWeight !== undefined && s?.examWeight !== null ? Number(s.examWeight) : 70)
     };
-  }, [schoolSettings, selectedClassData]);
+  }, [schoolSettings, currentClassObj]);
 
   // Data States
   const [academicSessions, setAcademicSessions] = useState([]);
@@ -48,12 +57,11 @@ const ResultEntry = () => {
   // Initial Data Fetch
   useEffect(() => {
     fetchAcademicSessions();
+    fetchClasses();
+    fetchSubjects();
 
     if (user?.role === 'teacher') {
       fetchTeacherAssignments();
-    } else {
-      fetchClasses();
-      fetchSubjects();
     }
 
     // Parse URL params for pre-selection (e.g. from Dashboard)

@@ -53,14 +53,9 @@ const BulkReportDownload = () => {
       const data = await response.json();
       const classesArray = Array.isArray(data) ? data : [];
 
-      if (user.role === 'teacher') {
-        const teacherClasses = classesArray.filter(c => Number(c.classTeacherId) === Number(user.id));
-        setClasses(teacherClasses);
-        if (teacherClasses.length === 1) {
-          setSelectedClass(teacherClasses[0].id.toString());
-        }
-      } else {
-        setClasses(classesArray);
+      setClasses(classesArray);
+      if (user?.role === 'teacher' && classesArray.length === 1) {
+        setSelectedClass(classesArray[0].id.toString());
       }
     } catch (error) {
       console.error('Error fetching classes:', error);
