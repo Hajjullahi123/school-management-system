@@ -10,29 +10,6 @@ const ResultEntry = () => {
   const navigate = useNavigate();
   const { settings: schoolSettings } = useSchoolSettings();
 
-  // Target class object from state, fetched classes, or teacher assignments
-  const currentClassObj = useMemo(() => {
-    if (selectedClassData) return selectedClassData;
-    if (!selectedClass) return null;
-    const foundClass = classes.find(c => Number(c.id) === Number(selectedClass));
-    if (foundClass) return foundClass;
-    const foundAssign = teacherAssignments.find(ta => Number(ta.class?.id) === Number(selectedClass) || Number(ta.classId) === Number(selectedClass));
-    if (foundAssign?.class) return foundAssign.class;
-    return null;
-  }, [selectedClass, selectedClassData, classes, teacherAssignments]);
-
-  const weights = useMemo(() => {
-    const cls = currentClassObj;
-    const s = schoolSettings;
-    return {
-      assignment1: cls?.assignment1Weight !== undefined && cls?.assignment1Weight !== null ? Number(cls.assignment1Weight) : (s?.assignment1Weight !== undefined && s?.assignment1Weight !== null ? Number(s.assignment1Weight) : 5),
-      assignment2: cls?.assignment2Weight !== undefined && cls?.assignment2Weight !== null ? Number(cls.assignment2Weight) : (s?.assignment2Weight !== undefined && s?.assignment2Weight !== null ? Number(s.assignment2Weight) : 5),
-      test1: cls?.test1Weight !== undefined && cls?.test1Weight !== null ? Number(cls.test1Weight) : (s?.test1Weight !== undefined && s?.test1Weight !== null ? Number(s.test1Weight) : 10),
-      test2: cls?.test2Weight !== undefined && cls?.test2Weight !== null ? Number(cls.test2Weight) : (s?.test2Weight !== undefined && s?.test2Weight !== null ? Number(s.test2Weight) : 10),
-      exam: cls?.examWeight !== undefined && cls?.examWeight !== null ? Number(cls.examWeight) : (s?.examWeight !== undefined && s?.examWeight !== null ? Number(s.examWeight) : 70)
-    };
-  }, [schoolSettings, currentClassObj]);
-
   // Data States
   const [academicSessions, setAcademicSessions] = useState([]);
   const [terms, setTerms] = useState([]);
@@ -46,6 +23,9 @@ const ResultEntry = () => {
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('');
 
+  // Class weight override data fetched when a class is selected
+  const [selectedClassData, setSelectedClassData] = useState(null);
+
   // Result Data States
   const [students, setStudents] = useState([]);
   const [results, setResults] = useState({});
@@ -53,6 +33,30 @@ const ResultEntry = () => {
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [notification, setNotification] = useState(null); // { type: 'success' | 'error', message: '' }
+
+  // Target class object — must come AFTER all useState declarations to avoid TDZ
+  const currentClassObj = useMemo(() => {
+    if (selectedClassData) return selectedClassData;
+    if (!selectedClass) return null;
+    const foundClass = classes.find(c => Number(c.id) === Number(selectedClass));
+    if (foundClass) return foundClass;
+    const foundAssign = teacherAssignments.find(ta => Number(ta.class?.id) === Number(selectedClass) || Number(ta.classId) === Number(selectedClass));
+    if (foundAssign?.class) return foundAssign.class;
+    return null;
+  }, [selectedClass, selectedClassData, classes, teacherAssignments]);
+
+  // Effective weights: class-specific overrides take priority over school-level defaults
+  const weights = useMemo(() => {
+    const cls = currentClassObj;
+    const s = schoolSettings;
+    return {
+      assignment1: cls?.assignment1Weight !== undefined && cls?.assignment1Weight !== null ? Number(cls.assignment1Weight) : (s?.assignment1Weight !== undefined && s?.assignment1Weight !== null ? Number(s.assignment1Weight) : 5),
+      assignment2: cls?.assignment2Weight !== undefined && cls?.assignment2Weight !== null ? Number(cls.assignment2Weight) : (s?.assignment2Weight !== undefined && s?.assignment2Weight !== null ? Number(s.assignment2Weight) : 5),
+      test1: cls?.test1Weight !== undefined && cls?.test1Weight !== null ? Number(cls.test1Weight) : (s?.test1Weight !== undefined && s?.test1Weight !== null ? Number(s.test1Weight) : 10),
+      test2: cls?.test2Weight !== undefined && cls?.test2Weight !== null ? Number(cls.test2Weight) : (s?.test2Weight !== undefined && s?.test2Weight !== null ? Number(s.test2Weight) : 10),
+      exam: cls?.examWeight !== undefined && cls?.examWeight !== null ? Number(cls.examWeight) : (s?.examWeight !== undefined && s?.examWeight !== null ? Number(s.examWeight) : 70)
+    };
+  }, [schoolSettings, currentClassObj]);
 
   // Initial Data Fetch
   useEffect(() => {
