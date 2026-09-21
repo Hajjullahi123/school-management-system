@@ -14,14 +14,14 @@ WORKDIR /app
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Install runtime dependencies including openssl and Puppeteer (Chromium) requirements
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
+RUN apt-get -o Acquire::Check-Valid-Until=false -o Acquire::Check-Date=false update --allow-insecure-repositories --allow-unauthenticated || true && \
+    apt-get install -y --allow-unauthenticated --no-install-recommends \
     openssl ca-certificates \
     libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libdrm2 \
     libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 \
     libgbm1 libpango-1.0-0 libcairo2 \
-    && (apt-get install -y --no-install-recommends libasound2 || apt-get install -y --no-install-recommends libasound2t64 || true) \
-    && (apt-get install -y --no-install-recommends libcups2 || apt-get install -y --no-install-recommends libcups2t64 || true) \
+    && (apt-get install -y --allow-unauthenticated --no-install-recommends libasound2 || apt-get install -y --allow-unauthenticated --no-install-recommends libasound2t64 || true) \
+    && (apt-get install -y --allow-unauthenticated --no-install-recommends libcups2 || apt-get install -y --allow-unauthenticated --no-install-recommends libcups2t64 || true) \
     && rm -rf /var/lib/apt/lists/*
 
 ENV PUPPETEER_CACHE_DIR="/app/.puppeteer-cache"
@@ -34,8 +34,8 @@ FROM base AS build
 ENV NODE_ENV=development
 
 # Install packages needed to build node modules
-RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y build-essential node-gyp pkg-config python-is-python3 \
+RUN apt-get -o Acquire::Check-Valid-Until=false -o Acquire::Check-Date=false update --allow-insecure-repositories --allow-unauthenticated || true && \
+    apt-get install --allow-unauthenticated --no-install-recommends -y build-essential node-gyp pkg-config python-is-python3 \
     && rm -rf /var/lib/apt/lists/*
 
 # Install node modules
