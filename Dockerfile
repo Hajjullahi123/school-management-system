@@ -5,19 +5,10 @@ ARG NODE_VERSION=22.19.0
 FROM node:${NODE_VERSION}-slim AS base
 
 LABEL fly_launch_runtime="Node.js"
-LABEL build_version="2026.09.21.2"
+LABEL build_version="2026.09.21.3"
 
 # Node.js app lives here
 WORKDIR /app
-
-# Prevent interactive prompts during apt package installation
-ENV DEBIAN_FRONTEND=noninteractive
-
-# Install essential runtime dependencies (openssl & ca-certificates only, lightweight)
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    openssl ca-certificates \
-    && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
 
 # Throw-away build stage to reduce size of final image
@@ -25,11 +16,6 @@ FROM base AS build
 
 # Ensure devDependencies are installed during build stage
 ENV NODE_ENV=development
-
-# Install packages needed to build node modules
-RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y build-essential node-gyp pkg-config python-is-python3 \
-    && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
 # Install node modules
 COPY package-lock.json package.json ./
