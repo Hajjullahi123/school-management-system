@@ -63,7 +63,7 @@ router.get('/class/:classId', authenticate, authorize(['admin', 'sub_admin', 'te
 
       console.log(`[ATTENDANCE DEBUG] Teacher ${req.user.id} attempting access to class ${classId}. Class found: ${classInfo ? 'Yes' : 'No'}. Assigned teacher ID: ${classInfo?.classTeacherId}`);
 
-      if (!classInfo || classInfo.classTeacherId !== req.user.id) {
+      if (!classInfo || parseInt(classInfo.classTeacherId) !== parseInt(req.user.id)) {
         console.warn(`[ATTENDANCE WARNING] Access Denied for Teacher ${req.user.id} on class ${classId}.`);
         return res.status(403).json({
           error: 'Access Denied',
@@ -268,7 +268,7 @@ router.post('/mark', authenticate, authorize(['admin', 'sub_admin', 'teacher', '
       const classInfo = await prisma.class.findFirst({
         where: { id: parseInt(classId), schoolId: req.schoolId }
       });
-      if (!classInfo || classInfo.classTeacherId !== req.user.id) {
+      if (!classInfo || parseInt(classInfo.classTeacherId) !== parseInt(req.user.id)) {
         return res.status(403).json({ error: 'Unauthorized: You can only mark attendance for your assigned classes.' });
       }
     }
@@ -567,7 +567,7 @@ router.get('/download', authenticate, authorize(['admin', 'sub_admin', 'teacher'
         const classInfo = await prisma.class.findFirst({
           where: { id: parseInt(classId), schoolId: req.schoolId }
         });
-        if (!classInfo || classInfo.classTeacherId !== req.user.id) {
+        if (!classInfo || parseInt(classInfo.classTeacherId) !== parseInt(req.user.id)) {
           return res.status(403).json({ error: 'Unauthorized: You can only download records for your own class.' });
         }
         where.classId = parseInt(classId);

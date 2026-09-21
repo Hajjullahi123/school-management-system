@@ -73,7 +73,7 @@ router.get('/download/:classId',
 
       // 2. Authorization check for teachers
       if (req.user.role === 'teacher') {
-        const isClassTeacher = classInfo.classTeacherId === req.user.id;
+        const isClassTeacher = parseInt(classInfo.classTeacherId) === parseInt(req.user.id);
         const hasAssignment = await prisma.teacherAssignment.findFirst({
           where: { teacherId: req.user.id, classSubject: { classId }, schoolId: req.schoolId }
         });

@@ -476,7 +476,7 @@ router.put('/:id/publish-results', authenticate, authorize(['admin', 'sub_admin'
         where: { id: classId, schoolId: req.schoolId },
         select: { classTeacherId: true }
       });
-      if (!classInfo || classInfo.classTeacherId !== req.user.id) {
+      if (!classInfo || parseInt(classInfo.classTeacherId) !== parseInt(req.user.id)) {
         return res.status(403).json({ error: 'You can only publish results for your own class' });
       }
     }

@@ -281,7 +281,7 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
         }
       }
     } else if (req.user.role === 'teacher') {
-      const isClassTeacher = student.classModel?.classTeacherId === req.user.id;
+      const isClassTeacher = parseInt(student.classModel?.classTeacherId) === parseInt(req.user.id);
       if (!isClassTeacher && req.user.role !== 'admin' && req.user.role !== 'principal' && req.user.role !== 'superadmin') {
         return res.status(403).json({
           error: 'Access Denied',
@@ -1088,23 +1088,26 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
     const { classId, termId } = req.params;
     const { startAdmission, endAdmission } = req.query;
 
-    // Fetch class info with its teacher and settings
+    // Fetch class info with its teacher and settings (include weight fields for resolveClassWeights)
     const classInfo = await prisma.class.findUnique({
       where: { id: parseInt(classId) },
       include: { 
         classTeacher: { 
           select: { firstName: true, lastName: true, signatureUrl: true } 
         } 
-      }
+      },
+      // Note: 'include' auto-selects all scalar fields including weight overrides
     });
+    // Ensure weight fields are present (findUnique with include returns all scalars)
+    // classInfo.assignment1Weight, classInfo.assignment2Weight, etc. are available
 
     if (!classInfo || classInfo.schoolId !== req.schoolId) {
       return res.status(404).json({ error: 'Class not found' });
     }
 
-    // Verify teacher permission
+    // Verify teacher permission (form master access only)
     if (req.user.role === 'teacher') {
-      if (classInfo.classTeacherId !== req.user.id) {
+      if (parseInt(classInfo.classTeacherId) !== parseInt(req.user.id)) {
         return res.status(403).json({ error: 'You are not the class teacher for this class' });
       }
     }
@@ -1163,9 +1166,9 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
       orderBy: { startDate: 'asc' }
     });
 
-    // Verify teacher permission
+    // Verify teacher permission (form master access only)
     if (req.user.role === 'teacher') {
-      if (classInfo.classTeacherId !== req.user.id) {
+      if (parseInt(classInfo.classTeacherId) !== parseInt(req.user.id)) {
         return res.status(403).json({ error: 'You are not the class teacher for this class' });
       }
     }
@@ -1718,9 +1721,9 @@ router.get('/bulk-cumulative/:classId/:sessionId', authenticate, authorize(['adm
       return res.status(404).json({ error: 'Class not found' });
     }
 
-    // Verify teacher permission
+    // Verify teacher permission (form master access only)
     if (req.user.role === 'teacher') {
-      if (classInfo.classTeacherId !== req.user.id) {
+      if (parseInt(classInfo.classTeacherId) !== parseInt(req.user.id)) {
         return res.status(403).json({ error: 'You are not the class teacher for this class' });
       }
     }
@@ -1983,7 +1986,7 @@ router.get('/cumulative/:studentId/:sessionId', authenticate, async (req, res) =
         }
       }
     } else if (req.user.role === 'teacher') {
-      if (!student.classModel || (student.classModel.classTeacherId !== req.user.id && req.user.role !== 'admin' && req.user.role !== 'principal' && req.user.role !== 'superadmin')) {
+      if (!student.classModel || (parseInt(student.classModel.classTeacherId) !== parseInt(req.user.id) && req.user.role !== 'admin' && req.user.role !== 'principal' && req.user.role !== 'superadmin')) {
         return res.status(403).json({
           error: 'Access Denied',
           message: 'You can only view reports for students in your assigned class.'
@@ -2273,13 +2276,13 @@ router.get('/bulk-cumulative/:classId/:sessionId', authenticate, authorize(['adm
   try {
     const { classId, sessionId } = req.params;
 
-    // Verify teacher permission
+    // Verify teacher permission (form master access only)
     if (req.user.role === 'teacher') {
-      const classInfo = await prisma.class.findFirst({
+      const classForAuth = await prisma.class.findFirst({
         where: { id: parseInt(classId), schoolId: req.schoolId },
         select: { classTeacherId: true }
       });
-      if (!classInfo || classInfo.classTeacherId !== req.user.id) {
+      if (!classForAuth || parseInt(classForAuth.classTeacherId) !== parseInt(req.user.id)) {
         return res.status(403).json({ error: 'You are not the class teacher for this class' });
       }
     }
@@ -2306,7 +2309,12 @@ router.get('/bulk-cumulative/:classId/:sessionId', authenticate, authorize(['adm
         showPositionOnReport: true,
         showFeesOnReport: true,
         showAttendanceOnReport: true,
-        reportLayout: true
+        reportLayout: true,
+        assignment1Weight: true,
+        assignment2Weight: true,
+        test1Weight: true,
+        test2Weight: true,
+        examWeight: true
       }
     });
 
@@ -2583,7 +2591,7 @@ router.get('/progressive/:studentId/:termId/:assessmentType', authenticate, asyn
 
     // Teacher permission check
     if (req.user.role === 'teacher') {
-      if (!student.classModel || student.classModel.classTeacherId !== req.user.id) {
+      if (!student.classModel || parseInt(student.classModel.classTeacherId) !== parseInt(req.user.id)) {
         return res.status(403).json({
           error: 'Access Denied',
           message: 'You can only view reports for students in your assigned class.'
@@ -2758,7 +2766,7 @@ router.get('/progressive-enhanced/:studentId/:termId', authenticate, async (req,
 
     // Teacher permission check
     if (req.user.role === 'teacher') {
-      if (!student.classModel || student.classModel.classTeacherId !== req.user.id) {
+      if (!student.classModel || parseInt(student.classModel.classTeacherId) !== parseInt(req.user.id)) {
         return res.status(403).json({ error: 'Access Denied', message: 'You can only view reports for students in your assigned class.' });
       }
     }
@@ -3110,13 +3118,13 @@ router.get('/bulk-progressive/:classId/:termId', authenticate, authorize(['admin
       }
     });
 
-    // Verify teacher has permission for this class
+    // Verify teacher has permission for this class (form master check)
     if (req.user.role === 'teacher') {
-      const classInfo = await prisma.class.findFirst({
+      const classForAuth = await prisma.class.findFirst({
         where: { id: parseInt(classId), schoolId: req.schoolId },
         select: { classTeacherId: true }
       });
-      if (!classInfo || classInfo.classTeacherId !== req.user.id) {
+      if (!classForAuth || parseInt(classForAuth.classTeacherId) !== parseInt(req.user.id)) {
         return res.status(403).json({ error: 'You are not the class teacher for this class' });
       }
     }

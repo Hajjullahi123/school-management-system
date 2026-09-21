@@ -55,7 +55,7 @@ router.post('/', authenticate, authorize(['parent', 'teacher', 'principal', 'adm
         include: { classModel: true }
       });
 
-      if (!student || !student.classModel || student.classModel.classTeacherId !== req.user.id) {
+      if (!student || !student.classModel || parseInt(student.classModel.classTeacherId) !== parseInt(req.user.id)) {
         return res.status(403).json({ error: 'You can only message parents of students in your form class' });
       }
 
