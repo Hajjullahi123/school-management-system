@@ -76,6 +76,7 @@ const ResultEntry = () => {
     } else {
       setStudents([]);
       setResults({});
+      setSelectedClassData(null);
     }
   }, [selectedClass, selectedSubject, selectedTerm]);
 
