@@ -17,6 +17,7 @@ const PWAInstallModal = ({ isOpen, onClose, onNativeInstall, hasNativePrompt, is
 
   const isIOS = typeof navigator !== 'undefined' && /ipad|iphone|ipod/i.test(navigator.userAgent) && !window.MSStream;
   const isAndroid = typeof navigator !== 'undefined' && /android/i.test(navigator.userAgent);
+  const canPrompt = hasNativePrompt || (typeof window !== 'undefined' && !!window.deferredPwaPrompt);
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fadeIn">
@@ -59,7 +60,7 @@ const PWAInstallModal = ({ isOpen, onClose, onNativeInstall, hasNativePrompt, is
             <div className="p-4 bg-emerald-50 dark:bg-emerald-950/40 rounded-2xl border border-emerald-200 dark:border-emerald-800 flex items-center gap-3">
               <FiCheckCircle className="w-6 h-6 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
               <p className="text-xs font-bold text-emerald-800 dark:text-emerald-300">
-                EduTech is installed on this device! You can launch it directly from your home screen or app grid for full screen access.
+                EduTech is installed on this device! You can launch it directly from your home screen or browser address bar.
               </p>
             </div>
             <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -68,18 +69,18 @@ const PWAInstallModal = ({ isOpen, onClose, onNativeInstall, hasNativePrompt, is
           </div>
         ) : (
           <>
-            <p className="text-sm text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">
+            <p className="text-sm text-gray-600 dark:text-gray-300 mb-5 leading-relaxed">
               Install EduTech on your device for quick full-screen access, faster load speeds, offline access, and instant portal notifications!
             </p>
 
-            {/* Native Install Button Trigger if browser supported */}
-            {hasNativePrompt && (
+            {/* Native Install Button Trigger if browser prompt is available */}
+            {canPrompt && (
               <button
                 onClick={() => {
                   onClose();
                   onNativeInstall();
                 }}
-                className="w-full mb-6 py-3.5 px-4 bg-gradient-to-r from-primary to-accent hover:opacity-95 text-white font-black rounded-2xl shadow-xl flex items-center justify-center gap-2 transform active:scale-95 transition-all text-base"
+                className="w-full mb-5 py-3.5 px-4 bg-gradient-to-r from-emerald-600 via-primary to-accent hover:opacity-95 text-white font-black rounded-2xl shadow-xl flex items-center justify-center gap-2 transform active:scale-95 transition-all text-base cursor-pointer"
               >
                 <FiDownload className="w-5 h-5 animate-bounce" />
                 <span>Install Instantly Now</span>
@@ -87,7 +88,7 @@ const PWAInstallModal = ({ isOpen, onClose, onNativeInstall, hasNativePrompt, is
             )}
 
             {/* Installation Instructions */}
-            <div className="bg-gray-50 dark:bg-gray-800/60 rounded-2xl p-4 border border-gray-100 dark:border-gray-700/50 space-y-3.5 text-sm">
+            <div className="bg-gray-50 dark:bg-gray-800/60 rounded-2xl p-4 border border-gray-100 dark:border-gray-700/50 space-y-3 text-sm">
               <h4 className="font-bold text-gray-900 dark:text-white text-xs uppercase tracking-wider flex items-center gap-2">
                 {isIOS ? (
                   <><FiSmartphone className="text-primary" /> How to install on iOS (iPhone / iPad):</>
@@ -131,11 +132,11 @@ const PWAInstallModal = ({ isOpen, onClose, onNativeInstall, hasNativePrompt, is
               ) : (
                 <ol className="space-y-2 text-gray-600 dark:text-gray-300 text-xs font-medium">
                   <li className="flex items-start gap-2">
-                    <span className="w-5 h-5 rounded-full bg-accent/10 text-accent font-bold text-xs flex items-center justify-center flex-shrink-0 mt-0.5">1</span>
-                    <span>Look for the <strong className="text-gray-900 dark:text-white">Install Icon 📥</strong> inside your browser's address bar.</span>
+                    <span className="w-5 h-5 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold text-xs flex items-center justify-center flex-shrink-0 mt-0.5">1</span>
+                    <span>Click the <strong className="text-gray-900 dark:text-white bg-indigo-50 dark:bg-indigo-950 px-1.5 py-0.5 rounded border border-indigo-200 dark:border-indigo-800">"Open in app"</strong> or <strong className="text-gray-900 dark:text-white">Install (📥)</strong> button in your browser's address bar (top right).</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="w-5 h-5 rounded-full bg-accent/10 text-accent font-bold text-xs flex items-center justify-center flex-shrink-0 mt-0.5">2</span>
+                    <span className="w-5 h-5 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold text-xs flex items-center justify-center flex-shrink-0 mt-0.5">2</span>
                     <span>Or open menu <strong className="text-gray-900 dark:text-white">(⋮)</strong> &rarr; <strong className="text-gray-900 dark:text-white">"Install EduTech App"</strong> / <strong className="text-gray-900 dark:text-white">"Save and Share"</strong>.</span>
                   </li>
                 </ol>
@@ -147,7 +148,7 @@ const PWAInstallModal = ({ isOpen, onClose, onNativeInstall, hasNativePrompt, is
         {/* Got It Button */}
         <button
           onClick={onClose}
-          className="w-full mt-6 py-3 px-4 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 font-bold rounded-2xl transition-colors text-sm"
+          className="w-full mt-5 py-3 px-4 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 font-bold rounded-2xl transition-colors text-sm"
         >
           Got it, Close
         </button>
@@ -163,6 +164,11 @@ export const PWAProvider = ({ children }) => {
   const [showGuideModal, setShowGuideModal] = useState(false);
 
   useEffect(() => {
+    // Check global prompt if captured early by index.html
+    if (typeof window !== 'undefined' && window.deferredPwaPrompt) {
+      setDeferredPrompt(window.deferredPwaPrompt);
+    }
+
     // Check if running in standalone mode
     const isStandalone = 
       window.matchMedia('(display-mode: standalone)').matches || 
@@ -175,6 +181,7 @@ export const PWAProvider = ({ children }) => {
 
     const handleBeforeInstallPrompt = (e) => {
       e.preventDefault();
+      window.deferredPwaPrompt = e;
       setDeferredPrompt(e);
       setIsInstallable(true);
       console.log('PWA: beforeinstallprompt fired');
@@ -182,6 +189,7 @@ export const PWAProvider = ({ children }) => {
 
     const handleAppInstalled = () => {
       setDeferredPrompt(null);
+      window.deferredPwaPrompt = null;
       setIsInstalled(true);
       console.log('PWA: App was installed');
     };
@@ -196,15 +204,17 @@ export const PWAProvider = ({ children }) => {
   }, []);
 
   const installApp = async () => {
-    if (deferredPrompt) {
+    const activePrompt = deferredPrompt || (typeof window !== 'undefined' ? window.deferredPwaPrompt : null);
+    if (activePrompt) {
       try {
-        deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
+        activePrompt.prompt();
+        const { outcome } = await activePrompt.userChoice;
         console.log(`PWA: User response to prompt: ${outcome}`);
         if (outcome === 'accepted') {
           setIsInstalled(true);
         }
         setDeferredPrompt(null);
+        window.deferredPwaPrompt = null;
       } catch (err) {
         console.error('PWA: prompt error', err);
         setShowGuideModal(true);
@@ -217,7 +227,7 @@ export const PWAProvider = ({ children }) => {
   return (
     <PWAContext.Provider 
       value={{ 
-        deferredPrompt, 
+        deferredPrompt: deferredPrompt || (typeof window !== 'undefined' ? window.deferredPwaPrompt : null), 
         isInstallable: true, 
         isInstalled, 
         installApp,
@@ -230,7 +240,7 @@ export const PWAProvider = ({ children }) => {
         isOpen={showGuideModal}
         onClose={() => setShowGuideModal(false)}
         onNativeInstall={installApp}
-        hasNativePrompt={!!deferredPrompt}
+        hasNativePrompt={!!(deferredPrompt || (typeof window !== 'undefined' && window.deferredPwaPrompt))}
         isInstalled={isInstalled}
       />
     </PWAContext.Provider>
