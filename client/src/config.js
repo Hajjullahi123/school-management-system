@@ -16,30 +16,33 @@ const getApiBaseUrl = () => {
     return import.meta.env.VITE_API_URL;
   }
 
-  // Detect if we are running in a Capacitor/Mobile environment
-  const isMobileApp = 
-    protocol.includes('capacitor') || 
-    hostname === 'localhost' && (window.location.port === '' || window.location.port === '80' || window.location.port === '443') ||
-    window.location.href.includes('android_asset');
-
   // 1. Electron handling (Desktop App)
   if (isElectron) {
     return `http://localhost:${DEFAULT_API_PORT}`;
   }
 
-  // 2. Mobile/Production Fallback
-  // If we are on mobile OR in production, use the remote server
+  // 2. Hosted Domain handling (e.g., educatechportal.com or custom school domains)
+  // Standard web domains serving over HTTP/HTTPS should always use same-origin requests without custom ports
+  const isLocalhostOrIP = 
+    hostname === 'localhost' || 
+    hostname === '127.0.0.1' || 
+    /^(\d{1,3}\.){3}\d{1,3}$/.test(hostname);
+
+  if (!isLocalhostOrIP) {
+    return origin;
+  }
+
+  // Detect if we are running in a Capacitor/Mobile environment
+  const isMobileApp = 
+    protocol.includes('capacitor') || 
+    window.location.href.includes('android_asset');
+
+  // 3. Mobile App or Production on localhost
   if (isMobileApp || isProduction) {
-    // If we are strictly on a hosted domain (not localhost), use that origin
-    if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
-      return origin;
-    }
-    // Otherwise (Mobile App or localhost-production), force the live server
     return PRODUCTION_URL;
   }
 
-  // 3. Local Development (npm run dev)
-  // dynamically use the hostname to support mobile access on the same network
+  // 4. Local Development (npm run dev on localhost or local network IP)
   return `${protocol}//${hostname}:${DEFAULT_API_PORT}`;
 };
 
