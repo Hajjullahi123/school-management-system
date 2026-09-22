@@ -207,12 +207,24 @@ const getFullUserPayload = async (userId, schoolId, role) => {
   };
 };
 
-// Identify school based on username/email/admissionNumber
+// Helper to construct normalized identifier variations (slash vs dash)
+const getIdentifierVariants = (rawIdentifier) => {
+  const trimmed = rawIdentifier.trim();
+  const variants = [
+    trimmed,
+    trimmed.replace(/\//g, '-'),
+    trimmed.replace(/-/g, '/')
+  ];
+  return Array.from(new Set(variants)).filter(Boolean);
+};
+
+// Identify school based on username/email/admissionNumber/staffId/rollNo
 router.post('/identify', validate(identifySchema), async (req, res) => {
   try {
     const { identifier, schoolSlug } = req.body;
 
     const searchId = identifier.trim();
+    const idVariants = getIdentifierVariants(searchId);
 
     // Superadmin fast-path (no schoolSlug needed)
     const superadmin = await prisma.user.findFirst({
@@ -220,8 +232,8 @@ router.post('/identify', validate(identifySchema), async (req, res) => {
         role: 'superadmin',
         schoolId: null,
         OR: [
-          { username: { equals: searchId, mode: 'insensitive' } },
-          { email: { equals: searchId, mode: 'insensitive' } }
+          ...idVariants.map(id => ({ username: { equals: id, mode: 'insensitive' } })),
+          ...idVariants.map(id => ({ email: { equals: id, mode: 'insensitive' } }))
         ]
       },
       select: { role: true }
@@ -231,15 +243,15 @@ router.post('/identify', validate(identifySchema), async (req, res) => {
     }
 
     // 1. PERFORM GLOBAL DISCOVERY
-    // Search across Users (username, email, phone, parent phone), Students (admissionNumber), and Teachers (staffId)
+    // Search across Users (username, email, phone, parent phone), Students (admissionNumber, rollNo), and Teachers (staffId)
     const sanitizedPhone = searchId.replace(/\s+/g, '');
     
     const [globalUserMatches, studentMatches, teacherMatches] = await Promise.all([
       prisma.user.findMany({
         where: { 
           OR: [
-            { username: { equals: searchId, mode: 'insensitive' } }, 
-            { email: { equals: searchId, mode: 'insensitive' } },
+            ...idVariants.map(id => ({ username: { equals: id, mode: 'insensitive' } })),
+            ...idVariants.map(id => ({ email: { equals: id, mode: 'insensitive' } })),
             { phone: { equals: sanitizedPhone } },
             { Parent: { phone: { equals: sanitizedPhone } } }
           ] 
@@ -252,7 +264,10 @@ router.post('/identify', validate(identifySchema), async (req, res) => {
       }),
       prisma.student.findMany({
         where: { 
-          admissionNumber: { equals: searchId, mode: 'insensitive' } 
+          OR: [
+            ...idVariants.map(id => ({ admissionNumber: { equals: id, mode: 'insensitive' } })),
+            ...idVariants.map(id => ({ rollNo: { equals: id, mode: 'insensitive' } }))
+          ]
         },
         select: { 
           school: { 
@@ -262,7 +277,7 @@ router.post('/identify', validate(identifySchema), async (req, res) => {
       }),
       prisma.teacher.findMany({
         where: { 
-          staffId: { equals: searchId, mode: 'insensitive' } 
+          OR: idVariants.map(id => ({ staffId: { equals: id, mode: 'insensitive' } }))
         },
         select: { 
           school: { 
@@ -318,6 +333,7 @@ router.post('/login', validate(loginSchema), async (req, res) => {
     let { username, password, schoolSlug } = req.body;
 
     const searchId = username.trim();
+    const idVariants = getIdentifierVariants(searchId);
 
     let user;
     if (!schoolSlug) {
@@ -362,13 +378,11 @@ router.post('/login', validate(loginSchema), async (req, res) => {
         }
       };
 
-      // FAST PATH: Try unique username lookup first
-      user = await prisma.user.findUnique({
+      // FAST PATH: Try username lookup (exact match or variant)
+      user = await prisma.user.findFirst({
         where: {
-          schoolId_username: {
-            schoolId: school.id,
-            username: searchId
-          }
+          schoolId: school.id,
+          OR: idVariants.map(id => ({ username: { equals: id, mode: 'insensitive' } }))
         },
         select: userSelect
       });
@@ -383,61 +397,56 @@ router.post('/login', validate(loginSchema), async (req, res) => {
             select: userSelect
           });
         } else {
-          // First check username case-insensitively
+          // Check if it matches a parent phone number
+          const sanitizedPhone = searchId.replace(/\s+/g, '');
           user = await prisma.user.findFirst({
-            where: { schoolId: school.id, username: { equals: searchId, mode: 'insensitive' } },
+            where: {
+              schoolId: school.id,
+              role: 'parent',
+              OR: [
+                { phone: sanitizedPhone },
+                { Parent: { phone: sanitizedPhone } }
+              ]
+            },
             select: userSelect
           });
 
           if (!user) {
-            // Check if it matches a parent phone number
-            const sanitizedPhone = searchId.replace(/\s+/g, '');
-            user = await prisma.user.findFirst({
-              where: {
-                schoolId: school.id,
-                role: 'parent',
-                OR: [
-                  { phone: sanitizedPhone },
-                  { Parent: { phone: sanitizedPhone } }
-                ]
-              },
-              select: userSelect
-            });
-          }
-
-          if (!user) {
-            // Look up student or teacher by their ID numbers
+            // Look up student or teacher by their ID numbers (including slash/dash variants & rollNo)
             const [studentRecord, teacherRecord] = await Promise.all([
               prisma.student.findFirst({
-              where: {
+                where: {
                   schoolId: school.id,
-                  admissionNumber: { equals: searchId, mode: 'insensitive' }
-              },
-              select: { userId: true, user: { select: userSelect } }
-            }),
-            prisma.teacher.findFirst({
-              where: {
+                  OR: [
+                    ...idVariants.map(id => ({ admissionNumber: { equals: id, mode: 'insensitive' } })),
+                    ...idVariants.map(id => ({ rollNo: { equals: id, mode: 'insensitive' } }))
+                  ]
+                },
+                select: { userId: true, user: { select: userSelect } }
+              }),
+              prisma.teacher.findFirst({
+                where: {
                   schoolId: school.id,
-                  staffId: { equals: searchId, mode: 'insensitive' }
-              },
-              select: { userId: true, user: { select: userSelect } }
-            })
-          ]);
+                  OR: idVariants.map(id => ({ staffId: { equals: id, mode: 'insensitive' } }))
+                },
+                select: { userId: true, user: { select: userSelect } }
+              })
+            ]);
 
-          // Get user from linked record
-          user = studentRecord?.user || teacherRecord?.user;
+            // Get user from linked record
+            user = studentRecord?.user || teacherRecord?.user;
 
-          // If student/teacher found but userId is null (not linked to a User account yet),
-          // return a specific error to avoid the misleading "Invalid credentials" message
-          if (!user && (studentRecord || teacherRecord)) {
-            console.error('[Auth] Login failed: Student/Teacher found but has no linked User account. admissionNumber/staffId:', searchId);
-            return res.status(401).json({ 
-              error: 'Your account has not been fully set up yet. Please contact your school administrator to activate your portal access.' 
-            });
+            // If student/teacher found but userId is null (not linked to a User account yet),
+            // return a specific error to avoid the misleading "Invalid credentials" message
+            if (!user && (studentRecord || teacherRecord)) {
+              console.error('[Auth] Login failed: Student/Teacher found but has no linked User account. admissionNumber/staffId:', searchId);
+              return res.status(401).json({ 
+                error: 'Your account has not been fully set up yet. Please contact your school administrator to activate your portal access.' 
+              });
+            }
           }
         }
       }
-    }
     }
 
     if (!user || user.isActive === false) {
