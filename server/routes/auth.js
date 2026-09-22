@@ -205,7 +205,7 @@ const getFullUserPayload = async (userId, schoolId, role) => {
     hasQuranAccess: hasQuranAccess,
     departmentAsHead: user.departmentAsHead
   };
-};// Helper to construct normalized identifier variations (slash vs dash, spaces, leading zeros, and sub-segments)
+// Helper to construct normalized identifier variations (slash vs dash, spaces, leading zeros, and sub-segments)
 const getIdentifierVariants = (rawIdentifier) => {
   if (!rawIdentifier || typeof rawIdentifier !== 'string') return [];
   const trimmed = rawIdentifier.trim();
@@ -258,13 +258,36 @@ const getIdentifierVariants = (rawIdentifier) => {
   return Array.from(new Set(variants)).filter(Boolean);
 };
 
-// Identify school based on username/email/admissionNumber/staffId/rollNo
+// Helper to generate phone number variations (+234 vs 0 vs digits only)
+const getPhoneVariants = (rawPhone) => {
+  if (!rawPhone || typeof rawPhone !== 'string') return [];
+  const digits = rawPhone.replace(/\D/g, '');
+  if (!digits || digits.length < 6) return [];
+
+  const variants = [digits, rawPhone.trim()];
+  if (digits.startsWith('234') && digits.length === 13) {
+    const local = '0' + digits.slice(3);
+    variants.push(local);
+    variants.push(digits.slice(3));
+  } else if (digits.startsWith('0') && digits.length === 11) {
+    const intl = '234' + digits.slice(1);
+    variants.push(intl);
+    variants.push(digits.slice(1));
+  } else if (digits.length === 10) {
+    variants.push('0' + digits);
+    variants.push('234' + digits);
+  }
+  return Array.from(new Set(variants)).filter(Boolean);
+};
+
+// Identify school based on username/email/admissionNumber/staffId/rollNo/phone/name
 router.post('/identify', validate(identifySchema), async (req, res) => {
   try {
     const { identifier, schoolSlug } = req.body;
 
     const searchId = identifier.trim();
     const idVariants = getIdentifierVariants(searchId);
+    const phoneVariants = getPhoneVariants(searchId);
 
     if (idVariants.length === 0) {
       return res.status(400).json({ error: 'Valid identifier is required' });
@@ -291,26 +314,37 @@ router.post('/identify', validate(identifySchema), async (req, res) => {
     }
 
     // 1. PERFORM GLOBAL DISCOVERY
-    // Search across Users (username, email, phone, parent phone), Students (admissionNumber, rollNo), and Teachers (staffId)
-    const sanitizedPhone = searchId.replace(/\s+/g, '');
-    
-    // Core lookups guaranteed by baseline schema
+    const userSelect = { 
+      schoolId: true,
+      school: { 
+        select: { id: true, name: true, slug: true, logoUrl: true } 
+      } 
+    };
+
+    const studentSelect = {
+      schoolId: true,
+      school: {
+        select: { id: true, name: true, slug: true, logoUrl: true }
+      }
+    };
+
+    // Parallel lookups across Users, Students, Teachers, and Parents
     const [globalUserMatches, studentMatches, teacherMatches] = await Promise.all([
       prisma.user.findMany({
         where: { 
           OR: [
             ...idVariants.map(id => ({ username: { equals: id, mode: 'insensitive' } })),
-            ...idVariants.filter(id => id.length >= 4).map(id => ({ username: { startsWith: id, mode: 'insensitive' } })),
+            ...idVariants.filter(id => id.length >= 3).map(id => ({ username: { startsWith: id, mode: 'insensitive' } })),
             ...idVariants.map(id => ({ email: { equals: id, mode: 'insensitive' } })),
-            { phone: { equals: sanitizedPhone } },
-            { Parent: { phone: { equals: sanitizedPhone } } }
+            ...phoneVariants.map(p => ({ phone: { contains: p } })),
+            ...phoneVariants.map(p => ({ Parent: { phone: { contains: p } } })),
+            ...(searchId.length >= 3 ? [
+              { firstName: { contains: searchId, mode: 'insensitive' } },
+              { lastName: { contains: searchId, mode: 'insensitive' } }
+            ] : [])
           ] 
         },
-        select: { 
-          school: { 
-            select: { id: true, name: true, slug: true, logoUrl: true } 
-          } 
-        }
+        select: userSelect
       }).catch(err => {
         console.error('[Identify] User match error:', err.message);
         return [];
@@ -321,14 +355,16 @@ router.post('/identify', validate(identifySchema), async (req, res) => {
             ...idVariants.map(id => ({ admissionNumber: { equals: id, mode: 'insensitive' } })),
             ...idVariants.filter(id => id.length >= 3).map(id => ({ admissionNumber: { startsWith: id, mode: 'insensitive' } })),
             ...idVariants.filter(id => id.length >= 3).map(id => ({ admissionNumber: { endsWith: id, mode: 'insensitive' } })),
-            ...idVariants.filter(id => id.length >= 4).map(id => ({ admissionNumber: { contains: id, mode: 'insensitive' } }))
+            ...idVariants.filter(id => id.length >= 4).map(id => ({ admissionNumber: { contains: id, mode: 'insensitive' } })),
+            ...phoneVariants.map(p => ({ parentPhone: { contains: p } })),
+            ...phoneVariants.map(p => ({ parentGuardianPhone: { contains: p } })),
+            ...(searchId.length >= 3 ? [
+              { name: { contains: searchId, mode: 'insensitive' } },
+              { parentEmail: { equals: searchId, mode: 'insensitive' } }
+            ] : [])
           ]
         },
-        select: { 
-          school: { 
-            select: { id: true, name: true, slug: true, logoUrl: true } 
-          } 
-        }
+        select: studentSelect
       }).catch(err => {
         console.error('[Identify] Student match error:', err.message);
         return [];
@@ -338,13 +374,16 @@ router.post('/identify', validate(identifySchema), async (req, res) => {
           OR: [
             ...idVariants.map(id => ({ staffId: { equals: id, mode: 'insensitive' } })),
             ...idVariants.filter(id => id.length >= 3).map(id => ({ staffId: { startsWith: id, mode: 'insensitive' } })),
-            ...idVariants.filter(id => id.length >= 4).map(id => ({ staffId: { contains: id, mode: 'insensitive' } }))
+            ...idVariants.filter(id => id.length >= 4).map(id => ({ staffId: { contains: id, mode: 'insensitive' } })),
+            ...phoneVariants.map(p => ({ publicPhone: { contains: p } })),
+            ...(searchId.length >= 3 ? [
+              { publicEmail: { equals: searchId, mode: 'insensitive' } }
+            ] : [])
           ]
         },
-        select: { 
-          school: { 
-            select: { id: true, name: true, slug: true, logoUrl: true } 
-          } 
+        select: {
+          schoolId: true,
+          school: { select: { id: true, name: true, slug: true, logoUrl: true } }
         }
       }).catch(err => {
         console.error('[Identify] Teacher match error:', err.message);
@@ -363,23 +402,36 @@ router.post('/identify', validate(identifySchema), async (req, res) => {
             ...idVariants.filter(id => id.length >= 3).map(id => ({ rollNo: { endsWith: id, mode: 'insensitive' } }))
           ]
         },
-        select: { 
-          school: { 
-            select: { id: true, name: true, slug: true, logoUrl: true } 
-          } 
-        }
+        select: studentSelect
       });
     } catch (e) {
       // Ignore if rollNo column does not exist in database schema
     }
 
-    // Aggregate and deduplicate all matching schools
+    // Aggregate all matching schools and missing school IDs
     const schoolMap = new Map();
+    const unresolvedSchoolIds = new Set();
+
     [...globalUserMatches, ...studentMatches, ...teacherMatches, ...rollNoMatches].forEach(match => {
       if (match?.school?.id) {
         schoolMap.set(match.school.id, match.school);
+      } else if (match?.schoolId) {
+        unresolvedSchoolIds.add(match.schoolId);
       }
     });
+
+    // Resolve any schoolIds whose relation was null
+    if (unresolvedSchoolIds.size > 0) {
+      try {
+        const fetchedSchools = await prisma.school.findMany({
+          where: { id: { in: Array.from(unresolvedSchoolIds) } },
+          select: { id: true, name: true, slug: true, logoUrl: true }
+        });
+        fetchedSchools.forEach(s => schoolMap.set(s.id, s));
+      } catch (err) {
+        console.error('[Identify] Failed to resolve schoolIds:', err.message);
+      }
+    }
 
     const schools = Array.from(schoolMap.values());
 
@@ -420,6 +472,7 @@ router.post('/login', validate(loginSchema), async (req, res) => {
 
     const searchId = username.trim();
     const idVariants = getIdentifierVariants(searchId);
+    const phoneVariants = getPhoneVariants(searchId);
 
     let user;
     if (!schoolSlug) {
@@ -464,104 +517,127 @@ router.post('/login', validate(loginSchema), async (req, res) => {
         }
       };
 
-      // FAST PATH: Try username lookup (exact match or variant)
+      // FAST PATH 1: Try username lookup (exact match or variant)
       user = await prisma.user.findFirst({
         where: {
           schoolId: school.id,
           OR: [
             ...idVariants.map(id => ({ username: { equals: id, mode: 'insensitive' } })),
-            ...idVariants.filter(id => id.length >= 4).map(id => ({ username: { startsWith: id, mode: 'insensitive' } }))
+            ...idVariants.filter(id => id.length >= 3).map(id => ({ username: { startsWith: id, mode: 'insensitive' } }))
           ]
         },
         select: userSelect
       });
 
-      // SLOW PATH: If not found by username, check conditionally based on format
+      // FAST PATH 2: Try email lookup
       if (!user) {
-        const isEmail = searchId.includes('@');
-        
-        if (isEmail) {
-          user = await prisma.user.findFirst({
-            where: { schoolId: school.id, email: { equals: searchId, mode: 'insensitive' } },
-            select: userSelect
-          });
-        } else {
-          // Check if it matches a parent phone number
-          const sanitizedPhone = searchId.replace(/\s+/g, '');
-          user = await prisma.user.findFirst({
+        user = await prisma.user.findFirst({
+          where: {
+            schoolId: school.id,
+            email: { equals: searchId, mode: 'insensitive' }
+          },
+          select: userSelect
+        });
+      }
+
+      // FAST PATH 3: Try phone lookup (across User and Parent models)
+      if (!user && phoneVariants.length > 0) {
+        user = await prisma.user.findFirst({
+          where: {
+            schoolId: school.id,
+            OR: [
+              ...phoneVariants.map(p => ({ phone: { contains: p } })),
+              ...phoneVariants.map(p => ({ Parent: { phone: { contains: p } } }))
+            ]
+          },
+          select: userSelect
+        });
+      }
+
+      // SLOW PATH: Check Student & Teacher models by ID numbers, rollNo, parent contacts
+      if (!user) {
+        const [studentRecord, teacherRecord] = await Promise.all([
+          prisma.student.findFirst({
             where: {
               schoolId: school.id,
-              role: 'parent',
               OR: [
-                { phone: sanitizedPhone },
-                { Parent: { phone: sanitizedPhone } }
+                ...idVariants.map(id => ({ admissionNumber: { equals: id, mode: 'insensitive' } })),
+                ...idVariants.filter(id => id.length >= 3).map(id => ({ admissionNumber: { startsWith: id, mode: 'insensitive' } })),
+                ...idVariants.filter(id => id.length >= 3).map(id => ({ admissionNumber: { endsWith: id, mode: 'insensitive' } })),
+                ...idVariants.filter(id => id.length >= 4).map(id => ({ admissionNumber: { contains: id, mode: 'insensitive' } })),
+                ...phoneVariants.map(p => ({ parentPhone: { contains: p } })),
+                ...phoneVariants.map(p => ({ parentGuardianPhone: { contains: p } }))
               ]
             },
-            select: userSelect
-          });
+            select: { id: true, userId: true, name: true, admissionNumber: true, user: { select: userSelect } }
+          }).catch(err => {
+            console.error('[Login] Student findFirst error:', err.message);
+            return null;
+          }),
+          prisma.teacher.findFirst({
+            where: {
+              schoolId: school.id,
+              OR: [
+                ...idVariants.map(id => ({ staffId: { equals: id, mode: 'insensitive' } })),
+                ...idVariants.filter(id => id.length >= 3).map(id => ({ staffId: { startsWith: id, mode: 'insensitive' } })),
+                ...idVariants.filter(id => id.length >= 4).map(id => ({ staffId: { contains: id, mode: 'insensitive' } }))
+              ]
+            },
+            select: { id: true, userId: true, staffId: true, user: { select: userSelect } }
+          }).catch(err => {
+            console.error('[Login] Teacher findFirst error:', err.message);
+            return null;
+          })
+        ]);
+
+        // Optional rollNo fallback check for student
+        let rollNoRecord = null;
+        if (!studentRecord) {
+          try {
+            rollNoRecord = await prisma.student.findFirst({
+              where: {
+                schoolId: school.id,
+                OR: [
+                  ...idVariants.map(id => ({ rollNo: { equals: id, mode: 'insensitive' } })),
+                  ...idVariants.filter(id => id.length >= 3).map(id => ({ rollNo: { startsWith: id, mode: 'insensitive' } })),
+                  ...idVariants.filter(id => id.length >= 3).map(id => ({ rollNo: { endsWith: id, mode: 'insensitive' } }))
+                ]
+              },
+              select: { id: true, userId: true, name: true, admissionNumber: true, user: { select: userSelect } }
+            });
+          } catch (e) {
+            // Ignore if rollNo column does not exist
+          }
+        }
+
+        // Get user from linked record
+        const matchedStudent = studentRecord || rollNoRecord;
+        user = matchedStudent?.user || teacherRecord?.user;
+
+        // If student/teacher record exists but userId is null (not linked to a User login account yet),
+        // try finding a User record in the same school by username matching admissionNumber or student name
+        if (!user && (matchedStudent || teacherRecord)) {
+          const admNo = matchedStudent?.admissionNumber || teacherRecord?.staffId;
+          if (admNo) {
+            user = await prisma.user.findFirst({
+              where: {
+                schoolId: school.id,
+                OR: [
+                  { username: { equals: admNo, mode: 'insensitive' } },
+                  ...(matchedStudent?.name ? [
+                    { firstName: { contains: matchedStudent.name.split(' ')[0], mode: 'insensitive' } }
+                  ] : [])
+                ]
+              },
+              select: userSelect
+            });
+          }
 
           if (!user) {
-            // Look up student or teacher by their ID numbers (including slash/dash variants & optional rollNo)
-            const [studentRecord, teacherRecord] = await Promise.all([
-              prisma.student.findFirst({
-                where: {
-                  schoolId: school.id,
-                  OR: [
-                    ...idVariants.map(id => ({ admissionNumber: { equals: id, mode: 'insensitive' } })),
-                    ...idVariants.filter(id => id.length >= 4).map(id => ({ admissionNumber: { startsWith: id, mode: 'insensitive' } }))
-                  ]
-                },
-                select: { userId: true, user: { select: userSelect } }
-              }).catch(err => {
-                console.error('[Login] Student findFirst error:', err.message);
-                return null;
-              }),
-              prisma.teacher.findFirst({
-                where: {
-                  schoolId: school.id,
-                  OR: [
-                    ...idVariants.map(id => ({ staffId: { equals: id, mode: 'insensitive' } })),
-                    ...idVariants.filter(id => id.length >= 4).map(id => ({ staffId: { startsWith: id, mode: 'insensitive' } }))
-                  ]
-                },
-                select: { userId: true, user: { select: userSelect } }
-              }).catch(err => {
-                console.error('[Login] Teacher findFirst error:', err.message);
-                return null;
-              })
-            ]);
-
-            // Optional rollNo fallback check for student
-            let rollNoRecord = null;
-            if (!studentRecord) {
-              try {
-                rollNoRecord = await prisma.student.findFirst({
-                  where: {
-                    schoolId: school.id,
-                    OR: [
-                      ...idVariants.map(id => ({ rollNo: { equals: id, mode: 'insensitive' } })),
-                      ...idVariants.filter(id => id.length >= 4).map(id => ({ rollNo: { startsWith: id, mode: 'insensitive' } }))
-                    ]
-                  },
-                  select: { userId: true, user: { select: userSelect } }
-                });
-              } catch (e) {
-                // Ignore if rollNo column does not exist
-              }
-            }
-
-            // Get user from linked record
-            const matchedStudent = studentRecord || rollNoRecord;
-            user = matchedStudent?.user || teacherRecord?.user;
-
-            // If student/teacher found but userId is null (not linked to a User account yet),
-            // return a specific error to avoid the misleading "Invalid credentials" message
-            if (!user && (matchedStudent || teacherRecord)) {
-              console.error('[Auth] Login failed: Student/Teacher found but has no linked User account. admissionNumber/staffId:', searchId);
-              return res.status(401).json({ 
-                error: 'Your account has not been fully set up yet. Please contact your school administrator to activate your portal access.' 
-              });
-            }
+            console.error('[Auth] Login failed: Profile found but has no linked User login account. Identifier:', searchId);
+            return res.status(401).json({ 
+              error: 'Your profile exists in the school database, but your user login account has not been activated yet. Please contact your school administrator to enable your portal account.' 
+            });
           }
         }
       }
