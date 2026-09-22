@@ -338,7 +338,7 @@ router.post('/identify', validate(identifySchema), async (req, res) => {
       console.warn('[Identify] Superadmin check error:', e.message);
     }
 
-    // 1. PERFORM GLOBAL DISCOVERY
+    // 1. PERFORM STRICT EXACT MATCH LOOKUP FIRST
     const userSelect = { 
       schoolId: true,
       school: { 
@@ -353,84 +353,121 @@ router.post('/identify', validate(identifySchema), async (req, res) => {
       }
     };
 
-    // Parallel lookups across Users, Students, Teachers, and Parents
-    const [globalUserMatches, studentMatches, teacherMatches] = await Promise.all([
+    // First attempt: Strict exact credential matching
+    const [exactUserMatches, exactStudentMatches, exactTeacherMatches] = await Promise.all([
       prisma.user.findMany({
         where: { 
           OR: [
             ...idVariants.map(id => ({ username: { equals: id, mode: 'insensitive' } })),
-            ...idVariants.filter(id => id.length >= 3).map(id => ({ username: { startsWith: id, mode: 'insensitive' } })),
-            ...idVariants.map(id => ({ email: { equals: id, mode: 'insensitive' } })),
-            ...phoneVariants.map(p => ({ phone: { contains: p } })),
-            ...phoneVariants.map(p => ({ Parent: { phone: { contains: p } } })),
-            ...(searchId.length >= 3 ? [
-              { firstName: { contains: searchId, mode: 'insensitive' } },
-              { lastName: { contains: searchId, mode: 'insensitive' } }
-            ] : [])
+            ...idVariants.map(id => ({ email: { equals: id, mode: 'insensitive' } }))
           ] 
         },
         select: userSelect
-      }).catch(err => {
-        console.error('[Identify] User match error:', err.message);
-        return [];
-      }),
+      }).catch(err => []),
       prisma.student.findMany({
         where: { 
           OR: [
-            ...idVariants.map(id => ({ admissionNumber: { equals: id, mode: 'insensitive' } })),
-            ...idVariants.filter(id => id.length >= 3).map(id => ({ admissionNumber: { startsWith: id, mode: 'insensitive' } })),
-            ...idVariants.filter(id => id.length >= 3).map(id => ({ admissionNumber: { endsWith: id, mode: 'insensitive' } })),
-            ...idVariants.filter(id => id.length >= 4).map(id => ({ admissionNumber: { contains: id, mode: 'insensitive' } })),
-            ...phoneVariants.map(p => ({ parentPhone: { contains: p } })),
-            ...phoneVariants.map(p => ({ parentGuardianPhone: { contains: p } })),
-            ...(searchId.length >= 3 ? [
-              { name: { contains: searchId, mode: 'insensitive' } },
-              { parentEmail: { equals: searchId, mode: 'insensitive' } }
-            ] : [])
+            ...idVariants.map(id => ({ admissionNumber: { equals: id, mode: 'insensitive' } }))
           ]
         },
         select: studentSelect
-      }).catch(err => {
-        console.error('[Identify] Student match error:', err.message);
-        return [];
-      }),
+      }).catch(err => []),
       prisma.teacher.findMany({
         where: { 
           OR: [
             ...idVariants.map(id => ({ staffId: { equals: id, mode: 'insensitive' } })),
-            ...idVariants.filter(id => id.length >= 3).map(id => ({ staffId: { startsWith: id, mode: 'insensitive' } })),
-            ...idVariants.filter(id => id.length >= 4).map(id => ({ staffId: { contains: id, mode: 'insensitive' } })),
-            ...phoneVariants.map(p => ({ publicPhone: { contains: p } })),
-            ...(searchId.length >= 3 ? [
-              { publicEmail: { equals: searchId, mode: 'insensitive' } }
-            ] : [])
+            ...idVariants.map(id => ({ publicEmail: { equals: id, mode: 'insensitive' } }))
           ]
         },
         select: {
           schoolId: true,
           school: { select: { id: true, name: true, slug: true, logoUrl: true } }
         }
-      }).catch(err => {
-        console.error('[Identify] Teacher match error:', err.message);
-        return [];
-      })
+      }).catch(err => [])
     ]);
 
-    // Optional rollNo fallback check (if column exists)
+    let globalUserMatches = exactUserMatches;
+    let studentMatches = exactStudentMatches;
+    let teacherMatches = exactTeacherMatches;
     let rollNoMatches = [];
+
+    // Check rollNo exact match if columns exist
     try {
       rollNoMatches = await prisma.student.findMany({
         where: { 
           OR: [
-            ...idVariants.map(id => ({ rollNo: { equals: id, mode: 'insensitive' } })),
-            ...idVariants.filter(id => id.length >= 3).map(id => ({ rollNo: { startsWith: id, mode: 'insensitive' } })),
-            ...idVariants.filter(id => id.length >= 3).map(id => ({ rollNo: { endsWith: id, mode: 'insensitive' } }))
+            ...idVariants.map(id => ({ rollNo: { equals: id, mode: 'insensitive' } }))
           ]
         },
         select: studentSelect
       });
-    } catch (e) {
-      // Ignore if rollNo column does not exist in database schema
+    } catch (e) {}
+
+    const hasExactMatches = (globalUserMatches.length + studentMatches.length + teacherMatches.length + rollNoMatches.length) > 0;
+
+    // 2. FALLBACK TO FUZZY / PARTIAL / PHONE SEARCH ONLY IF NO EXACT MATCHES
+    if (!hasExactMatches) {
+      const [fuzzyUserMatches, fuzzyStudentMatches, fuzzyTeacherMatches] = await Promise.all([
+        prisma.user.findMany({
+          where: { 
+            OR: [
+              ...idVariants.filter(id => id.length >= 3).map(id => ({ username: { startsWith: id, mode: 'insensitive' } })),
+              ...phoneVariants.map(p => ({ phone: { contains: p } })),
+              ...phoneVariants.map(p => ({ Parent: { phone: { contains: p } } })),
+              ...(searchId.length >= 3 ? [
+                { firstName: { contains: searchId, mode: 'insensitive' } },
+                { lastName: { contains: searchId, mode: 'insensitive' } }
+              ] : [])
+            ] 
+          },
+          select: userSelect
+        }).catch(err => []),
+        prisma.student.findMany({
+          where: { 
+            OR: [
+              ...idVariants.filter(id => id.length >= 3).map(id => ({ admissionNumber: { startsWith: id, mode: 'insensitive' } })),
+              ...idVariants.filter(id => id.length >= 3).map(id => ({ admissionNumber: { endsWith: id, mode: 'insensitive' } })),
+              ...idVariants.filter(id => id.length >= 4).map(id => ({ admissionNumber: { contains: id, mode: 'insensitive' } })),
+              ...phoneVariants.map(p => ({ parentPhone: { contains: p } })),
+              ...phoneVariants.map(p => ({ parentGuardianPhone: { contains: p } })),
+              ...(searchId.length >= 3 ? [
+                { name: { contains: searchId, mode: 'insensitive' } },
+                { parentEmail: { equals: searchId, mode: 'insensitive' } }
+              ] : [])
+            ]
+          },
+          select: studentSelect
+        }).catch(err => []),
+        prisma.teacher.findMany({
+          where: { 
+            OR: [
+              ...idVariants.filter(id => id.length >= 3).map(id => ({ staffId: { startsWith: id, mode: 'insensitive' } })),
+              ...idVariants.filter(id => id.length >= 4).map(id => ({ staffId: { contains: id, mode: 'insensitive' } })),
+              ...phoneVariants.map(p => ({ publicPhone: { contains: p } }))
+            ]
+          },
+          select: {
+            schoolId: true,
+            school: { select: { id: true, name: true, slug: true, logoUrl: true } }
+          }
+        }).catch(err => [])
+      ]);
+
+      globalUserMatches = fuzzyUserMatches;
+      studentMatches = fuzzyStudentMatches;
+      teacherMatches = fuzzyTeacherMatches;
+
+      try {
+        rollNoMatches = await prisma.student.findMany({
+          where: { 
+            OR: [
+              ...idVariants.filter(id => id.length >= 3).map(id => ({ rollNo: { startsWith: id, mode: 'insensitive' } })),
+              ...idVariants.filter(id => id.length >= 3).map(id => ({ rollNo: { endsWith: id, mode: 'insensitive' } }))
+            ]
+          },
+          select: studentSelect
+        });
+      } catch (e) {}
     }
 
     // Aggregate all matching schools and missing school IDs
