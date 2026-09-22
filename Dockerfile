@@ -36,6 +36,11 @@ RUN npm prune --omit=dev && \
 # Final stage for app image
 FROM base
 
+# Install OpenSSL - required by Prisma query engine at runtime
+RUN apt-get update -qq && \
+    apt-get install --no-install-recommends -y openssl ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+
 # Set production environment for runtime
 ENV NODE_ENV="production"
 
