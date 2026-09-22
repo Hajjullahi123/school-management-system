@@ -207,15 +207,39 @@ const getFullUserPayload = async (userId, schoolId, role) => {
   };
 };
 
-// Helper to construct normalized identifier variations (slash vs dash)
+// Helper to construct normalized identifier variations (slash vs dash, spaces, and leading zeros)
 const getIdentifierVariants = (rawIdentifier) => {
   if (!rawIdentifier || typeof rawIdentifier !== 'string') return [];
   const trimmed = rawIdentifier.trim();
+  const noSpace = trimmed.replace(/\s+/g, '');
+  
   const variants = [
     trimmed,
-    trimmed.replace(/\//g, '-'),
-    trimmed.replace(/-/g, '/')
+    noSpace,
+    noSpace.replace(/\//g, '-'),
+    noSpace.replace(/-/g, '/'),
+    noSpace.replace(/_/g, '/'),
+    noSpace.replace(/\./g, '/')
   ];
+
+  // Handle leading zero mismatches (e.g. /001 vs /1)
+  const match = noSpace.match(/^(.*?)[/\-._](\d+)$/);
+  if (match) {
+    const prefix = match[1];
+    const numStr = match[2];
+    const num = parseInt(numStr, 10);
+    if (!isNaN(num)) {
+      variants.push(`${prefix}/${num}`);
+      variants.push(`${prefix}-${num}`);
+      variants.push(`${prefix}/${String(num).padStart(2, '0')}`);
+      variants.push(`${prefix}-${String(num).padStart(2, '0')}`);
+      variants.push(`${prefix}/${String(num).padStart(3, '0')}`);
+      variants.push(`${prefix}-${String(num).padStart(3, '0')}`);
+      variants.push(`${prefix}${num}`);
+      variants.push(`${prefix}${String(num).padStart(3, '0')}`);
+    }
+  }
+
   return Array.from(new Set(variants)).filter(Boolean);
 };
 
@@ -261,6 +285,7 @@ router.post('/identify', validate(identifySchema), async (req, res) => {
         where: { 
           OR: [
             ...idVariants.map(id => ({ username: { equals: id, mode: 'insensitive' } })),
+            ...idVariants.filter(id => id.length >= 4).map(id => ({ username: { startsWith: id, mode: 'insensitive' } })),
             ...idVariants.map(id => ({ email: { equals: id, mode: 'insensitive' } })),
             { phone: { equals: sanitizedPhone } },
             { Parent: { phone: { equals: sanitizedPhone } } }
@@ -277,7 +302,10 @@ router.post('/identify', validate(identifySchema), async (req, res) => {
       }),
       prisma.student.findMany({
         where: { 
-          OR: idVariants.map(id => ({ admissionNumber: { equals: id, mode: 'insensitive' } }))
+          OR: [
+            ...idVariants.map(id => ({ admissionNumber: { equals: id, mode: 'insensitive' } })),
+            ...idVariants.filter(id => id.length >= 4).map(id => ({ admissionNumber: { startsWith: id, mode: 'insensitive' } }))
+          ]
         },
         select: { 
           school: { 
@@ -290,7 +318,10 @@ router.post('/identify', validate(identifySchema), async (req, res) => {
       }),
       prisma.teacher.findMany({
         where: { 
-          OR: idVariants.map(id => ({ staffId: { equals: id, mode: 'insensitive' } }))
+          OR: [
+            ...idVariants.map(id => ({ staffId: { equals: id, mode: 'insensitive' } })),
+            ...idVariants.filter(id => id.length >= 4).map(id => ({ staffId: { startsWith: id, mode: 'insensitive' } }))
+          ]
         },
         select: { 
           school: { 
@@ -308,7 +339,10 @@ router.post('/identify', validate(identifySchema), async (req, res) => {
     try {
       rollNoMatches = await prisma.student.findMany({
         where: { 
-          OR: idVariants.map(id => ({ rollNo: { equals: id, mode: 'insensitive' } }))
+          OR: [
+            ...idVariants.map(id => ({ rollNo: { equals: id, mode: 'insensitive' } })),
+            ...idVariants.filter(id => id.length >= 4).map(id => ({ rollNo: { startsWith: id, mode: 'insensitive' } }))
+          ]
         },
         select: { 
           school: { 
@@ -415,7 +449,10 @@ router.post('/login', validate(loginSchema), async (req, res) => {
       user = await prisma.user.findFirst({
         where: {
           schoolId: school.id,
-          OR: idVariants.map(id => ({ username: { equals: id, mode: 'insensitive' } }))
+          OR: [
+            ...idVariants.map(id => ({ username: { equals: id, mode: 'insensitive' } })),
+            ...idVariants.filter(id => id.length >= 4).map(id => ({ username: { startsWith: id, mode: 'insensitive' } }))
+          ]
         },
         select: userSelect
       });
@@ -450,7 +487,10 @@ router.post('/login', validate(loginSchema), async (req, res) => {
               prisma.student.findFirst({
                 where: {
                   schoolId: school.id,
-                  OR: idVariants.map(id => ({ admissionNumber: { equals: id, mode: 'insensitive' } }))
+                  OR: [
+                    ...idVariants.map(id => ({ admissionNumber: { equals: id, mode: 'insensitive' } })),
+                    ...idVariants.filter(id => id.length >= 4).map(id => ({ admissionNumber: { startsWith: id, mode: 'insensitive' } }))
+                  ]
                 },
                 select: { userId: true, user: { select: userSelect } }
               }).catch(err => {
@@ -460,7 +500,10 @@ router.post('/login', validate(loginSchema), async (req, res) => {
               prisma.teacher.findFirst({
                 where: {
                   schoolId: school.id,
-                  OR: idVariants.map(id => ({ staffId: { equals: id, mode: 'insensitive' } }))
+                  OR: [
+                    ...idVariants.map(id => ({ staffId: { equals: id, mode: 'insensitive' } })),
+                    ...idVariants.filter(id => id.length >= 4).map(id => ({ staffId: { startsWith: id, mode: 'insensitive' } }))
+                  ]
                 },
                 select: { userId: true, user: { select: userSelect } }
               }).catch(err => {
@@ -476,7 +519,10 @@ router.post('/login', validate(loginSchema), async (req, res) => {
                 rollNoRecord = await prisma.student.findFirst({
                   where: {
                     schoolId: school.id,
-                    OR: idVariants.map(id => ({ rollNo: { equals: id, mode: 'insensitive' } }))
+                    OR: [
+                      ...idVariants.map(id => ({ rollNo: { equals: id, mode: 'insensitive' } })),
+                      ...idVariants.filter(id => id.length >= 4).map(id => ({ rollNo: { startsWith: id, mode: 'insensitive' } }))
+                    ]
                   },
                   select: { userId: true, user: { select: userSelect } }
                 });
