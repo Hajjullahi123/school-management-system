@@ -23,12 +23,17 @@ const BroadsheetDownload = () => {
 
   const fetchClasses = async () => {
     try {
-      const res = await api.get('/api/classes');
+      const endpoint = user?.role === 'teacher' ? '/api/classes?formMasterOnly=true' : '/api/classes';
+      const res = await api.get(endpoint);
       const data = await res.json();
-      const classesArray = Array.isArray(data) ? data : [];
+      let classesArray = Array.isArray(data) ? data : [];
+
+      if (user?.role === 'teacher') {
+        classesArray = classesArray.filter(c => parseInt(c.classTeacherId) === parseInt(user.id));
+      }
 
       setClasses(classesArray);
-      if (user?.role === 'teacher' && classesArray.length === 1) setSelectedClass(classesArray[0].id.toString());
+      if (user?.role === 'teacher' && classesArray.length > 0) setSelectedClass(classesArray[0].id.toString());
     } catch (error) {
       console.error('Error fetching classes:', error);
     }

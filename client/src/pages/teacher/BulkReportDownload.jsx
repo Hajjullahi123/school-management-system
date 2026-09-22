@@ -49,12 +49,17 @@ const BulkReportDownload = () => {
 
   const fetchClasses = async () => {
     try {
-      const response = await api.get('/api/classes');
+      const endpoint = user?.role === 'teacher' ? '/api/classes?formMasterOnly=true' : '/api/classes';
+      const response = await api.get(endpoint);
       const data = await response.json();
-      const classesArray = Array.isArray(data) ? data : [];
+      let classesArray = Array.isArray(data) ? data : [];
+
+      if (user?.role === 'teacher') {
+        classesArray = classesArray.filter(c => parseInt(c.classTeacherId) === parseInt(user.id));
+      }
 
       setClasses(classesArray);
-      if (user?.role === 'teacher' && classesArray.length === 1) {
+      if (user?.role === 'teacher' && classesArray.length > 0) {
         setSelectedClass(classesArray[0].id.toString());
       }
     } catch (error) {
