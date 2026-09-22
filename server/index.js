@@ -417,7 +417,8 @@ app.get('/api/public/global-settings', async (req, res) => {
     const settings = await prisma.globalSettings.findFirst();
     res.json(settings || { id: 1 });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch settings' });
+    console.error('[GlobalSettings] Error fetching settings:', error.message, error.stack);
+    res.status(500).json({ error: 'Failed to fetch settings', details: error.message });
   }
 });
 
