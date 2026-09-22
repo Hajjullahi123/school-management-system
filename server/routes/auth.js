@@ -209,6 +209,7 @@ const getFullUserPayload = async (userId, schoolId, role) => {
 
 // Helper to construct normalized identifier variations (slash vs dash)
 const getIdentifierVariants = (rawIdentifier) => {
+  if (!rawIdentifier || typeof rawIdentifier !== 'string') return [];
   const trimmed = rawIdentifier.trim();
   const variants = [
     trimmed,
@@ -226,26 +227,35 @@ router.post('/identify', validate(identifySchema), async (req, res) => {
     const searchId = identifier.trim();
     const idVariants = getIdentifierVariants(searchId);
 
+    if (idVariants.length === 0) {
+      return res.status(400).json({ error: 'Valid identifier is required' });
+    }
+
     // Superadmin fast-path (no schoolSlug needed)
-    const superadmin = await prisma.user.findFirst({
-      where: {
-        role: 'superadmin',
-        schoolId: null,
-        OR: [
-          ...idVariants.map(id => ({ username: { equals: id, mode: 'insensitive' } })),
-          ...idVariants.map(id => ({ email: { equals: id, mode: 'insensitive' } }))
-        ]
-      },
-      select: { role: true }
-    });
-    if (superadmin) {
-      return res.json({ schools: [], count: 0, globalAccess: true, message: 'Global admin detected' });
+    try {
+      const superadmin = await prisma.user.findFirst({
+        where: {
+          role: 'superadmin',
+          schoolId: null,
+          OR: [
+            ...idVariants.map(id => ({ username: { equals: id, mode: 'insensitive' } })),
+            ...idVariants.map(id => ({ email: { equals: id, mode: 'insensitive' } }))
+          ]
+        },
+        select: { role: true }
+      });
+      if (superadmin) {
+        return res.json({ schools: [], count: 0, globalAccess: true, message: 'Global admin detected' });
+      }
+    } catch (e) {
+      console.warn('[Identify] Superadmin check error:', e.message);
     }
 
     // 1. PERFORM GLOBAL DISCOVERY
     // Search across Users (username, email, phone, parent phone), Students (admissionNumber, rollNo), and Teachers (staffId)
     const sanitizedPhone = searchId.replace(/\s+/g, '');
     
+    // Core lookups guaranteed by baseline schema
     const [globalUserMatches, studentMatches, teacherMatches] = await Promise.all([
       prisma.user.findMany({
         where: { 
@@ -261,19 +271,22 @@ router.post('/identify', validate(identifySchema), async (req, res) => {
             select: { id: true, name: true, slug: true, logoUrl: true } 
           } 
         }
+      }).catch(err => {
+        console.error('[Identify] User match error:', err.message);
+        return [];
       }),
       prisma.student.findMany({
         where: { 
-          OR: [
-            ...idVariants.map(id => ({ admissionNumber: { equals: id, mode: 'insensitive' } })),
-            ...idVariants.map(id => ({ rollNo: { equals: id, mode: 'insensitive' } }))
-          ]
+          OR: idVariants.map(id => ({ admissionNumber: { equals: id, mode: 'insensitive' } }))
         },
         select: { 
           school: { 
             select: { id: true, name: true, slug: true, logoUrl: true } 
           } 
         }
+      }).catch(err => {
+        console.error('[Identify] Student match error:', err.message);
+        return [];
       }),
       prisma.teacher.findMany({
         where: { 
@@ -284,12 +297,32 @@ router.post('/identify', validate(identifySchema), async (req, res) => {
             select: { id: true, name: true, slug: true, logoUrl: true } 
           } 
         }
+      }).catch(err => {
+        console.error('[Identify] Teacher match error:', err.message);
+        return [];
       })
     ]);
 
+    // Optional rollNo fallback check (if column exists)
+    let rollNoMatches = [];
+    try {
+      rollNoMatches = await prisma.student.findMany({
+        where: { 
+          OR: idVariants.map(id => ({ rollNo: { equals: id, mode: 'insensitive' } }))
+        },
+        select: { 
+          school: { 
+            select: { id: true, name: true, slug: true, logoUrl: true } 
+          } 
+        }
+      });
+    } catch (e) {
+      // Ignore if rollNo column does not exist in database schema
+    }
+
     // Aggregate and deduplicate all matching schools
     const schoolMap = new Map();
-    [...globalUserMatches, ...studentMatches, ...teacherMatches].forEach(match => {
+    [...globalUserMatches, ...studentMatches, ...teacherMatches, ...rollNoMatches].forEach(match => {
       if (match?.school?.id) {
         schoolMap.set(match.school.id, match.school);
       }
@@ -412,17 +445,17 @@ router.post('/login', validate(loginSchema), async (req, res) => {
           });
 
           if (!user) {
-            // Look up student or teacher by their ID numbers (including slash/dash variants & rollNo)
+            // Look up student or teacher by their ID numbers (including slash/dash variants & optional rollNo)
             const [studentRecord, teacherRecord] = await Promise.all([
               prisma.student.findFirst({
                 where: {
                   schoolId: school.id,
-                  OR: [
-                    ...idVariants.map(id => ({ admissionNumber: { equals: id, mode: 'insensitive' } })),
-                    ...idVariants.map(id => ({ rollNo: { equals: id, mode: 'insensitive' } }))
-                  ]
+                  OR: idVariants.map(id => ({ admissionNumber: { equals: id, mode: 'insensitive' } }))
                 },
                 select: { userId: true, user: { select: userSelect } }
+              }).catch(err => {
+                console.error('[Login] Student findFirst error:', err.message);
+                return null;
               }),
               prisma.teacher.findFirst({
                 where: {
@@ -430,15 +463,35 @@ router.post('/login', validate(loginSchema), async (req, res) => {
                   OR: idVariants.map(id => ({ staffId: { equals: id, mode: 'insensitive' } }))
                 },
                 select: { userId: true, user: { select: userSelect } }
+              }).catch(err => {
+                console.error('[Login] Teacher findFirst error:', err.message);
+                return null;
               })
             ]);
 
+            // Optional rollNo fallback check for student
+            let rollNoRecord = null;
+            if (!studentRecord) {
+              try {
+                rollNoRecord = await prisma.student.findFirst({
+                  where: {
+                    schoolId: school.id,
+                    OR: idVariants.map(id => ({ rollNo: { equals: id, mode: 'insensitive' } }))
+                  },
+                  select: { userId: true, user: { select: userSelect } }
+                });
+              } catch (e) {
+                // Ignore if rollNo column does not exist
+              }
+            }
+
             // Get user from linked record
-            user = studentRecord?.user || teacherRecord?.user;
+            const matchedStudent = studentRecord || rollNoRecord;
+            user = matchedStudent?.user || teacherRecord?.user;
 
             // If student/teacher found but userId is null (not linked to a User account yet),
             // return a specific error to avoid the misleading "Invalid credentials" message
-            if (!user && (studentRecord || teacherRecord)) {
+            if (!user && (matchedStudent || teacherRecord)) {
               console.error('[Auth] Login failed: Student/Teacher found but has no linked User account. admissionNumber/staffId:', searchId);
               return res.status(401).json({ 
                 error: 'Your account has not been fully set up yet. Please contact your school administrator to activate your portal access.' 
