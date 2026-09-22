@@ -205,7 +205,7 @@ const getFullUserPayload = async (userId, schoolId, role) => {
     hasQuranAccess: hasQuranAccess,
     departmentAsHead: user.departmentAsHead
   };
-// Helper to construct normalized identifier variations (slash vs dash, spaces, leading zeros, and sub-segments)
+};// Helper to construct normalized identifier variations (slash vs dash, spaces, leading zeros, and sub-segments)
 const getIdentifierVariants = (rawIdentifier) => {
   if (!rawIdentifier || typeof rawIdentifier !== 'string') return [];
   const trimmed = rawIdentifier.trim();
