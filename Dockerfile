@@ -44,4 +44,4 @@ COPY --from=build /app /app
 
 # Start the server by default, this can be overwritten at runtime
 EXPOSE 3000
-CMD [ "npm", "run", "start" ]
+CMD [ "sh", "-c", "npx prisma db push --schema=server/prisma/schema.prisma --skip-generate 2>&1 || echo '[Startup] prisma db push failed, continuing...'; npm run start" ]
