@@ -205,9 +205,7 @@ const getFullUserPayload = async (userId, schoolId, role) => {
     hasQuranAccess: hasQuranAccess,
     departmentAsHead: user.departmentAsHead
   };
-};
-
-// Helper to construct normalized identifier variations (slash vs dash, spaces, and leading zeros)
+};// Helper to construct normalized identifier variations (slash vs dash, spaces, leading zeros, and sub-segments)
 const getIdentifierVariants = (rawIdentifier) => {
   if (!rawIdentifier || typeof rawIdentifier !== 'string') return [];
   const trimmed = rawIdentifier.trim();
@@ -222,8 +220,21 @@ const getIdentifierVariants = (rawIdentifier) => {
     noSpace.replace(/\./g, '/')
   ];
 
+  // Split into segments by separators (/ - . _) to find sub-component variations
+  const segments = noSpace.split(/[\/\-_.]+/).filter(Boolean);
+  if (segments.length > 1) {
+    for (let i = 1; i < segments.length; i++) {
+      const subSegments = segments.slice(i);
+      const subStr = subSegments.join('');
+      if (subStr.length >= 3) {
+        variants.push(subSegments.join('/'));
+        variants.push(subSegments.join('-'));
+      }
+    }
+  }
+
   // Handle leading zero mismatches (e.g. /001 vs /1)
-  const match = noSpace.match(/^(.*?)[/\-._](\d+)$/);
+  const match = noSpace.match(/^(.*?)[/\-._]?(\d+)$/);
   if (match) {
     const prefix = match[1];
     const numStr = match[2];
@@ -237,6 +248,10 @@ const getIdentifierVariants = (rawIdentifier) => {
       variants.push(`${prefix}-${String(num).padStart(3, '0')}`);
       variants.push(`${prefix}${num}`);
       variants.push(`${prefix}${String(num).padStart(3, '0')}`);
+      if (prefix.includes('/')) {
+        variants.push(`${prefix.replace(/\//g, '-')}/${String(num).padStart(3, '0')}`);
+        variants.push(`${prefix.replace(/\//g, '-')}-${String(num).padStart(3, '0')}`);
+      }
     }
   }
 
@@ -304,7 +319,9 @@ router.post('/identify', validate(identifySchema), async (req, res) => {
         where: { 
           OR: [
             ...idVariants.map(id => ({ admissionNumber: { equals: id, mode: 'insensitive' } })),
-            ...idVariants.filter(id => id.length >= 4).map(id => ({ admissionNumber: { startsWith: id, mode: 'insensitive' } }))
+            ...idVariants.filter(id => id.length >= 3).map(id => ({ admissionNumber: { startsWith: id, mode: 'insensitive' } })),
+            ...idVariants.filter(id => id.length >= 3).map(id => ({ admissionNumber: { endsWith: id, mode: 'insensitive' } })),
+            ...idVariants.filter(id => id.length >= 4).map(id => ({ admissionNumber: { contains: id, mode: 'insensitive' } }))
           ]
         },
         select: { 
@@ -320,7 +337,8 @@ router.post('/identify', validate(identifySchema), async (req, res) => {
         where: { 
           OR: [
             ...idVariants.map(id => ({ staffId: { equals: id, mode: 'insensitive' } })),
-            ...idVariants.filter(id => id.length >= 4).map(id => ({ staffId: { startsWith: id, mode: 'insensitive' } }))
+            ...idVariants.filter(id => id.length >= 3).map(id => ({ staffId: { startsWith: id, mode: 'insensitive' } })),
+            ...idVariants.filter(id => id.length >= 4).map(id => ({ staffId: { contains: id, mode: 'insensitive' } }))
           ]
         },
         select: { 
@@ -341,7 +359,8 @@ router.post('/identify', validate(identifySchema), async (req, res) => {
         where: { 
           OR: [
             ...idVariants.map(id => ({ rollNo: { equals: id, mode: 'insensitive' } })),
-            ...idVariants.filter(id => id.length >= 4).map(id => ({ rollNo: { startsWith: id, mode: 'insensitive' } }))
+            ...idVariants.filter(id => id.length >= 3).map(id => ({ rollNo: { startsWith: id, mode: 'insensitive' } })),
+            ...idVariants.filter(id => id.length >= 3).map(id => ({ rollNo: { endsWith: id, mode: 'insensitive' } }))
           ]
         },
         select: { 
