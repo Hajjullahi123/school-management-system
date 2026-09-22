@@ -166,7 +166,11 @@ const Login = () => {
         }
       }
     } catch (err) {
-      setError(err.response?.data?.error || 'Account not found. Please check your username/email.');
+      if (!err.response || err.name === 'TypeError' || (err.message && err.message.toLowerCase().includes('fetch'))) {
+        setError('Unable to connect to the authentication server. Please check your network connection.');
+      } else {
+        setError(err.response?.data?.error || 'Account not found. Please check your username/email.');
+      }
     } finally {
       setLoading(false);
     }

@@ -6,12 +6,16 @@ const isProduction = import.meta.env.PROD;
 const isElectron = window.navigator.userAgent.toLowerCase().includes('electron') || window.location.origin.includes('file://');
 
 const PRODUCTION_URL = 'https://educatechportal.com';
-const DEFAULT_API_PORT = '5115';
+const DEFAULT_API_PORT = '3000';
 
 // Helper to determine the correct API base URL
 const getApiBaseUrl = () => {
   const { hostname, protocol, origin } = window.location;
   
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+
   // Detect if we are running in a Capacitor/Mobile environment
   const isMobileApp = 
     protocol.includes('capacitor') || 
