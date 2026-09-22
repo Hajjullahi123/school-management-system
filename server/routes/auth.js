@@ -205,35 +205,60 @@ const getFullUserPayload = async (userId, schoolId, role) => {
     hasQuranAccess: hasQuranAccess,
     departmentAsHead: user.departmentAsHead
   };
-};// Helper to construct normalized identifier variations (slash vs dash, spaces, leading zeros, and sub-segments)
+};// Helper to construct normalized identifier variations (slash vs dash, spaces, leading zeros, 2-digit/4-digit years, and sub-segments)
 const getIdentifierVariants = (rawIdentifier) => {
   if (!rawIdentifier || typeof rawIdentifier !== 'string') return [];
   const trimmed = rawIdentifier.trim();
   const noSpace = trimmed.replace(/\s+/g, '');
-  
+
   const variants = [
     trimmed,
     noSpace,
-    noSpace.replace(/\//g, '-'),
-    noSpace.replace(/-/g, '/'),
-    noSpace.replace(/_/g, '/'),
-    noSpace.replace(/\./g, '/')
+    noSpace.replace(/[\/\\⁄_.]/g, '-'),
+    noSpace.replace(/[\-\\⁄_.]/g, '/'),
+    noSpace.replace(/[\/\\⁄\-.]/g, '_'),
+    noSpace.replace(/[\/\\⁄\-_]/g, '.')
   ];
 
-  // Split into segments by separators (/ - . _) to find sub-component variations
-  const segments = noSpace.split(/[\/\-_.]+/).filter(Boolean);
+  // 4-digit to 2-digit year (e.g. 2026 -> 26, 2025 -> 25)
+  const year4Match = noSpace.match(/^(.*?)20(\d\d)(.*?)$/);
+  if (year4Match) {
+    const y2Str = year4Match[1] + year4Match[2] + year4Match[3];
+    variants.push(y2Str);
+    variants.push(y2Str.replace(/[\/\\⁄_.]/g, '-'));
+    variants.push(y2Str.replace(/[\-\\⁄_.]/g, '/'));
+  }
+
+  // 2-digit to 4-digit year (e.g. /26/ -> /2026/)
+  const year2Match = noSpace.match(/^(.*?)[/\-._](\d\d)[/\-._](\d+)$/);
+  if (year2Match && parseInt(year2Match[2], 10) >= 20 && parseInt(year2Match[2], 10) <= 35) {
+    const y4Str = `${year2Match[1]}/20${year2Match[2]}/${year2Match[3]}`;
+    variants.push(y4Str);
+    variants.push(y4Str.replace(/\//g, '-'));
+  }
+
+  // Split into segments by separators (/ \ ⁄ - . _) to find sub-component variations
+  const segments = noSpace.split(/[\/\\⁄\-_.]+/).filter(Boolean);
   if (segments.length > 1) {
+    const firstPart = segments[0];
+    const lastPart = segments[segments.length - 1];
+
+    // Combination of first + last (e.g. DQA/001, DQA-001, DQA001)
+    variants.push(`${firstPart}/${lastPart}`);
+    variants.push(`${firstPart}-${lastPart}`);
+    variants.push(`${firstPart}${lastPart}`);
+
     for (let i = 1; i < segments.length; i++) {
       const subSegments = segments.slice(i);
       const subStr = subSegments.join('');
-      if (subStr.length >= 3) {
+      if (subStr.length >= 2) {
         variants.push(subSegments.join('/'));
         variants.push(subSegments.join('-'));
       }
     }
   }
 
-  // Handle leading zero mismatches (e.g. /001 vs /1)
+  // Handle leading zero mismatches (e.g. /001 vs /1 vs /01)
   const match = noSpace.match(/^(.*?)[/\-._]?(\d+)$/);
   if (match) {
     const prefix = match[1];
@@ -430,6 +455,49 @@ router.post('/identify', validate(identifySchema), async (req, res) => {
         fetchedSchools.forEach(s => schoolMap.set(s.id, s));
       } catch (err) {
         console.error('[Identify] Failed to resolve schoolIds:', err.message);
+      }
+    }
+
+    // Fallback: If no direct user/student/teacher match was found and identifier has multi-part structure (e.g. DQA/AL/2026/001)
+    if (schoolMap.size === 0) {
+      const rawParts = searchId.split(/[\/\\⁄\-_.]+/).filter(Boolean);
+      if (rawParts.length > 1) {
+        const prefix = rawParts[0];
+        const suffixNum = rawParts[rawParts.length - 1];
+        try {
+          // Find school matching the prefix (e.g., DQA -> Darul Quran Academy / dqa)
+          const prefixSchool = await prisma.school.findFirst({
+            where: {
+              OR: [
+                { slug: { equals: prefix, mode: 'insensitive' } },
+                { slug: { startsWith: prefix, mode: 'insensitive' } },
+                { name: { contains: prefix, mode: 'insensitive' } }
+              ]
+            },
+            select: { id: true, name: true, slug: true, logoUrl: true }
+          });
+
+          if (prefixSchool) {
+            // Check if there is any student in this school whose admissionNumber/rollNo contains suffixNum or searchId
+            const studentInSchool = await prisma.student.findFirst({
+              where: {
+                schoolId: prefixSchool.id,
+                OR: [
+                  { admissionNumber: { contains: suffixNum, mode: 'insensitive' } },
+                  { admissionNumber: { contains: searchId, mode: 'insensitive' } },
+                  { name: { contains: searchId, mode: 'insensitive' } }
+                ]
+              },
+              select: { id: true }
+            });
+
+            if (studentInSchool) {
+              schoolMap.set(prefixSchool.id, prefixSchool);
+            }
+          }
+        } catch (e) {
+          console.warn('[Identify] School prefix fallback error:', e.message);
+        }
       }
     }
 
