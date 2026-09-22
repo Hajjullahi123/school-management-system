@@ -80,14 +80,9 @@ const ReportCard = () => {
 
   const fetchClasses = async () => {
     try {
-      const endpoint = user?.role === 'teacher' ? '/api/classes?formMasterOnly=true' : '/api/classes';
-      const response = await api.get(endpoint);
+      const response = await api.get('/api/classes');
       const data = await response.json();
-      let classesArray = Array.isArray(data) ? data : [];
-
-      if (user?.role === 'teacher') {
-        classesArray = classesArray.filter(c => parseInt(c.classTeacherId) === parseInt(user.id));
-      }
+      const classesArray = Array.isArray(data) ? data : [];
 
       setClasses(classesArray);
       if (user?.role === 'teacher' && classesArray.length > 0) {

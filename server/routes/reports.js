@@ -40,6 +40,25 @@ const calculateEarlyYearsProgress = (currCode, prevCode) => {
   return 'Maintained';
 };
 
+async function isTeacherAssignedToClass(teacherId, classId, schoolId) {
+  if (!teacherId || !classId) return false;
+  const targetClass = await prisma.class.findFirst({
+    where: { id: parseInt(classId), schoolId: parseInt(schoolId) },
+    select: { classTeacherId: true }
+  });
+  if (targetClass && targetClass.classTeacherId && parseInt(targetClass.classTeacherId) === parseInt(teacherId)) {
+    return true;
+  }
+  const assignment = await prisma.teacherAssignment.findFirst({
+    where: {
+      teacherId: parseInt(teacherId),
+      schoolId: parseInt(schoolId),
+      classSubject: { classId: parseInt(classId) }
+    }
+  });
+  return !!assignment;
+}
+
 async function getEarlyYearsDomainsForClass(schoolId, classId) {
   let domains = [];
   if (classId) {
@@ -281,8 +300,8 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
         }
       }
     } else if (req.user.role === 'teacher') {
-      const isClassTeacher = parseInt(student.classModel?.classTeacherId) === parseInt(req.user.id);
-      if (!isClassTeacher && req.user.role !== 'admin' && req.user.role !== 'principal' && req.user.role !== 'superadmin') {
+      const allowed = await isTeacherAssignedToClass(req.user.id, student.classModel?.id, req.schoolId);
+      if (!allowed) {
         return res.status(403).json({
           error: 'Access Denied',
           message: 'You can only view reports for students in your assigned class.'
@@ -1105,10 +1124,11 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
       return res.status(404).json({ error: 'Class not found' });
     }
 
-    // Verify teacher permission (form master access only)
+    // Verify teacher permission
     if (req.user.role === 'teacher') {
-      if (parseInt(classInfo.classTeacherId) !== parseInt(req.user.id)) {
-        return res.status(403).json({ error: 'You are not the class teacher for this class' });
+      const allowed = await isTeacherAssignedToClass(req.user.id, classId, req.schoolId);
+      if (!allowed) {
+        return res.status(403).json({ error: 'You are not assigned to this class' });
       }
     }
 
@@ -1166,10 +1186,11 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
       orderBy: { startDate: 'asc' }
     });
 
-    // Verify teacher permission (form master access only)
+    // Verify teacher permission
     if (req.user.role === 'teacher') {
-      if (parseInt(classInfo.classTeacherId) !== parseInt(req.user.id)) {
-        return res.status(403).json({ error: 'You are not the class teacher for this class' });
+      const allowed = await isTeacherAssignedToClass(req.user.id, classId, req.schoolId);
+      if (!allowed) {
+        return res.status(403).json({ error: 'You are not assigned to this class' });
       }
     }
 
@@ -1721,10 +1742,11 @@ router.get('/bulk-cumulative/:classId/:sessionId', authenticate, authorize(['adm
       return res.status(404).json({ error: 'Class not found' });
     }
 
-    // Verify teacher permission (form master access only)
+    // Verify teacher permission
     if (req.user.role === 'teacher') {
-      if (parseInt(classInfo.classTeacherId) !== parseInt(req.user.id)) {
-        return res.status(403).json({ error: 'You are not the class teacher for this class' });
+      const allowed = await isTeacherAssignedToClass(req.user.id, classId, req.schoolId);
+      if (!allowed) {
+        return res.status(403).json({ error: 'You are not assigned to this class' });
       }
     }
 
@@ -1986,7 +2008,8 @@ router.get('/cumulative/:studentId/:sessionId', authenticate, async (req, res) =
         }
       }
     } else if (req.user.role === 'teacher') {
-      if (!student.classModel || (parseInt(student.classModel.classTeacherId) !== parseInt(req.user.id) && req.user.role !== 'admin' && req.user.role !== 'principal' && req.user.role !== 'superadmin')) {
+      const allowed = await isTeacherAssignedToClass(req.user.id, student.classModel?.id, req.schoolId);
+      if (!allowed) {
         return res.status(403).json({
           error: 'Access Denied',
           message: 'You can only view reports for students in your assigned class.'
@@ -2591,7 +2614,8 @@ router.get('/progressive/:studentId/:termId/:assessmentType', authenticate, asyn
 
     // Teacher permission check
     if (req.user.role === 'teacher') {
-      if (!student.classModel || parseInt(student.classModel.classTeacherId) !== parseInt(req.user.id)) {
+      const allowed = await isTeacherAssignedToClass(req.user.id, student.classModel?.id, req.schoolId);
+      if (!allowed) {
         return res.status(403).json({
           error: 'Access Denied',
           message: 'You can only view reports for students in your assigned class.'
@@ -2766,7 +2790,8 @@ router.get('/progressive-enhanced/:studentId/:termId', authenticate, async (req,
 
     // Teacher permission check
     if (req.user.role === 'teacher') {
-      if (!student.classModel || parseInt(student.classModel.classTeacherId) !== parseInt(req.user.id)) {
+      const allowed = await isTeacherAssignedToClass(req.user.id, student.classModel?.id, req.schoolId);
+      if (!allowed) {
         return res.status(403).json({ error: 'Access Denied', message: 'You can only view reports for students in your assigned class.' });
       }
     }
@@ -3118,14 +3143,11 @@ router.get('/bulk-progressive/:classId/:termId', authenticate, authorize(['admin
       }
     });
 
-    // Verify teacher has permission for this class (form master check)
+    // Verify teacher has permission for this class
     if (req.user.role === 'teacher') {
-      const classForAuth = await prisma.class.findFirst({
-        where: { id: parseInt(classId), schoolId: req.schoolId },
-        select: { classTeacherId: true }
-      });
-      if (!classForAuth || parseInt(classForAuth.classTeacherId) !== parseInt(req.user.id)) {
-        return res.status(403).json({ error: 'You are not the class teacher for this class' });
+      const allowed = await isTeacherAssignedToClass(req.user.id, classId, req.schoolId);
+      if (!allowed) {
+        return res.status(403).json({ error: 'You are not assigned to this class' });
       }
     }
 

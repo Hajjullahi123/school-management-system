@@ -23,14 +23,9 @@ const BroadsheetDownload = () => {
 
   const fetchClasses = async () => {
     try {
-      const endpoint = user?.role === 'teacher' ? '/api/classes?formMasterOnly=true' : '/api/classes';
-      const res = await api.get(endpoint);
+      const res = await api.get('/api/classes');
       const data = await res.json();
-      let classesArray = Array.isArray(data) ? data : [];
-
-      if (user?.role === 'teacher') {
-        classesArray = classesArray.filter(c => parseInt(c.classTeacherId) === parseInt(user.id));
-      }
+      const classesArray = Array.isArray(data) ? data : [];
 
       setClasses(classesArray);
       if (user?.role === 'teacher' && classesArray.length > 0) setSelectedClass(classesArray[0].id.toString());

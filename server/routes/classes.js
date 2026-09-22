@@ -12,29 +12,25 @@ router.get('/', authenticate, async (req, res) => {
       isActive: true
     };
 
-    // If teacher, return classes they are form master for OR classes they teach subjects in CURRENT TERM
+    // If teacher, return classes they are form master for OR classes they teach subjects in
     if (req.user.role === 'teacher') {
-      if (req.query.formMasterOnly === 'true') {
-        where.classTeacherId = req.user.id;
-      } else {
-        const activeTerm = await prisma.term.findFirst({
-          where: { schoolId: req.schoolId, isCurrent: true }
-        });
-        const termFilter = activeTerm ? { OR: [{ termId: activeTerm.id }, { termId: null }] } : {};
+      const activeTerm = await prisma.term.findFirst({
+        where: { schoolId: req.schoolId, isCurrent: true }
+      });
+      const termFilter = activeTerm ? { OR: [{ termId: activeTerm.id }, { termId: null }] } : {};
 
-        where.OR = [
-          { classTeacherId: req.user.id },
-          {
-            subjects: {
-              some: {
-                assignments: {
-                  some: { teacherId: req.user.id, ...termFilter }
-                }
+      where.OR = [
+        { classTeacherId: req.user.id },
+        {
+          subjects: {
+            some: {
+              assignments: {
+                some: { teacherId: req.user.id, ...termFilter }
               }
             }
           }
-        ];
-      }
+        }
+      ];
     }
 
     const classes = await prisma.class.findMany({
