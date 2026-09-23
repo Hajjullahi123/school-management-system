@@ -131,9 +131,19 @@ const TermReportCard = () => {
       const data = await response.json();
       const classesArray = Array.isArray(data) ? data : [];
 
-      setClasses(classesArray);
-      if (user?.role === 'teacher' && classesArray.length > 0) {
-        setSelectedClassId(classesArray[0].id.toString());
+      let displayClasses = classesArray;
+      if (user?.role === 'teacher') {
+        const allocated = classesArray.filter(
+          (c) => Number(c.classTeacherId) === Number(user.id) || Number(c.classTeacher?.id) === Number(user.id)
+        );
+        if (allocated.length > 0) {
+          displayClasses = allocated;
+        }
+      }
+
+      setClasses(displayClasses);
+      if (user?.role === 'teacher' && displayClasses.length > 0) {
+        setSelectedClassId(displayClasses[0].id.toString());
       }
     } catch (error) {
       console.error('Error fetching classes:', error);
