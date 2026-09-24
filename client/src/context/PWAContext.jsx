@@ -69,6 +69,12 @@ const PWAInstallModal = ({ isOpen, onClose, onNativeInstall, hasNativePrompt, is
           </div>
         ) : (
           <>
+            <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 p-3 rounded-xl mb-4 text-sm text-blue-800 dark:text-blue-300">
+              <p className="font-semibold mb-1">Automatic Install Unavailable</p>
+              <p className="text-xs">
+                Your browser blocked the automatic install prompt. The app might already be installed, or you are in a browser that requires manual installation (like Safari).
+              </p>
+            </div>
             <p className="text-sm text-gray-600 dark:text-gray-300 mb-5 leading-relaxed">
               Install EduTech on your device for quick full-screen access, faster load speeds, offline access, and instant portal notifications!
             </p>
