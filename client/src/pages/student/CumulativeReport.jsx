@@ -124,12 +124,9 @@ const CumulativeReport = () => {
 
       let displayClasses = classesArray;
       if (user?.role === 'teacher') {
-        const allocated = classesArray.filter(
+        displayClasses = classesArray.filter(
           (c) => Number(c.classTeacherId) === Number(user.id) || Number(c.classTeacher?.id) === Number(user.id)
         );
-        if (allocated.length > 0) {
-          displayClasses = allocated;
-        }
       }
 
       setClasses(displayClasses);
