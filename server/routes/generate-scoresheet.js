@@ -201,7 +201,7 @@ router.get('/teacher/:teacherId', authenticate, authorize(['admin', 'teacher', '
             include: {
               _count: {
                 select: {
-                  students: { where: { schoolId: req.schoolId } }
+                  students: { where: { schoolId: req.schoolId, status: { in: ['active', 'ACTIVE'] }, isDeleted: false } }
                 }
               }
             }
@@ -227,7 +227,7 @@ router.get('/teacher/:teacherId', authenticate, authorize(['admin', 'teacher', '
                 include: {
                   _count: {
                     select: {
-                      students: { where: { schoolId: req.schoolId } }
+                      students: { where: { schoolId: req.schoolId, status: { in: ['active', 'ACTIVE'] }, isDeleted: false } }
                     }
                   }
                 }
@@ -304,7 +304,7 @@ router.get('/class/:classId/subject/:subjectId', authenticate, authorize(['admin
         },
         include: {
           students: {
-            where: { schoolId: req.schoolId, status: 'active' }, // Only active students in template
+            where: { schoolId: req.schoolId, status: { in: ['active', 'ACTIVE'] }, isDeleted: false }, // Only active, non-deleted students in template
             include: { user: { select: { firstName: true, lastName: true } } },
             orderBy: { admissionNumber: 'asc' }
           }

@@ -632,11 +632,11 @@ const AdminTeacherDashboard = ({ user, schoolSettings }) => {
                           </div>
                           <div className="flex items-center gap-3">
                             <div className="text-right">
-                              <p className="text-[10px] font-black text-primary leading-none">{Math.round((a.protocolCount / a.totalStudents) * 100) || 0}%</p>
+                              <p className="text-[10px] font-black text-primary leading-none">{a.totalStudents > 0 ? Math.min(100, Math.max(0, Math.round((a.protocolCount / a.totalStudents) * 100))) : 0}%</p>
                               <div className="w-12 h-1 bg-gray-200 rounded-full mt-1 overflow-hidden">
                                 <div 
                                   className="h-full bg-primary transition-all duration-1000" 
-                                  style={{ width: `${Math.round((a.protocolCount / a.totalStudents) * 100) || 0}%` }}
+                                  style={{ width: `${a.totalStudents > 0 ? Math.min(100, Math.max(0, Math.round((a.protocolCount / a.totalStudents) * 100))) : 0}%` }}
                                 ></div>
                               </div>
                             </div>

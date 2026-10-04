@@ -165,6 +165,11 @@ router.get('/class/:classId/subject/:subjectId/term/:termId',
         whereClause.academicSessionId = parseInt(effectiveSessionId);
       }
 
+      whereClause.student = {
+        status: { in: ['active', 'ACTIVE'] },
+        isDeleted: false
+      };
+
       const results = await prisma.result.findMany({
         where: whereClause,
         include: {

@@ -54,7 +54,7 @@ router.get('/download/:classId',
           where: { id: classId, schoolId: req.schoolId },
           include: {
             students: {
-              where: { schoolId: req.schoolId, status: 'active' },
+              where: { schoolId: req.schoolId, status: { in: ['active', 'ACTIVE'] }, isDeleted: false },
               include: { user: { select: { firstName: true, middleName: true, lastName: true } } },
               orderBy: { admissionNumber: 'asc' }
             }

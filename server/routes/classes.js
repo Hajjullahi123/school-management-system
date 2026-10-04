@@ -100,6 +100,7 @@ router.get('/my-class', authenticate, async (req, res) => {
         where: whereClause,
         include: {
           students: {
+            where: { status: { in: ['active', 'ACTIVE'] }, isDeleted: false },
             include: {
               user: {
                 select: {
@@ -128,7 +129,7 @@ router.get('/my-class', authenticate, async (req, res) => {
             }
           },
           _count: {
-            select: { students: { where: { status: 'active', isDeleted: false } } }
+            select: { students: { where: { status: { in: ['active', 'ACTIVE'] }, isDeleted: false } } }
           }
         },
         orderBy: [{ name: 'asc' }, { arm: 'asc' }]
@@ -167,6 +168,7 @@ router.get('/my-class', authenticate, async (req, res) => {
       },
       include: {
         students: {
+          where: { status: { in: ['active', 'ACTIVE'] }, isDeleted: false },
           include: {
             user: {
               select: {
@@ -195,7 +197,7 @@ router.get('/my-class', authenticate, async (req, res) => {
           }
         },
         _count: {
-          select: { students: { where: { status: 'active', isDeleted: false } } }
+          select: { students: { where: { status: { in: ['active', 'ACTIVE'] }, isDeleted: false } } }
         }
       }
     });
@@ -240,6 +242,7 @@ router.get('/:id', authenticate, async (req, res) => {
           }
         },
         students: {
+          where: { status: { in: ['active', 'ACTIVE'] }, isDeleted: false },
           include: {
             user: {
               select: {

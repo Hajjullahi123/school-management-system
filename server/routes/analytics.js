@@ -385,14 +385,18 @@ router.get('/submission-tracking', authenticate, authorize(['admin', 'principal'
       }
     });
 
-    // 2. Get results for current term
+    // 2. Get results for current term (filtered to active, non-deleted students)
     let results = [];
     if (currentSession && currentTerm) {
       results = await prisma.result.findMany({
         where: {
           schoolId: req.schoolId,
           academicSessionId: currentSession.id,
-          termId: currentTerm.id
+          termId: currentTerm.id,
+          student: {
+            status: { in: ['active', 'ACTIVE'] },
+            isDeleted: false
+          }
         },
         select: {
           id: true,
@@ -409,10 +413,14 @@ router.get('/submission-tracking', authenticate, authorize(['admin', 'principal'
       });
     }
 
-    // 3. Get student counts per class
+    // 3. Get active student counts per class
     const studentCounts = await prisma.student.groupBy({
       by: ['classId'],
-      where: { schoolId: req.schoolId },
+      where: {
+        schoolId: req.schoolId,
+        status: { in: ['active', 'ACTIVE'] },
+        isDeleted: false
+      },
       _count: { id: true }
     });
 
