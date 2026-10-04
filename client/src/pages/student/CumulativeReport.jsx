@@ -234,10 +234,15 @@ const CumulativeReport = () => {
     const isLast = index === total - 1;
     const reportColor = rs.reportColorScheme || ss?.reportColorScheme || ss?.primaryColor;
     const reportFont = rs.reportFontFamily || ss?.reportFontFamily || 'serif';
-    const layoutRaw = rs.reportLayout || ss?.reportLayout || 'classic';
-    const isEarlyYears = layoutRaw.startsWith('early_years');
-    const layout = isEarlyYears ? 'early_years' : layoutRaw;
-    const isEarlyYearsReport = layout === 'early_years' || /early|nursery|kg|kindergarten|reception|playgroup|toddler|creche|pre-k|ركن|الركن|روضة|الروضة|تمهيدي|حضانة/i.test(data.student?.class || '');
+    const layoutRawDB = (data.student?.classModel?.reportLayout && data.student.classModel.reportLayout.trim() !== '') 
+      ? data.student.classModel.reportLayout 
+      : ((rs?.reportLayout && rs.reportLayout.trim() !== '') 
+          ? rs.reportLayout 
+          : (ss?.reportLayout || 'classic'));
+    const isExplicitNonEarlyYears = /^(classic|modern|minimal)$/i.test(layoutRawDB);
+    const isEarlyYearsReport = layoutRawDB.startsWith('early_years') || (!isExplicitNonEarlyYears && /early|nursery|kg|kindergarten|reception|playgroup|toddler|creche|pre-k|ركن|الركن|روضة|الروضة|تمهيدي|حضانة/i.test(data.student?.class || ''));
+    const layoutRaw = isEarlyYearsReport ? 'early_years' : layoutRawDB;
+    const layout = layoutRaw;
     const showPosition = rs.showPositionOnReport !== undefined ? rs.showPositionOnReport : ss?.showPositionOnReport !== false;
     const borderStyle = layout === 'minimal' ? 'border-[2px] border-gray-400' : layout === 'modern' ? 'border-[6px] rounded-2xl' : 'border-[12px]';
 

@@ -401,9 +401,15 @@ const ProgressiveReport = () => {
               const reportFont = rs.reportFontFamily || ss?.reportFontFamily || 'sans-serif';
               const showPosition = rs.showPositionOnReport !== undefined ? rs.showPositionOnReport : ss?.showPositionOnReport !== false;
               const showAttendance = (ss?.showAttendanceOnReport !== false) && (rs.showAttendanceOnReport !== false);
-              const layoutRaw = rs.reportLayout || ss?.reportLayout || 'classic';
-              const isEarlyYears = layoutRaw.startsWith('early_years');
-              const layout = isEarlyYears ? 'early_years' : layoutRaw;
+              const layoutRawDB = (data.student?.classModel?.reportLayout && data.student.classModel.reportLayout.trim() !== '') 
+                ? data.student.classModel.reportLayout 
+                : ((rs?.reportLayout && rs.reportLayout.trim() !== '') 
+                    ? rs.reportLayout 
+                    : (ss?.reportLayout || 'classic'));
+              const isExplicitNonEarlyYears = /^(classic|modern|minimal)$/i.test(layoutRawDB);
+              const isEarlyYears = layoutRawDB.startsWith('early_years') || (!isExplicitNonEarlyYears && /early|nursery|kg|kindergarten|reception|playgroup|toddler|creche|pre-k|ركن|الركن|روضة|الروضة|تمهيدي|حضانة/i.test(data.student?.class || ''));
+              const layoutRaw = isEarlyYears ? 'early_years' : layoutRawDB;
+              const layout = layoutRaw;
               const borderStyleCss = layout === 'minimal' ? 'border-[1px] border-gray-300' : layout === 'modern' ? 'border-[6px] rounded-2xl' : 'border-4 border-double';
               const logoUri = ss?.logoUrl
                 ? (ss.logoUrl.startsWith('http') || ss.logoUrl.startsWith('data:') ? ss.logoUrl : `${API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL}${ss.logoUrl.startsWith('/') ? ss.logoUrl : '/' + ss.logoUrl}`)
