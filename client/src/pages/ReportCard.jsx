@@ -8,8 +8,10 @@ import { toast } from '../utils/toast';
 import { formatDateVerbose } from '../utils/formatters';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
+import { useAuth } from '../context/AuthContext';
 
 const ReportCard = () => {
+  const { user } = useAuth();
   const { settings: schoolSettings } = useSchoolSettings();
   const [sessions, setSessions] = useState([]);
   const [terms, setTerms] = useState([]);
