@@ -1,4 +1,5 @@
 import { saveAs } from 'file-saver';
+import { escapeHtml } from '../../utils/sanitize';
 import { safeDocumentDownload } from '../../utils/mobileDownload';
 import React, { useState, useEffect } from 'react';
 import { api, API_BASE_URL } from '../../api';
@@ -205,12 +206,12 @@ const MiscFeePayments = () => {
               <div class="section-title">Student</div>
               <div class="info-group">
                 <div class="info-label">Name</div>
-                <div class="info-value">${payment.student?.user?.firstName || 'Student'} ${payment.student?.user?.lastName || ''}</div>
+                <div class="info-value">${escapeHtml(payment.student?.user?.firstName || 'Student')} ${escapeHtml(payment.student?.user?.lastName || '')}</div>
               </div>
               <div class="section-title">Payment</div>
               <div class="info-group">
                 <div class="info-label">Fee Title</div>
-                <div class="info-value">${payment.fee?.title || 'Misc Fee'}</div>
+                <div class="info-value">${escapeHtml(payment.fee?.title || 'Misc Fee')}</div>
               </div>
               <div class="amount-section">
                 <div class="amount-val">₦${(payment.amount || 0).toLocaleString()}</div>
@@ -286,7 +287,7 @@ const MiscFeePayments = () => {
       <html lang="en">
       <head>
         <meta charset="UTF-8">
-        <title>Receipt - ${payment.student?.admissionNumber || 'N/A'}</title>
+        <title>Receipt - ${escapeHtml(payment.student?.admissionNumber || 'N/A')}</title>
         <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
         <style>
           @page {
@@ -528,28 +529,28 @@ const MiscFeePayments = () => {
             <div class="section-title">Student Details</div>
             <div class="info-group">
               <div class="info-label">Student Name</div>
-              <div class="info-value">${payment.student?.user?.firstName || 'Student'} ${payment.student?.user?.lastName || ''} ${payment.student?.middleName || ''}</div>
+              <div class="info-value">${escapeHtml(payment.student?.user?.firstName || 'Student')} ${escapeHtml(payment.student?.user?.lastName || '')} ${escapeHtml(payment.student?.middleName || '')}</div>
             </div>
             <div class="info-row">
               <div class="info-group">
                 <div class="info-label">Student ID</div>
-                <div class="info-value">${payment.student?.admissionNumber || 'N/A'}</div>
+                <div class="info-value">${escapeHtml(payment.student?.admissionNumber || 'N/A')}</div>
               </div>
               <div class="info-group">
                 <div class="info-label">Class</div>
-                <div class="info-value">${payment.student?.classModel?.name || 'N/A'}</div>
+                <div class="info-value">${escapeHtml(payment.student?.classModel?.name || 'N/A')}</div>
               </div>
             </div>
 
             <div class="section-title" style="margin-top: 1mm;">Payment Info</div>
             <div class="info-group" style="margin-bottom: 1mm;">
               <div class="info-label">Fee Title</div>
-              <div class="info-value">${payment.fee?.title || 'Miscellaneous Fee'}</div>
+              <div class="info-value">${escapeHtml(payment.fee?.title || 'Miscellaneous Fee')}</div>
             </div>
             <div class="info-row">
               <div class="info-group">
                 <div class="info-label">Method</div>
-                <div class="info-value" style="text-transform: uppercase;">${payment.paymentMethod || 'CASH'}</div>
+                <div class="info-value" style="text-transform: uppercase;">${escapeHtml(payment.paymentMethod || 'CASH')}</div>
               </div>
               <div class="info-group">
                 <div class="info-label">Recorded By</div>

@@ -34,13 +34,17 @@ router.get('/', authenticate, authorize(['admin', 'sub_admin', 'principal', 'acc
   try {
     const where = { schoolId: req.schoolId };
 
-    if (req.user.role === 'sub_admin' && req.allowedClassIds && req.allowedClassIds.length > 0) {
-      where.user = {
-        OR: [
-          { classesAsTeacher: { some: { id: { in: req.allowedClassIds } } } },
-          { teacherAssignments: { some: { classSubject: { classId: { in: req.allowedClassIds } } } } }
-        ]
-      };
+    if (req.user.role === 'sub_admin') {
+      if (req.allowedClassIds && req.allowedClassIds.length > 0) {
+        where.user = {
+          OR: [
+            { classesAsTeacher: { some: { id: { in: req.allowedClassIds } } } },
+            { teacherAssignments: { some: { classSubject: { classId: { in: req.allowedClassIds } } } } }
+          ]
+        };
+      } else {
+        where.id = -1;
+      }
     }
 
     const teachers = await prisma.teacher.findMany({

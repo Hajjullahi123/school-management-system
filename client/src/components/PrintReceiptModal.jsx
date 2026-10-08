@@ -1,4 +1,5 @@
 import { saveAs } from 'file-saver';
+import { escapeHtml } from '../utils/sanitize';
 import { safeDocumentDownload } from '../utils/mobileDownload';
 import { useState, useEffect } from 'react';
 import { api, API_BASE_URL } from '../api';
@@ -300,26 +301,26 @@ export default function PrintReceiptModal({ student, isOpen, onClose, currentTer
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
               <div class="info-group">
                 <div class="info-label">Name</div>
-                <div class="info-value" style="font-size: 10px;">${student.user?.firstName || 'Unknown'} ${student.user?.lastName || ''} ${student.middleName || ''}</div>
+                <div class="info-value" style="font-size: 10px;">${escapeHtml(student.user?.firstName || 'Unknown')} ${escapeHtml(student.user?.lastName || '')} ${escapeHtml(student.middleName || '')}</div>
               </div>
               <div class="info-group">
                 <div class="info-label">ID No.</div>
-                <div class="info-value" style="font-size: 10px;">${student.admissionNumber}</div>
+                <div class="info-value" style="font-size: 10px;">${escapeHtml(student.admissionNumber)}</div>
               </div>
             </div>
             <div class="info-group">
               <div class="info-label">Class</div>
-              <div class="info-value">${student.classModel?.name || ''} ${student.classModel?.arm || ''}</div>
+              <div class="info-value">${escapeHtml(student.classModel?.name || '')} ${escapeHtml(student.classModel?.arm || '')}</div>
             </div>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
               <div class="info-group">
                 <div class="info-label">Term</div>
-                <div class="info-value">${termName}</div>
+                <div class="info-value">${escapeHtml(termName)}</div>
               </div>
               <div class="info-group">
                 <div class="info-label">Session</div>
-                <div class="info-value">${sessionName}</div>
+                <div class="info-value">${escapeHtml(sessionName)}</div>
               </div>
             </div>
 
@@ -338,13 +339,13 @@ export default function PrintReceiptModal({ student, isOpen, onClose, currentTer
             ${payment.reference ? `
             <div class="info-group">
               <div class="info-label">Reference</div>
-              <div class="info-value" style="font-family: 'JetBrains Mono'; font-size: 9px;">${payment.reference}</div>
+              <div class="info-value" style="font-family: 'JetBrains Mono'; font-size: 9px;">${escapeHtml(payment.reference)}</div>
             </div>` : ''}
 
             <div class="amount-section">
               <div class="amount-label">Amount Paid</div>
               <div class="amount-value">₦${formatNumber(payment.amount)}</div>
-              ${payment.fee?.title ? `<div style="font-size: 9px; color: #64748b; margin-top: 4px; font-weight: 700; text-transform: uppercase;">FOR: ${payment.fee.title}</div>` : ''}
+              ${payment.fee?.title ? `<div style="font-size: 9px; color: #64748b; margin-top: 4px; font-weight: 700; text-transform: uppercase;">FOR: ${escapeHtml(payment.fee.title)}</div>` : ''}
             </div>
 
             <div style="margin: 10px 0; text-align: center;">
@@ -495,15 +496,15 @@ export default function PrintReceiptModal({ student, isOpen, onClose, currentTer
             <div class="meta-grid">
               <div class="meta-item">
                 <label>Student Name</label>
-                <span>${student.user?.firstName || 'Unknown'} ${student.user?.lastName || ''} ${student.middleName || ''}</span>
+                <span>${escapeHtml(student.user?.firstName || 'Unknown')} ${escapeHtml(student.user?.lastName || '')} ${escapeHtml(student.middleName || '')}</span>
               </div>
               <div class="meta-item">
                 <label>Admission No.</label>
-                <span>${student.admissionNumber}</span>
+                <span>${escapeHtml(student.admissionNumber)}</span>
               </div>
               <div class="meta-item">
                 <label>Current Class</label>
-                <span>${student.classModel?.name || 'N/A'} ${student.classModel?.arm || ''}</span>
+                <span>${escapeHtml(student.classModel?.name || 'N/A')} ${escapeHtml(student.classModel?.arm || '')}</span>
               </div>
               <div class="meta-item">
                 <label>Statement Hash</label>
@@ -897,7 +898,7 @@ export default function PrintReceiptModal({ student, isOpen, onClose, currentTer
       }
     } catch (err) {
       console.error('Print Error:', err);
-      printWindow.document.write(`<div style="color:red; padding:20px;">Error generating receipt: ${err.message}</div>`);
+      printWindow.document.write(`<div style="color:red; padding:20px;">Error generating receipt: ${escapeHtml(err.message)}</div>`);
     }
   };
 

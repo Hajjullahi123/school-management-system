@@ -3,7 +3,7 @@ const router = express.Router();
 const prisma = require('../db');
 const path = require('path');
 const fs = require('fs');
-const { authenticate } = require('../middleware/auth');
+const { authenticate, authorize } = require('../middleware/auth');
 const { logAction } = require('../utils/audit');
 
 const { optionalAuth } = require('../middleware/auth');
@@ -103,7 +103,7 @@ router.get('/', async (req, res) => {
             if (token) {
               try {
                 const jwt = require('jsonwebtoken');
-                const JWT_SECRET = process.env.JWT_SECRET || 'darul-quran-secret-key-change-in-production';
+                const JWT_SECRET = process.env.JWT_SECRET;
                 const decoded = jwt.verify(token, JWT_SECRET);
                 
                 if (decoded?.schoolId) {
@@ -170,15 +170,16 @@ router.get('/', async (req, res) => {
 
     // Sanitize sensitive fields
     const sanitizedSettings = { ...settings };
-    delete sanitizedSettings.paystackSecretKey;
-    delete sanitizedSettings.flutterwaveSecretKey;
-    delete sanitizedSettings.emailPassword;
-    delete sanitizedSettings.smsApiKey;
-    delete sanitizedSettings.twilioAuthToken;
-    delete sanitizedSettings.metaAccessToken;
-    delete sanitizedSettings.metaVerifyToken;
-    delete sanitizedSettings.geminiApiKey;
-    delete sanitizedSettings.groqApiKey;
+    const maskKey = (key) => key ? key.substring(0, 4) + '****' + key.substring(key.length - 4) : key;
+
+    if (sanitizedSettings.paystackSecretKey) sanitizedSettings.paystackSecretKey = maskKey(sanitizedSettings.paystackSecretKey);
+    if (sanitizedSettings.flutterwaveSecretKey) sanitizedSettings.flutterwaveSecretKey = maskKey(sanitizedSettings.flutterwaveSecretKey);
+    if (sanitizedSettings.twilioAuthToken) sanitizedSettings.twilioAuthToken = maskKey(sanitizedSettings.twilioAuthToken);
+    if (sanitizedSettings.emailPassword) sanitizedSettings.emailPassword = '****';
+    if (sanitizedSettings.metaAccessToken) sanitizedSettings.metaAccessToken = maskKey(sanitizedSettings.metaAccessToken);
+    if (sanitizedSettings.geminiApiKey) sanitizedSettings.geminiApiKey = maskKey(sanitizedSettings.geminiApiKey);
+    if (sanitizedSettings.groqApiKey) sanitizedSettings.groqApiKey = maskKey(sanitizedSettings.groqApiKey);
+
     if (schoolSlug || customDomain) {
       delete sanitizedSettings.examInvigilatorToken;
     }
@@ -199,7 +200,7 @@ router.get('/', async (req, res) => {
 });
 
 // Update school settings
-router.put('/', authenticate, async (req, res) => {
+router.put('/', authenticate, authorize(['admin', 'principal', 'superadmin']), async (req, res) => {
   const {
     schoolName, schoolAddress, schoolPhone, schoolEmail, schoolMotto,
     primaryColor, secondaryColor, accentColor,
@@ -381,6 +382,14 @@ router.put('/', authenticate, async (req, res) => {
       updateData.isSetupComplete = true;
     }
 
+    if (updateData.paystackSecretKey && updateData.paystackSecretKey.includes('****')) delete updateData.paystackSecretKey;
+    if (updateData.flutterwaveSecretKey && updateData.flutterwaveSecretKey.includes('****')) delete updateData.flutterwaveSecretKey;
+    if (updateData.twilioAuthToken && updateData.twilioAuthToken.includes('****')) delete updateData.twilioAuthToken;
+    if (updateData.emailPassword && updateData.emailPassword.includes('****')) delete updateData.emailPassword;
+    if (updateData.metaAccessToken && updateData.metaAccessToken.includes('****')) delete updateData.metaAccessToken;
+    if (updateData.geminiApiKey && updateData.geminiApiKey.includes('****')) delete updateData.geminiApiKey;
+    if (updateData.groqApiKey && updateData.groqApiKey.includes('****')) delete updateData.groqApiKey;
+
     const settings = await prisma.school.update({
       where: { id: req.schoolId },
       data: updateData
@@ -533,7 +542,7 @@ router.post('/upload-signature', authenticate, brandingUpload.single('signature'
 });
 
 // Test SMS configuration
-router.post('/test-sms', async (req, res) => {
+router.post('/test-sms', authenticate, authorize(['admin', 'principal', 'superadmin']), async (req, res) => {
   const { smsUsername, smsApiKey, smsSenderId, testPhone } = req.body;
 
   if (!smsUsername || !smsApiKey || !testPhone) {

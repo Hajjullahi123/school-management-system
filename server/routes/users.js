@@ -24,32 +24,36 @@ router.get('/', authenticate, authorize(['admin', 'sub_admin', 'principal', 'acc
     }
 
     // SUB-ADMIN SECTION SCOPING
-    if (req.user.role === 'sub_admin' && req.allowedClassIds && req.allowedClassIds.length > 0) {
-      if (role === 'student') {
-        where.student = { classId: { in: req.allowedClassIds } };
-      } else if (role === 'parent') {
-        where.Parent = {
-          parentChildren: {
-            some: { classId: { in: req.allowedClassIds } }
-          }
-        };
-      } else if (role === 'teacher') {
-        where.OR = [
-          { classesAsTeacher: { some: { id: { in: req.allowedClassIds } } } },
-          { teacherAssignments: { some: { classSubject: { classId: { in: req.allowedClassIds } } } } }
-        ];
-      } else if (!role) {
-        where.AND = [
-          {
-            OR: [
-              { id: req.user.id },
-              { student: { classId: { in: req.allowedClassIds } } },
-              { Parent: { parentChildren: { some: { classId: { in: req.allowedClassIds } } } } },
-              { classesAsTeacher: { some: { id: { in: req.allowedClassIds } } } },
-              { teacherAssignments: { some: { classSubject: { classId: { in: req.allowedClassIds } } } } }
-            ]
-          }
-        ];
+    if (req.user.role === 'sub_admin') {
+      if (req.allowedClassIds && req.allowedClassIds.length > 0) {
+        if (role === 'student') {
+          where.student = { classId: { in: req.allowedClassIds } };
+        } else if (role === 'parent') {
+          where.Parent = {
+            parentChildren: {
+              some: { classId: { in: req.allowedClassIds } }
+            }
+          };
+        } else if (role === 'teacher') {
+          where.OR = [
+            { classesAsTeacher: { some: { id: { in: req.allowedClassIds } } } },
+            { teacherAssignments: { some: { classSubject: { classId: { in: req.allowedClassIds } } } } }
+          ];
+        } else if (!role) {
+          where.AND = [
+            {
+              OR: [
+                { id: req.user.id },
+                { student: { classId: { in: req.allowedClassIds } } },
+                { Parent: { parentChildren: { some: { classId: { in: req.allowedClassIds } } } } },
+                { classesAsTeacher: { some: { id: { in: req.allowedClassIds } } } },
+                { teacherAssignments: { some: { classSubject: { classId: { in: req.allowedClassIds } } } } }
+              ]
+            }
+          ];
+        }
+      } else {
+        where.id = req.user.id;
       }
     }
 
@@ -89,8 +93,12 @@ router.get('/', authenticate, authorize(['admin', 'sub_admin', 'principal', 'acc
     const mappedUsers = users.map(u => {
       if (u.Parent || u.role === 'parent') {
         let wards = u.Parent?.parentChildren || [];
-        if (req.user.role === 'sub_admin' && req.allowedClassIds && req.allowedClassIds.length > 0) {
-          wards = wards.filter(child => child.classId && req.allowedClassIds.includes(child.classId));
+        if (req.user.role === 'sub_admin') {
+          if (req.allowedClassIds && req.allowedClassIds.length > 0) {
+            wards = wards.filter(child => child.classId && req.allowedClassIds.includes(child.classId));
+          } else {
+            wards = [];
+          }
         }
         return {
           ...u,
@@ -559,7 +567,12 @@ router.put('/:id', authenticate, authorize(['admin', 'sub_admin', 'principal', '
       }
 
       // Check section scoping if restricted
-      if (req.allowedClassIds && req.allowedClassIds.length > 0 && user.id !== req.user.id) {
+      if (user.id !== req.user.id) {
+        if (!req.allowedClassIds || req.allowedClassIds.length === 0) {
+          return res.status(403).json({
+            error: 'Sub-admins are not authorized to modify accounts outside their assigned section scope.'
+          });
+        }
         let isAllowed = false;
         if (user.role === 'student' || user.student) {
           isAllowed = user.student && req.allowedClassIds.includes(user.student.classId);
@@ -879,8 +892,12 @@ router.delete('/:id', authenticate, authorize(['admin', 'sub_admin', 'principal'
         });
       }
 
-      if (req.allowedClassIds && req.allowedClassIds.length > 0) {
-        let isAllowed = false;
+      if (!req.allowedClassIds || req.allowedClassIds.length === 0) {
+        return res.status(403).json({
+          error: 'Sub-admins are not authorized to delete accounts outside their assigned section scope.'
+        });
+      }
+      let isAllowed = false;
         if (user.role === 'student' || user.student) {
           isAllowed = user.student && req.allowedClassIds.includes(user.student.classId);
         } else if (user.role === 'parent' || user.Parent) {
@@ -901,7 +918,6 @@ router.delete('/:id', authenticate, authorize(['admin', 'sub_admin', 'principal'
             error: 'Sub-admins are not authorized to delete accounts outside their assigned section scope.'
           });
         }
-      }
     }
 
     // Server-side safety guard for teachers with dependencies

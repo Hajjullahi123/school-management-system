@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import DOMPurify from 'dompurify';
 import { useNavigate } from 'react-router-dom';
 import useSchoolSettings from '../hooks/useSchoolSettings';
 import { API_BASE_URL } from '../api';
@@ -140,7 +141,7 @@ const NewsEvents = () => {
                   </h3>
                   <div
                     className="text-gray-600 text-sm mb-4 line-clamp-3"
-                    dangerouslySetInnerHTML={{ __html: item.content }}
+                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(item.content) }}
                   />
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-gray-500">

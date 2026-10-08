@@ -6,6 +6,7 @@ import { formatDateTime } from '../utils/formatters';
 import { useState } from 'react';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
+import { escapeHtml } from '../utils/sanitize';
 
 export default function PrintScholarshipModal({ student, isOpen, onClose, currentTerm, currentSession }) {
   const { settings: schoolSettings } = useSchoolSettings();
@@ -406,17 +407,17 @@ export default function PrintScholarshipModal({ student, isOpen, onClose, curren
             <div class="student-card">
               <div class="info-grid">
                 <div class="info-label">Full Name</div>
-                <div class="info-value">${student.user?.firstName || 'Unknown'} ${student.user?.lastName || ''}</div>
+                <div class="info-value">${escapeHtml(student.user?.firstName || 'Unknown')} ${escapeHtml(student.user?.lastName || '')}</div>
               </div>
               
               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4mm;">
                 <div>
                   <div class="info-label">Student ID</div>
-                  <div class="info-value">${student.admissionNumber}</div>
+                  <div class="info-value">${escapeHtml(student.admissionNumber)}</div>
                 </div>
                 <div>
                   <div class="info-label">Classification</div>
-                  <div class="info-value" style="font-size: 11px;">${student.classModel?.name || 'N/A'} ${student.classModel?.arm || ''}</div>
+                  <div class="info-value" style="font-size: 11px;">${escapeHtml(student.classModel?.name || 'N/A')} ${escapeHtml(student.classModel?.arm || '')}</div>
                 </div>
               </div>
             </div>
@@ -556,15 +557,15 @@ export default function PrintScholarshipModal({ student, isOpen, onClose, curren
               <h2 class="card-title">Scholarship Card</h2>
               <div class="student-card">
                 <div class="info-label">Full Name</div>
-                <div class="info-value">${student.user?.firstName || ''} ${student.user?.lastName || ''}</div>
+                <div class="info-value">${escapeHtml(student.user?.firstName || '')} ${escapeHtml(student.user?.lastName || '')}</div>
                 <div style="margin-top: 3mm; display: grid; grid-template-columns: 1fr 1fr;">
                   <div>
                     <div class="info-label">Student ID</div>
-                    <div class="info-value">${student.admissionNumber}</div>
+                    <div class="info-value">${escapeHtml(student.admissionNumber)}</div>
                   </div>
                   <div>
                     <div class="info-label">Class</div>
-                    <div class="info-value">${student.classModel?.name || ''} ${student.classModel?.arm || ''}</div>
+                    <div class="info-value">${escapeHtml(student.classModel?.name || '')} ${escapeHtml(student.classModel?.arm || '')}</div>
                   </div>
                 </div>
               </div>

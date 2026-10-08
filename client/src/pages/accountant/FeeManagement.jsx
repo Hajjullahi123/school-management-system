@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { escapeHtml } from '../../utils/sanitize';
 import { saveAs } from 'file-saver';
 import { safeDocumentDownload } from '../../utils/mobileDownload';
 import { api } from '../../api';
@@ -381,7 +382,7 @@ export default function FeeManagement() {
       <html lang="en">
       <head>
         <meta charset="UTF-8">
-        <title>Receipt - ${payment.student.admissionNumber}</title>
+        <title>Receipt - ${escapeHtml(payment.student.admissionNumber)}</title>
         <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
         <style>
           @page {
@@ -623,28 +624,28 @@ export default function FeeManagement() {
             <div class="section-title">Student Details</div>
             <div class="info-group">
               <div class="info-label">Student Name</div>
-              <div class="info-value">${payment.student?.user?.firstName || 'Unknown'} ${payment.student?.user?.lastName || ''}</div>
+              <div class="info-value">${escapeHtml(payment.student?.user?.firstName || 'Unknown')} ${escapeHtml(payment.student?.user?.lastName || '')}</div>
             </div>
             <div class="info-row">
               <div class="info-group">
                 <div class="info-label">Student ID</div>
-                <div class="info-value">${payment.student.admissionNumber}</div>
+                <div class="info-value">${escapeHtml(payment.student.admissionNumber)}</div>
               </div>
               <div class="info-group">
                 <div class="info-label">Class</div>
-                <div class="info-value">${payment.student.classModel?.name || ''} ${payment.student.classModel?.arm || ''}</div>
+                <div class="info-value">${escapeHtml(payment.student.classModel?.name || '')} ${escapeHtml(payment.student.classModel?.arm || '')}</div>
               </div>
             </div>
 
             <div class="section-title" style="margin-top: 1mm;">Payment Info</div>
             <div class="info-group" style="margin-bottom: 1mm;">
               <div class="info-label">Fee Title</div>
-              <div class="info-value">${payment.fee.title}</div>
+              <div class="info-value">${escapeHtml(payment.fee.title)}</div>
             </div>
             <div class="info-row">
               <div class="info-group">
                 <div class="info-label">Method</div>
-                <div class="info-value" style="text-transform: uppercase;">${payment.paymentMethod}</div>
+                <div class="info-value" style="text-transform: uppercase;">${escapeHtml(payment.paymentMethod)}</div>
               </div>
               <div class="info-group">
                 <div class="info-label">Recorded By</div>
@@ -789,12 +790,12 @@ export default function FeeManagement() {
               <div class="section-title">Student</div>
               <div class="info-group">
                 <div class="info-label">Name</div>
-                <div class="info-value">${payment.student?.user?.firstName || ''} ${payment.student?.user?.lastName || ''}</div>
+                <div class="info-value">${escapeHtml(payment.student?.user?.firstName || '')} ${escapeHtml(payment.student?.user?.lastName || '')}</div>
               </div>
               <div class="section-title">Payment</div>
               <div class="info-group">
                 <div class="info-label">Fee Title</div>
-                <div class="info-value">${payment.fee.title}</div>
+                <div class="info-value">${escapeHtml(payment.fee.title)}</div>
               </div>
               <div class="amount-section">
                 <div class="amount-val">₦${payment.amount.toLocaleString()}</div>
@@ -1909,7 +1910,7 @@ export default function FeeManagement() {
     printWindow.document.write(`
       <html>
         <head>
-          <title>${fee.title} - Status Report</title>
+          <title>${escapeHtml(fee.title)} - Status Report</title>
           <style>
             @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
             body { font-family: 'Inter', sans-serif; padding: 40px; color: #1e293b; }
@@ -1932,7 +1933,7 @@ export default function FeeManagement() {
         <body>
           <div class="header">
             <h1 class="school-name">${schoolName}</h1>
-            <div class="report-title">Miscellaneous Fee Status: ${fee.title}</div>
+            <div class="report-title">Miscellaneous Fee Status: ${escapeHtml(fee.title)}</div>
             <div style="font-size: 12px; color: #64748b;">Generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</div>
           </div>
 
@@ -1965,13 +1966,13 @@ export default function FeeManagement() {
             <tbody>
               ${(Array.isArray(fee.classes) ? fee.classes : []).map(cls => `
                 <tr class="class-header">
-                  <td colspan="6">${cls.name} ${cls.arm || ''} (${cls.students.length} students)</td>
+                  <td colspan="6">${escapeHtml(cls.name)} ${escapeHtml(cls.arm || '')} (${cls.students.length} students)</td>
                 </tr>
                 ${(Array.isArray(cls.students) ? cls.students : []).map(s => `
                   <tr>
-                    <td>${s.name}</td>
-                    <td>${cls.name}</td>
-                    <td>${s.admissionNumber}</td>
+                    <td>${escapeHtml(s.name)}</td>
+                    <td>${escapeHtml(cls.name)}</td>
+                    <td>${escapeHtml(s.admissionNumber)}</td>
                     <td>₦${formatNumber(s.totalPaid)}</td>
                     <td>₦${formatNumber(s.balance)}</td>
                     <td class="${s.balance === 0 ? 'status-paid' : 'status-pending'}">
@@ -2026,7 +2027,7 @@ export default function FeeManagement() {
           <div id="detailed-report-capture" class="report-container">
             <div class="header">
               <h1 class="school-name">${schoolName}</h1>
-              <div class="report-title">Miscellaneous Fee Status: ${fee.title}</div>
+              <div class="report-title">Miscellaneous Fee Status: ${escapeHtml(fee.title)}</div>
               <div style="font-size: 10px; color: #64748b;">Generated on ${new Date().toLocaleDateString()}</div>
             </div>
             <div class="stats-grid">
@@ -2057,13 +2058,13 @@ export default function FeeManagement() {
               <tbody>
                 ${(Array.isArray(fee.classes) ? fee.classes : []).map(cls => `
                   <tr class="class-header">
-                    <td colspan="6">${cls.name} ${cls.arm || ''}</td>
+                    <td colspan="6">${escapeHtml(cls.name)} ${escapeHtml(cls.arm || '')}</td>
                   </tr>
                   ${(Array.isArray(cls.students) ? cls.students : []).map(s => `
                     <tr>
-                      <td>${s.name}</td>
-                      <td>${cls.name}</td>
-                      <td>${s.admissionNumber}</td>
+                      <td>${escapeHtml(s.name)}</td>
+                      <td>${escapeHtml(cls.name)}</td>
+                      <td>${escapeHtml(s.admissionNumber)}</td>
                       <td>₦${formatNumber(s.totalPaid)}</td>
                       <td>₦${formatNumber(s.balance)}</td>
                       <td class="${s.balance === 0 ? 'status-paid' : 'status-pending'}">

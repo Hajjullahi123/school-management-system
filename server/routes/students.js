@@ -936,7 +936,10 @@ router.post('/', authenticate, authorize(['admin', 'sub_admin', 'principal', 'ac
     }
 
     // Section Scope check for sub-admin
-    if (req.user.role === 'sub_admin' && req.allowedClassIds && req.allowedClassIds.length > 0) {
+    if (req.user.role === 'sub_admin') {
+      if (!req.allowedClassIds || req.allowedClassIds.length === 0) {
+        return res.status(403).json({ error: 'You are not authorized to add students to any classes.' });
+      }
       if (!req.allowedClassIds.includes(parseInt(classId))) {
         return res.status(403).json({ error: 'You are not authorized to add students to this class (outside your assigned section scope).' });
       }
@@ -1242,8 +1245,11 @@ router.put('/:id', authenticate, authorize(['admin', 'sub_admin', 'principal', '
     const studentId = parseInt(req.params.id);
 
     // Section Scope check for sub-admin
-    if (req.user.role === 'sub_admin' && req.allowedClassIds && req.allowedClassIds.length > 0 && classId) {
-      if (!req.allowedClassIds.includes(parseInt(classId))) {
+    if (req.user.role === 'sub_admin') {
+      if (!req.allowedClassIds || req.allowedClassIds.length === 0) {
+        return res.status(403).json({ error: 'You are not authorized to modify students in any classes.' });
+      }
+      if (classId && !req.allowedClassIds.includes(parseInt(classId))) {
         return res.status(403).json({ error: 'You are not authorized to move students to this class (outside your assigned section scope).' });
       }
     }

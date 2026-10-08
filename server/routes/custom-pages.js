@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const prisma = require('../db');
-const { authenticate } = require('../middleware/auth');
+const { authenticate, authorize } = require('../middleware/auth');
 const { logAction } = require('../utils/audit');
 
 // ================= PUBLIC ROUTES =================
@@ -55,7 +55,7 @@ router.get('/public/:schoolSlug/:pageSlug', async (req, res) => {
 // ================= ADMIN ROUTES =================
 
 // Get all custom pages (Admin)
-router.get('/admin', authenticate, async (req, res) => {
+router.get('/admin', authenticate, authorize(['admin', 'principal', 'superadmin']), async (req, res) => {
   try {
     const pages = await prisma.customPage.findMany({
       where: { schoolId: req.schoolId },
@@ -69,7 +69,7 @@ router.get('/admin', authenticate, async (req, res) => {
 });
 
 // Create a new custom page
-router.post('/admin', authenticate, async (req, res) => {
+router.post('/admin', authenticate, authorize(['admin', 'principal', 'superadmin']), async (req, res) => {
   const { title, slug, content, isActive } = req.body;
   if (!title || !slug || !content) return res.status(400).json({ error: 'Title, slug, and content are required' });
 
@@ -102,7 +102,7 @@ router.post('/admin', authenticate, async (req, res) => {
 });
 
 // Update a custom page
-router.put('/admin/:id', authenticate, async (req, res) => {
+router.put('/admin/:id', authenticate, authorize(['admin', 'principal', 'superadmin']), async (req, res) => {
   const pageId = parseInt(req.params.id);
   const { title, slug, content, isActive } = req.body;
 
@@ -136,7 +136,7 @@ router.put('/admin/:id', authenticate, async (req, res) => {
 });
 
 // Delete a custom page
-router.delete('/admin/:id', authenticate, async (req, res) => {
+router.delete('/admin/:id', authenticate, authorize(['admin', 'principal', 'superadmin']), async (req, res) => {
   const pageId = parseInt(req.params.id);
 
   try {

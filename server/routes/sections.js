@@ -183,7 +183,10 @@ router.put('/:id', authenticate, authorize(['admin', 'sub_admin', 'principal', '
     const sectionId = parseInt(id);
 
     // Sub-Admin Section Scope Validation
-    if (req.user.role === 'sub_admin' && req.assignedSectionIds && req.assignedSectionIds.length > 0) {
+    if (req.user.role === 'sub_admin') {
+      if (!req.assignedSectionIds || req.assignedSectionIds.length === 0) {
+        return res.status(403).json({ error: 'Access denied: You are not assigned to configure any sections.' });
+      }
       if (!req.assignedSectionIds.includes(sectionId)) {
         return res.status(403).json({ error: 'Access denied: You are not assigned to configure this section.' });
       }

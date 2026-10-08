@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { escapeHtml } from '../../utils/sanitize';
 import { api, API_BASE_URL } from '../../api';
 import { toast } from '../../utils/toast';
 import useSchoolSettings from '../../hooks/useSchoolSettings';
@@ -483,15 +484,15 @@ const CBTManagement = () => {
             </div>
 
             <div class="header">
-              <h1 contenteditable="true" title="Click to edit school name">${schoolName}</h1>
-              <h2 contenteditable="true" title="Click to edit paper title">${exam.title}</h2>
+              <h1 contenteditable="true" title="Click to edit school name">${escapeHtml(schoolName)}</h1>
+              <h2 contenteditable="true" title="Click to edit paper title">${escapeHtml(exam.title)}</h2>
             </div>
 
             <div class="meta-grid">
-              <div class="meta-item">Subject: <span contenteditable="true" title="Click to edit subject">${subjectName}</span></div>
-              <div class="meta-item">Class: <span contenteditable="true" title="Click to edit class">${className}</span></div>
-              <div class="meta-item">Term: <span contenteditable="true" title="Click to edit term">${termName}</span></div>
-              <div class="meta-item">Academic Session: <span contenteditable="true" title="Click to edit session">${sessionName}</span></div>
+              <div class="meta-item">Subject: <span contenteditable="true" title="Click to edit subject">${escapeHtml(subjectName)}</span></div>
+              <div class="meta-item">Class: <span contenteditable="true" title="Click to edit class">${escapeHtml(className)}</span></div>
+              <div class="meta-item">Term: <span contenteditable="true" title="Click to edit term">${escapeHtml(termName)}</span></div>
+              <div class="meta-item">Academic Session: <span contenteditable="true" title="Click to edit session">${escapeHtml(sessionName)}</span></div>
               <div class="meta-item">Time Allowed: <span contenteditable="true" title="Click to edit duration">${exam.durationMinutes} Minutes</span></div>
               <div class="meta-item">Student Name: <span contenteditable="true" title="Click to edit name">__________________________</span></div>
             </div>
@@ -502,10 +503,10 @@ const CBTManagement = () => {
                 const maxHStyle = IMAGE_SIZE_CLASSES[imageSize]?.printMaxH ? `max-height: ${IMAGE_SIZE_CLASSES[imageSize].printMaxH};` : 'max-height: 220px;';
                 return `
                 <div class="question">
-                  <div class="question-text">${i + 1}. ${cleanText} (${q.points} marks)</div>
+                  <div class="question-text">${i + 1}. ${escapeHtml(cleanText)} (${q.points} marks)</div>
                   ${diagramUrl ? `<div style="margin: 10px 0;"><img src="${diagramUrl}" class="diagram" style="${maxHStyle}" alt="Diagram" /></div>` : ''}
                   <div class="options">
-                    ${Array.isArray(q.options) ? q.options.map(o => `<div class="option">(${o.id.toUpperCase()}) ${o.text}</div>`).join('') : '<div class="option"><em>Essay / Theory Paper Question (Written Answer Space Provided)</em></div><div style="height:100px; border-bottom:1px dotted #cbd5e1; margin-top:10px;"></div>'}
+                    ${Array.isArray(q.options) ? q.options.map(o => `<div class="option">(${o.id.toUpperCase()}) ${escapeHtml(o.text)}</div>`).join('') : '<div class="option"><em>Essay / Theory Paper Question (Written Answer Space Provided)</em></div><div style="height:100px; border-bottom:1px dotted #cbd5e1; margin-top:10px;"></div>'}
                   </div>
                 </div>
               `;
@@ -645,7 +646,7 @@ const CBTManagement = () => {
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Official CBT Assessment Transcript - ${selectedExam.title}</title>
+        <title>Official CBT Assessment Transcript - ${escapeHtml(selectedExam.title)}</title>
         <style>
           body { font-family: 'Segoe UI', Arial, sans-serif; padding: 25px; color: #0f172a; line-height: 1.5; background: #fff; }
           .page { page-break-after: always; max-width: 800px; margin: 0 auto 40px auto; border: 2px solid #1e3a8a; padding: 25px; border-radius: 12px; position: relative; }
@@ -729,8 +730,8 @@ const CBTManagement = () => {
                 <tr>
                   ${logoUrl ? `<td style="width: 80px;"><img src="${logoUrl}" style="max-height: 70px; max-width: 70px;" /></td>` : ''}
                   <td>
-                    <h1 class="school-title">${schoolName}</h1>
-                    <div class="school-sub">${schoolAddress ? schoolAddress + ' • ' : ''}${schoolPhone ? 'Tel: ' + schoolPhone : ''}</div>
+                    <h1 class="school-title">${escapeHtml(schoolName)}</h1>
+                    <div class="school-sub">${escapeHtml(schoolAddress) ? escapeHtml(schoolAddress) + ' • ' : ''}${schoolPhone ? 'Tel: ' + escapeHtml(schoolPhone) : ''}</div>
                   </td>
                 </tr>
               </table>
@@ -740,14 +741,14 @@ const CBTManagement = () => {
               <div class="grid-2">
                 <div class="info-box">
                   <h4>Candidate Information</h4>
-                  <div class="info-row"><span class="label">Full Name:</span> <span class="val">${studentName}</span></div>
-                  <div class="info-row"><span class="label">Admission No:</span> <span class="val">${admNum}</span></div>
-                  <div class="info-row"><span class="label">Class Level:</span> <span class="val">${selectedExam.class?.name || 'N/A'}</span></div>
+                  <div class="info-row"><span class="label">Full Name:</span> <span class="val">${escapeHtml(studentName)}</span></div>
+                  <div class="info-row"><span class="label">Admission No:</span> <span class="val">${escapeHtml(admNum)}</span></div>
+                  <div class="info-row"><span class="label">Class Level:</span> <span class="val">${escapeHtml(selectedExam.class?.name || 'N/A')}</span></div>
                 </div>
                 <div class="info-box">
                   <h4>Assessment Metadata</h4>
-                  <div class="info-row"><span class="label">Exam Title:</span> <span class="val">${selectedExam.title}</span></div>
-                  <div class="info-row"><span class="label">Subject:</span> <span class="val">${selectedExam.subject?.name || 'N/A'}</span></div>
+                  <div class="info-row"><span class="label">Exam Title:</span> <span class="val">${escapeHtml(selectedExam.title)}</span></div>
+                  <div class="info-row"><span class="label">Subject:</span> <span class="val">${escapeHtml(selectedExam.subject?.name || 'N/A')}</span></div>
                   <div class="info-row"><span class="label">Submitted Date:</span> <span class="val">${subDateStr}</span></div>
                 </div>
               </div>

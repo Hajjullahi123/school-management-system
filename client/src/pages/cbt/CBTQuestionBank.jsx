@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { escapeHtml } from '../../utils/sanitize';
 import { createPortal } from 'react-dom';
 import { api, API_BASE_URL } from '../../api';
 import { toast } from '../../utils/toast';
@@ -701,7 +702,7 @@ const CBTQuestionBank = () => {
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Theory Examination Paper - ${schoolName}</title>
+        <title>Theory Examination Paper - ${escapeHtml(schoolName)}</title>
         <style>
           body { font-family: 'Segoe UI', Arial, sans-serif; padding: 30px; color: #111; line-height: 1.6; background-color: #fff; }
           .no-print { background: #1e1b4b; color: white; padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.15); margin: -30px -30px 25px -30px; }
@@ -743,16 +744,16 @@ const CBTQuestionBank = () => {
 
         <div class="header">
           ${logoUrl ? `<img src="${logoUrl}" class="school-logo" alt="School Logo" />` : ''}
-          <h1 contenteditable="true" title="Click to edit school name">${schoolName}</h1>
-          <h2 contenteditable="true" title="Click to edit paper title">${subjectName} - Written Theory / Essay Examination</h2>
+          <h1 contenteditable="true" title="Click to edit school name">${escapeHtml(schoolName)}</h1>
+          <h2 contenteditable="true" title="Click to edit paper title">${escapeHtml(subjectName)} - Written Theory / Essay Examination</h2>
         </div>
 
         <div class="meta-grid">
-          <div class="meta-item">Subject: <span contenteditable="true" title="Click to edit subject">${subjectName}</span></div>
-          <div class="meta-item">Class: <span contenteditable="true" title="Click to edit class">${className}</span></div>
-          <div class="meta-item">Term: <span contenteditable="true" title="Click to edit term">${termName}</span></div>
-          <div class="meta-item">Academic Session: <span contenteditable="true" title="Click to edit session">${sessionName}</span></div>
-          <div class="meta-item">Time Allowed: <span contenteditable="true" title="Click to edit duration">${timeAllowed}</span></div>
+          <div class="meta-item">Subject: <span contenteditable="true" title="Click to edit subject">${escapeHtml(subjectName)}</span></div>
+          <div class="meta-item">Class: <span contenteditable="true" title="Click to edit class">${escapeHtml(className)}</span></div>
+          <div class="meta-item">Term: <span contenteditable="true" title="Click to edit term">${escapeHtml(termName)}</span></div>
+          <div class="meta-item">Academic Session: <span contenteditable="true" title="Click to edit session">${escapeHtml(sessionName)}</span></div>
+          <div class="meta-item">Time Allowed: <span contenteditable="true" title="Click to edit duration">${escapeHtml(timeAllowed)}</span></div>
           <div class="meta-item">Student Name: <span contenteditable="true" title="Click to edit">__________________________</span></div>
         </div>
 
@@ -768,7 +769,7 @@ const CBTQuestionBank = () => {
           return `
             <div class="question">
               <span class="q-points">[${q.points || 1} Marks]</span>
-              <div class="q-text"><span class="q-num">Q${idx + 1}.</span> ${cleanText}</div>
+              <div class="q-text"><span class="q-num">Q${idx + 1}.</span> ${escapeHtml(cleanText)}</div>
               ${diagramUrl ? `<img src="${diagramUrl}" class="diagram" style="${maxHStyle}" alt="Question Diagram" />` : ''}
               <div class="answer-space"></div>
             </div>
@@ -820,7 +821,7 @@ const CBTQuestionBank = () => {
         <div style="margin-bottom: 25px; page-break-inside: avoid; border-bottom: 1px dashed #f1f5f9; padding-bottom: 15px;">
           <span style="float: right; font-style: italic; color: #64748b; font-size: 13px; font-weight: bold;">[${q.points || 1} Marks]</span>
           <div style="font-size: 15px; font-weight: 600; margin-bottom: 8px; color: #1e293b;">
-            <span style="font-weight: bold; color: #1e1b4b;">Q${idx + 1}.</span> ${cleanText}
+            <span style="font-weight: bold; color: #1e1b4b;">Q${idx + 1}.</span> ${escapeHtml(cleanText)}
           </div>
           ${diagramUrl ? `<img src="${diagramUrl}" style="margin: 10px 0; border: 1px solid #cbd5e1; border-radius: 8px; padding: 4px; object-fit: contain; ${maxHStyle}" alt="Question Diagram" />` : ''}
           <div style="height: 100px; border-bottom: 1px dotted #cbd5e1; margin-top: 15px;"></div>
@@ -832,20 +833,20 @@ const CBTQuestionBank = () => {
       html: `
         <div style="text-align: center; border-bottom: 2px solid #1e1b4b; padding-bottom: 15px; margin-bottom: 25px;">
           ${logoUrl ? `<img src="${logoUrl}" style="height: 70px; width: auto; max-width: 200px; object-fit: contain; margin-bottom: 8px;" alt="School Logo" />` : ''}
-          <h1 style="margin: 0; font-size: 24px; text-transform: uppercase; color: #1e1b4b; font-weight: 800;">${schoolName}</h1>
-          <h2 style="margin: 6px 0 0 0; font-size: 16px; color: #475569; font-weight: 600;">${subjectName} - Written Theory / Essay Examination</h2>
+          <h1 style="margin: 0; font-size: 24px; text-transform: uppercase; color: #1e1b4b; font-weight: 800;">${escapeHtml(schoolName)}</h1>
+          <h2 style="margin: 6px 0 0 0; font-size: 16px; color: #475569; font-weight: 600;">${escapeHtml(subjectName)} - Written Theory / Essay Examination</h2>
         </div>
         <table style="width: 100%; font-weight: 600; margin-bottom: 20px; font-size: 13px; border: 1px solid #e2e8f0; border-collapse: collapse;">
           <tr>
-            <td style="padding: 8px 12px; border: 1px solid #e2e8f0;">Subject: <strong>${subjectName}</strong></td>
-            <td style="padding: 8px 12px; border: 1px solid #e2e8f0;">Class: <strong>${className}</strong></td>
+            <td style="padding: 8px 12px; border: 1px solid #e2e8f0;">Subject: <strong>${escapeHtml(subjectName)}</strong></td>
+            <td style="padding: 8px 12px; border: 1px solid #e2e8f0;">Class: <strong>${escapeHtml(className)}</strong></td>
           </tr>
           <tr>
-            <td style="padding: 8px 12px; border: 1px solid #e2e8f0;">Term: <strong>${termName}</strong></td>
-            <td style="padding: 8px 12px; border: 1px solid #e2e8f0;">Academic Session: <strong>${sessionName}</strong></td>
+            <td style="padding: 8px 12px; border: 1px solid #e2e8f0;">Term: <strong>${escapeHtml(termName)}</strong></td>
+            <td style="padding: 8px 12px; border: 1px solid #e2e8f0;">Academic Session: <strong>${escapeHtml(sessionName)}</strong></td>
           </tr>
           <tr>
-            <td style="padding: 8px 12px; border: 1px solid #e2e8f0;">Time Allowed: <strong>${timeAllowed}</strong></td>
+            <td style="padding: 8px 12px; border: 1px solid #e2e8f0;">Time Allowed: <strong>${escapeHtml(timeAllowed)}</strong></td>
             <td style="padding: 8px 12px; border: 1px solid #e2e8f0;">Student Name: __________________________</td>
           </tr>
         </table>
@@ -904,7 +905,7 @@ const CBTQuestionBank = () => {
             xmlns="http://www.w3.org/TR/REC-html40">
       <head>
         <meta charset="utf-8">
-        <title>${data.subjectName} - Theory Paper</title>
+        <title>${escapeHtml(data.subjectName)} - Theory Paper</title>
         <!--[if gte mso 9]>
         <xml>
           <w:WordDocument>

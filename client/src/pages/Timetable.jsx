@@ -4,6 +4,7 @@ import { api } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useSchoolSettings } from '../hooks/useSchoolSettings';
 import { toast } from '../utils/toast';
+import { escapeHtml } from '../utils/sanitize';
 
 // Constant base days
 const ALL_DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -536,14 +537,14 @@ const Timetable = () => {
 
  printWindow.document.write('<div class="header">');
  printWindow.document.write('<h1>Class Timetable</h1>');
- printWindow.document.write('<h2>' + className + '</h2>');
+ printWindow.document.write('<h2>' + escapeHtml(className) + '</h2>');
  printWindow.document.write('<p>Academic Year: ' + new Date().getFullYear() + '/' + (new Date().getFullYear() + 1) + '</p>');
  printWindow.document.write('</div>');
 
  printWindow.document.write('<table>');
  printWindow.document.write('<thead><tr><th>Time</th>');
  DAYS.forEach(day => {
- printWindow.document.write('<th>' + day + '</th>');
+ printWindow.document.write('<th>' + escapeHtml(day) + '</th>');
  });
  printWindow.document.write('</tr></thead><tbody>');
 
@@ -552,7 +553,7 @@ const Timetable = () => {
 
  timeSlots.forEach(timeSlot => {
  printWindow.document.write('<tr>');
- printWindow.document.write('<td><strong>' + timeSlot + '</strong></td>');
+ printWindow.document.write('<td><strong>' + escapeHtml(timeSlot) + '</strong></td>');
 
  DAYS.forEach(day => {
  const slot = scheduleToUse.find(s => s.dayOfWeek === day && `${s.startTime}-${s.endTime}` === timeSlot);
@@ -575,7 +576,7 @@ const Timetable = () => {
  if (slot.type === 'extra-curricular') content = 'Extra-curricular';
  if (slot.type === 'assembly') content = 'Assembly';
 
- printWindow.document.write('<td class="' + cssClass + '">' + content + '</td>');
+ printWindow.document.write('<td class="' + escapeHtml(cssClass) + '">' + escapeHtml(content) + '</td>');
  } else {
  printWindow.document.write('<td>-</td>');
  }

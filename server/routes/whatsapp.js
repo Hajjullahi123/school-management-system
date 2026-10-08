@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const prisma = require('../db');
-const { authenticate } = require('../middleware/auth');
+const { authenticate, authorize } = require('../middleware/auth');
 const WhatsAppService = require('../services/WhatsAppService');
 const { getWhatsAppHandler } = require('../utils/whatsappConfig');
 const { logAction } = require('../utils/audit');
@@ -350,9 +350,8 @@ router.post('/webhook', async (req, res) => {
 });
 
 // Admin endpoint - View WhatsApp logs
-router.get('/logs', async (req, res) => {
+router.get('/logs', authenticate, authorize(['admin', 'principal', 'superadmin']), async (req, res) => {
   try {
-    // This would need authentication middleware, but omitting for now
     const { schoolId, limit = 50 } = req.query;
 
     const logs = await prisma.whatsAppLog.findMany({

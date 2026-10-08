@@ -131,6 +131,33 @@ class PuppeteerPool {
     try {
       page = await browser.newPage();
 
+      // SECURITY: Block file:// protocol and internal network access
+      await page.setRequestInterception(true);
+      page.on('request', (request) => {
+        const url = request.url();
+        // Block file:// protocol access
+        if (url.startsWith('file://')) {
+          request.abort('accessdenied');
+          return;
+        }
+        // Block internal/metadata IPs
+        const blockedPatterns = [
+          /^https?:\/\/169\.254\./,        // AWS metadata
+          /^https?:\/\/metadata\./,         // GCP metadata  
+          /^https?:\/\/10\./,               // Private network
+          /^https?:\/\/172\.(1[6-9]|2[0-9]|3[01])\./,  // Private network
+          /^https?:\/\/192\.168\./,         // Private network
+          /^https?:\/\/127\./,              // Loopback
+          /^https?:\/\/localhost/,           // Loopback
+          /^https?:\/\/0\.0\.0\.0/,         // Wildcard
+        ];
+        if (blockedPatterns.some(pattern => pattern.test(url))) {
+          request.abort('accessdenied');
+          return;
+        }
+        request.continue();
+      });
+
       // Optimize viewport for standard A4
       await page.setViewport({
         width: 1200,

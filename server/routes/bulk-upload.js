@@ -162,7 +162,7 @@ function addInstructionsSheet(workbook, templateType) {
 
   instructions.forEach(text => helpSheet.addRow({ step: text }));
 }
-const upload = multer({ storage: storage });
+const upload = multer({ storage: storage, limits: { fileSize: 5 * 1024 * 1024 } });
 
 // Download Bulk Student Template (XLSX)
 router.get('/template/students', authenticate, authorize(['admin', 'teacher', 'principal', 'sub_admin']), async (req, res) => {
@@ -174,10 +174,14 @@ router.get('/template/students', authenticate, authorize(['admin', 'teacher', 'p
     const schoolIdInt = parseInt(req.schoolId) || 0;
     const whereClass = { schoolId: schoolIdInt, isActive: true };
 
-    if (req.user.role === 'sub_admin' && req.allowedClassIds && req.allowedClassIds.length > 0) {
-      whereClass.id = { in: req.allowedClassIds };
-    } else if (req.user.role === 'sub_admin' && req.assignedSectionIds && req.assignedSectionIds.length > 0) {
-      whereClass.sectionId = { in: req.assignedSectionIds };
+    if (req.user.role === 'sub_admin') {
+      if (req.allowedClassIds && req.allowedClassIds.length > 0) {
+        whereClass.id = { in: req.allowedClassIds };
+      } else if (req.assignedSectionIds && req.assignedSectionIds.length > 0) {
+        whereClass.sectionId = { in: req.assignedSectionIds };
+      } else {
+        whereClass.id = -1;
+      }
     }
 
     const classes = await prisma.class.findMany({
@@ -422,8 +426,12 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher', 'principal',
         select: { id: true }
       });
       allowedClassIds = new Set(assignedClasses.map(c => c.id));
-    } else if (req.user.role === 'sub_admin' && req.allowedClassIds && req.allowedClassIds.length > 0) {
-      allowedClassIds = new Set(req.allowedClassIds);
+    } else if (req.user.role === 'sub_admin') {
+      if (req.allowedClassIds && req.allowedClassIds.length > 0) {
+        allowedClassIds = new Set(req.allowedClassIds);
+      } else {
+        allowedClassIds = new Set(); // Prevent assigning to any class
+      }
     }
 
     for (const studentData of studentsRaw) {

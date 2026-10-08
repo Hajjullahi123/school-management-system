@@ -216,7 +216,7 @@ router.get('/verify/:reference', authenticate, authorize(['admin']), async (req,
  * @desc    Update platform pricing (For Platform Owners)
  * @access  Admin only (Ideally SuperAdmin, but keeping Admin as per request)
  */
-router.put('/pricing', authenticate, authorize(['admin']), async (req, res) => {
+router.put('/pricing', authenticate, authorize(['superadmin']), async (req, res) => {
   const { basic, standard, premium } = req.body;
 
   try {

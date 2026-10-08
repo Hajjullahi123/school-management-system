@@ -1113,6 +1113,15 @@ router.post('/reset-password', authenticate, authorize(['admin', 'principal']), 
   try {
     const { userId, newPassword } = req.body;
 
+    // Find target user to ensure they belong to the current school
+    const targetUser = await prisma.user.findFirst({
+      where: { id: parseInt(userId), schoolId: req.schoolId }
+    });
+
+    if (!targetUser) {
+      return res.status(404).json({ error: 'User not found in your school' });
+    }
+
     // Hash new password
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(newPassword, salt);
@@ -1188,7 +1197,10 @@ router.post('/impersonate', authenticate, authorize(['admin', 'sub_admin', 'prin
     }
 
     // Section Scope Check for Sub-Admins
-    if (req.user.role === 'sub_admin' && req.allowedClassIds && req.allowedClassIds.length > 0) {
+    if (req.user.role === 'sub_admin') {
+      if (!req.allowedClassIds || req.allowedClassIds.length === 0) {
+        return res.status(403).json({ error: 'Sub-admins cannot log in to accounts outside their assigned section scope.' });
+      }
       let isAllowed = false;
       if (targetUser.role === 'student') {
         const student = await prisma.student.findUnique({ where: { userId: targetUser.id } });

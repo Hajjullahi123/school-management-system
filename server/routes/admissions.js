@@ -7,7 +7,7 @@ const bcrypt = require('bcryptjs');
 const { uploadFile } = require('../services/storageService');
 const { sendEmail } = require('../services/emailService');
 const WhatsAppService = require('../services/WhatsAppService');
-const { authenticate } = require('../middleware/auth');
+const { authenticate, authorize } = require('../middleware/auth');
 const { generateAdmissionNumber, getUniqueAdmissionNumber } = require('../utils/studentUtils');
 const { createOrUpdateFeeRecordWithOpening } = require('../utils/feeCalculations');
 
@@ -916,7 +916,7 @@ router.post('/application/:code/upload-payment-proof', upload.single('paymentPro
  * @route   POST /api/admissions/admin/generate-token
  * @desc    Manually generate a printable admission token
  */
-router.post('/admin/generate-token', authenticate, async (req, res) => {
+router.post('/admin/generate-token', authenticate, authorize(['admin', 'principal', 'superadmin']), async (req, res) => {
   try {
     const { purchaserName, purchaserPhone, gradeLevel } = req.body;
     
@@ -962,7 +962,7 @@ router.post('/admin/generate-token', authenticate, async (req, res) => {
  * @route   POST /api/admissions/admin/create-candidate
  * @desc    Directly register a prospective student from the admin dashboard
  */
-router.post('/admin/create-candidate', authenticate, async (req, res) => {
+router.post('/admin/create-candidate', authenticate, authorize(['admin', 'principal', 'superadmin']), async (req, res) => {
   try {
     const {
       candidateFirstName,
@@ -1050,7 +1050,7 @@ router.post('/admin/create-candidate', authenticate, async (req, res) => {
  *          Sub-admins with section restrictions only see applications
   *          whose gradeLevel matches a class name within their assigned sections.
  */
-router.get('/admin/list', authenticate, async (req, res) => {
+router.get('/admin/list', authenticate, authorize(['admin', 'principal', 'superadmin']), async (req, res) => {
   try {
     const { schoolId } = req;
     const user = req.user;
@@ -1079,7 +1079,7 @@ router.get('/admin/list', authenticate, async (req, res) => {
  * @route   PUT /api/admissions/admin/:id/interview
  * @desc    Reschedule or set interview date for an application
  */
-router.put('/admin/:id/interview', authenticate, async (req, res) => {
+router.put('/admin/:id/interview', authenticate, authorize(['admin', 'principal', 'superadmin']), async (req, res) => {
   const { id } = req.params;
   const { interviewDate, interviewVenue } = req.body;
 
@@ -1112,7 +1112,7 @@ router.put('/admin/:id/interview', authenticate, async (req, res) => {
  * @route   PUT /api/admissions/admin/:id/examination-date
  * @desc    Set or reschedule examination date, venue, and batch for an application
  */
-router.put('/admin/:id/examination-date', authenticate, async (req, res) => {
+router.put('/admin/:id/examination-date', authenticate, authorize(['admin', 'principal', 'superadmin']), async (req, res) => {
   const { id } = req.params;
   const { examinationDate, examVenue, batchName } = req.body;
 
@@ -1146,7 +1146,7 @@ router.put('/admin/:id/examination-date', authenticate, async (req, res) => {
  * @route   POST /api/admissions/admin/bulk-schedule
  * @desc    Bulk assign examination date, venue, batch, and interview date to multiple applicants
  */
-router.post('/admin/bulk-schedule', authenticate, async (req, res) => {
+router.post('/admin/bulk-schedule', authenticate, authorize(['admin', 'principal', 'superadmin']), async (req, res) => {
   const { applicationIds, examinationDate, examVenue, interviewDate, interviewVenue, batchName } = req.body;
 
   if (!Array.isArray(applicationIds) || applicationIds.length === 0) {
@@ -1182,7 +1182,7 @@ router.post('/admin/bulk-schedule', authenticate, async (req, res) => {
  * @route   PUT /api/admissions/admin/:id/exam-score
  * @desc    Manually record or override entrance exam score (for paper or CBT exams)
  */
-router.put('/admin/:id/exam-score', authenticate, async (req, res) => {
+router.put('/admin/:id/exam-score', authenticate, authorize(['admin', 'principal', 'superadmin']), async (req, res) => {
   const { id } = req.params;
   const { examScore, examTotalMarks, examPassed, adminRemarks } = req.body;
 
@@ -1227,7 +1227,7 @@ router.put('/admin/:id/exam-score', authenticate, async (req, res) => {
  * @route   GET /api/admissions/admin/exam-questions
  * @desc    List all entrance exam questions for current school
  */
-router.get('/admin/exam-questions', authenticate, async (req, res) => {
+router.get('/admin/exam-questions', authenticate, authorize(['admin', 'principal', 'superadmin']), async (req, res) => {
   try {
     const questions = await prisma.admissionExamQuestion.findMany({
       where: { schoolId: req.schoolId },
@@ -1244,7 +1244,7 @@ router.get('/admin/exam-questions', authenticate, async (req, res) => {
  * @route   POST /api/admissions/admin/exam-questions
  * @desc    Create a new entrance exam question
  */
-router.post('/admin/exam-questions', authenticate, async (req, res) => {
+router.post('/admin/exam-questions', authenticate, authorize(['admin', 'principal', 'superadmin']), async (req, res) => {
   const { questionText, questionType = 'multiple_choice', options, correctOption, points = 1.0, isActive = true } = req.body;
 
   if (!questionText || !options || !correctOption) {
@@ -1276,7 +1276,7 @@ router.post('/admin/exam-questions', authenticate, async (req, res) => {
  * @route   PUT /api/admissions/admin/exam-questions/:id
  * @desc    Update an entrance exam question
  */
-router.put('/admin/exam-questions/:id', authenticate, async (req, res) => {
+router.put('/admin/exam-questions/:id', authenticate, authorize(['admin', 'principal', 'superadmin']), async (req, res) => {
   const { id } = req.params;
   const { questionText, questionType, options, correctOption, points, isActive } = req.body;
 
@@ -1313,7 +1313,7 @@ router.put('/admin/exam-questions/:id', authenticate, async (req, res) => {
  * @route   DELETE /api/admissions/admin/exam-questions/:id
  * @desc    Delete an entrance exam question
  */
-router.delete('/admin/exam-questions/:id', authenticate, async (req, res) => {
+router.delete('/admin/exam-questions/:id', authenticate, authorize(['admin', 'principal', 'superadmin']), async (req, res) => {
   const { id } = req.params;
 
   try {
@@ -1340,7 +1340,7 @@ router.delete('/admin/exam-questions/:id', authenticate, async (req, res) => {
  * @route   PUT /api/admissions/admin/:id/status
  * @desc    Change application status or manually verify offline payment
  */
-router.put('/admin/:id/status', authenticate, async (req, res) => {
+router.put('/admin/:id/status', authenticate, authorize(['admin', 'principal', 'superadmin']), async (req, res) => {
   const { id } = req.params;
   const { status, paymentStatus } = req.body;
 
@@ -1385,7 +1385,7 @@ router.put('/admin/:id/status', authenticate, async (req, res) => {
  * @route   POST /api/admissions/admin/:id/convert
  * @desc    Convert an admitted applicant into an active Student/User/Parent
  */
-router.post('/admin/:id/convert', authenticate, async (req, res) => {
+router.post('/admin/:id/convert', authenticate, authorize(['admin', 'principal', 'superadmin']), async (req, res) => {
   const { id } = req.params;
   const { classId, admissionNumberOverride } = req.body;
 

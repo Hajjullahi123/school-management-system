@@ -1684,7 +1684,7 @@ router.post('/sync-records', authenticate, authorize(['admin', 'principal', 'acc
 });
 
 // RESET STUDENT LEDGER - Wipes all fee records and payments for a student
-router.delete('/student/:studentId/reset', async (req, res) => {
+router.delete('/student/:studentId/reset', authenticate, authorize(['admin', 'accountant']), async (req, res) => {
   try {
     const { studentId } = req.params;
 

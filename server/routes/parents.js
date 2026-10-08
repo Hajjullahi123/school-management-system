@@ -420,12 +420,16 @@ router.get('/', authenticate, authorize(['admin', 'principal', 'accountant', 'ex
   try {
     const where = { schoolId: req.schoolId };
 
-    if (req.user.role === 'sub_admin' && req.allowedClassIds && req.allowedClassIds.length > 0) {
-      where.parentChildren = {
-        some: {
-          classId: { in: req.allowedClassIds }
-        }
-      };
+    if (req.user.role === 'sub_admin') {
+      if (req.allowedClassIds && req.allowedClassIds.length > 0) {
+        where.parentChildren = {
+          some: {
+            classId: { in: req.allowedClassIds }
+          }
+        };
+      } else {
+        where.id = -1; // Return no results if no classes assigned
+      }
     }
 
     const enhancedParents = await prisma.parent.findMany({
@@ -444,8 +448,12 @@ router.get('/', authenticate, authorize(['admin', 'principal', 'accountant', 'ex
 
     const mappedParents = enhancedParents.map(p => {
       let wards = p.parentChildren || [];
-      if (req.user.role === 'sub_admin' && req.allowedClassIds && req.allowedClassIds.length > 0) {
-        wards = wards.filter(child => child.classId && req.allowedClassIds.includes(child.classId));
+      if (req.user.role === 'sub_admin') {
+        if (req.allowedClassIds && req.allowedClassIds.length > 0) {
+          wards = wards.filter(child => child.classId && req.allowedClassIds.includes(child.classId));
+        } else {
+          wards = [];
+        }
       }
       return {
         ...p,
