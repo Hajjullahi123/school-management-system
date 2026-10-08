@@ -167,4 +167,68 @@ router.post('/trigger', authenticate, checkSubscription, authorize(['admin']), a
   }
 });
 
+/**
+ * @route   GET /api/backup/superadmin/export/:schoolId
+ * @desc    Export ALL data for a specific school as a JSON file (Superadmin only)
+ * @access  Superadmin only
+ */
+router.get('/superadmin/export/:schoolId', authenticate, authorize(['superadmin']), async (req, res) => {
+  try {
+    const schoolId = req.params.schoolId;
+
+    const school = await prisma.school.findUnique({ where: { id: schoolId } });
+    if (!school) return res.status(404).json({ error: 'School not found' });
+
+    // Fetch all related data sequentially to minimize concurrent database connections
+    const users = await prisma.user.findMany({ where: { schoolId } });
+    const students = await prisma.student.findMany({ where: { schoolId } });
+    const teachers = await prisma.teacher.findMany({ where: { schoolId } });
+    const classes = await prisma.class.findMany({ where: { schoolId } });
+    const subjects = await prisma.subject.findMany({ where: { schoolId } });
+    const academicSessions = await prisma.academicSession.findMany({ where: { schoolId } });
+    const terms = await prisma.term.findMany({ where: { schoolId } });
+    const feeRecords = await prisma.feeRecord.findMany({ where: { schoolId } });
+    const feePayments = await prisma.feePayment.findMany({ where: { schoolId } });
+    const results = await prisma.result.findMany({ where: { schoolId } });
+    const attendance = await prisma.attendanceRecord.findMany({ where: { schoolId } });
+    const homework = await prisma.homework.findMany({ where: { schoolId } });
+    const learningResources = await prisma.learningResource.findMany({ where: { schoolId } });
+    const messages = await prisma.parentTeacherMessage.findMany({ where: { schoolId } });
+    const notices = await prisma.notice.findMany({ where: { schoolId } });
+    const newsEvents = await prisma.newsEvent.findMany({ where: { schoolId } });
+    const gallery = await prisma.galleryImage.findMany({ where: { schoolId } });
+    const cbtExams = await prisma.cBTExam.findMany({ where: { schoolId } });
+    const alumni = await prisma.alumni.findMany({ where: { schoolId } });
+    const auditLogs = await prisma.auditLog.findMany({ where: { schoolId }, take: 500 });
+
+    const backupData = {
+      exportDate: new Date().toISOString(),
+      version: "1.0.0",
+      school,
+      data: {
+        users, students, teachers, classes, subjects, academicSessions, terms,
+        feeRecords, feePayments, results, attendance, homework, learningResources,
+        messages, notices, newsEvents, gallery, cbtExams, alumni, auditLogs
+      }
+    };
+
+    res.setHeader('Content-disposition', `attachment; filename=backup_${school.slug}_${Date.now()}.json`);
+    res.setHeader('Content-type', 'application/json');
+    res.send(JSON.stringify(backupData, null, 2));
+
+    logAction({
+      schoolId: req.schoolId, // The superadmin's logged-in school scope
+      userId: req.user.id,
+      action: 'EXPORT_DATA_JSON_SUPERADMIN',
+      resource: 'BACKUP',
+      details: { format: 'json', targetSchoolId: schoolId },
+      ipAddress: req.ip
+    });
+
+  } catch (error) {
+    console.error('Superadmin Export error:', error);
+    res.status(500).json({ error: 'Failed to generate data export' });
+  }
+});
+
 module.exports = router;
