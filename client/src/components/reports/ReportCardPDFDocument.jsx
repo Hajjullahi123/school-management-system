@@ -745,7 +745,7 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
                       </View>
                       <View style={{ flex: 1, textAlign: 'center', paddingHorizontal: 6 }}>
                         <Text style={{ fontSize: 13, fontWeight: 'bold', textTransform: 'uppercase', color: reportColor }}>
-                          {schoolSettings.name || schoolSettings.schoolName || 'AL-BAYYINAH BASIC / TAHFEEDH SCHOOL'}
+                          {data.student?.classModel?.section?.reportName || schoolSettings.name || schoolSettings.schoolName || 'AL-BAYYINAH BASIC / TAHFEEDH SCHOOL'}
                         </Text>
                         {schoolSettings.motto && (
                           <Text style={{ fontSize: 7.5, fontStyle: 'italic', marginTop: 1.5, textTransform: 'uppercase', color: '#374151' }}>
@@ -906,7 +906,7 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
                     {/* Center Info */}
                     <View style={{ flex: 1, textAlign: 'center', paddingHorizontal: 6 }}>
                       <Text style={{ fontSize: 13, fontWeight: 'bold', textTransform: 'uppercase', color: reportColor }}>
-                        {schoolSettings.name || schoolSettings.schoolName || 'AL-BAYYINAH BASIC / TAHFEEDH SCHOOL'}
+                        {data.student?.classModel?.section?.reportName || schoolSettings.name || schoolSettings.schoolName || 'AL-BAYYINAH BASIC / TAHFEEDH SCHOOL'}
                       </Text>
                       {schoolSettings.motto && (
                         <Text style={{ fontSize: 7, fontStyle: 'italic', marginTop: 1, textTransform: 'uppercase', color: '#374151' }}>
@@ -1276,7 +1276,7 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
                     {/* Center Info */}
                     <View style={{ flex: 1, textAlign: 'center', paddingHorizontal: 6 }}>
                       <Text style={{ fontSize: 13, fontWeight: 'bold', textTransform: 'uppercase', color: reportColor }}>
-                        {schoolSettings.name || schoolSettings.schoolName || 'AL-BAYYINAH BASIC / TAHFEEDH SCHOOL'}
+                        {data.student?.classModel?.section?.reportName || schoolSettings.name || schoolSettings.schoolName || 'AL-BAYYINAH BASIC / TAHFEEDH SCHOOL'}
                       </Text>
                       {schoolSettings.motto && (
                         <Text style={{ fontSize: 7, fontStyle: 'italic', marginTop: 1, textTransform: 'uppercase', color: '#374151' }}>

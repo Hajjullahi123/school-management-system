@@ -1831,6 +1831,7 @@ model Section {
   id                Int                  @id @default(autoincrement())
   schoolId          Int
   name              String
+  reportName        String?
   code              String?
   assignment1Weight Int                  @default(5)
   assignment2Weight Int                  @default(5)

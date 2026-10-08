@@ -572,10 +572,10 @@ const ReportCard = () => {
             {/* PROTECTION WATERMARK */}
             <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-[0.06] select-none rotate-12 overflow-hidden">
               <div className="text-[100px] font-black uppercase text-gray-900 leading-[0.8] text-center">
-                {schoolSettings?.schoolName || 'OFFICIAL RESULT'}<br />
-                {schoolSettings?.schoolName || 'OFFICIAL RESULT'}<br />
-                {schoolSettings?.schoolName || 'OFFICIAL RESULT'}<br />
-                {schoolSettings?.schoolName || 'OFFICIAL RESULT'}
+                {reportData?.student?.classModel?.section?.reportName || schoolSettings?.schoolName || 'OFFICIAL RESULT'}<br />
+                {reportData?.student?.classModel?.section?.reportName || schoolSettings?.schoolName || 'OFFICIAL RESULT'}<br />
+                {reportData?.student?.classModel?.section?.reportName || schoolSettings?.schoolName || 'OFFICIAL RESULT'}<br />
+                {reportData?.student?.classModel?.section?.reportName || schoolSettings?.schoolName || 'OFFICIAL RESULT'}
               </div>
             </div>
 
@@ -598,7 +598,7 @@ const ReportCard = () => {
 
                 <div className="flex-1 text-center">
                   <h1 className="text-2xl font-extrabold uppercase tracking-wider leading-tight" style={{ color: '#000000' }}>
-                    {schoolSettings?.schoolName || 'SCHOOL NAME'}
+                    {reportData?.student?.classModel?.section?.reportName || schoolSettings?.schoolName || 'SCHOOL NAME'}
                   </h1>
                   <p className="text-sm font-bold italic text-gray-700">{schoolSettings?.schoolMotto || 'Excellence and Dedication'}</p>
                   <p className="text-xs font-bold">{schoolSettings?.address || 'School Address Location'}, TEL: {schoolSettings?.phone || '000000'}, Email: {schoolSettings?.email || 'email@school.com'}</p>

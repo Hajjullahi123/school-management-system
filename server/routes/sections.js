@@ -96,6 +96,7 @@ router.post('/', authenticate, authorize(['admin', 'principal', 'superadmin']), 
     const schoolIdInt = parseInt(req.schoolId);
     const {
       name,
+      reportName,
       code,
       assignment1Weight = 5,
       assignment2Weight = 5,
@@ -129,6 +130,7 @@ router.post('/', authenticate, authorize(['admin', 'principal', 'superadmin']), 
       data: {
         schoolId: schoolIdInt,
         name: name.trim(),
+        reportName: reportName ? reportName.trim() : null,
         code: code ? code.trim().toUpperCase() : null,
         assignment1Weight: a1,
         assignment2Weight: a2,
@@ -168,6 +170,7 @@ router.put('/:id', authenticate, authorize(['admin', 'sub_admin', 'principal', '
     const schoolIdInt = parseInt(req.schoolId);
     const {
       name,
+      reportName,
       code,
       assignment1Weight,
       assignment2Weight,
@@ -220,6 +223,7 @@ router.put('/:id', authenticate, authorize(['admin', 'sub_admin', 'principal', '
       where: { id: sectionId },
       data: {
         name: name ? name.trim() : existing.name,
+        reportName: reportName !== undefined ? (reportName ? reportName.trim() : null) : existing.reportName,
         code: code !== undefined ? (code ? code.trim().toUpperCase() : null) : existing.code,
         assignment1Weight: a1,
         assignment2Weight: a2,

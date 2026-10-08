@@ -252,6 +252,7 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
             schoolId: true,
             name: true,
             arm: true,
+            section: true,
             showPositionOnReport: true,
             showFeesOnReport: true,
             showAttendanceOnReport: true,
@@ -1201,7 +1202,7 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
       include: {
         user: { select: { firstName: true, lastName: true, photoUrl: true } },
         classModel: {
-          include: { classTeacher: { select: { firstName: true, lastName: true, signatureUrl: true } } }
+          include: { section: true, classTeacher: { select: { firstName: true, lastName: true, signatureUrl: true } } }
         }
       },
       orderBy: { admissionNumber: 'asc' }
@@ -1780,7 +1781,7 @@ router.get('/bulk-cumulative/:classId/:sessionId', authenticate, authorize(['adm
       include: {
         user: { select: { firstName: true, lastName: true, photoUrl: true } },
         classModel: {
-          include: { classTeacher: { select: { firstName: true, lastName: true, signatureUrl: true } } }
+          include: { section: true, classTeacher: { select: { firstName: true, lastName: true, signatureUrl: true } } }
         }
       },
       orderBy: { admissionNumber: 'asc' }
@@ -1954,6 +1955,7 @@ router.get('/cumulative/:studentId/:sessionId', authenticate, async (req, res) =
         },
         classModel: {
           include: {
+            section: true,
             classTeacher: {
               select: {
                 firstName: true,
@@ -2354,7 +2356,7 @@ router.get('/bulk-cumulative/:classId/:sessionId', authenticate, authorize(['adm
       include: {
         user: { select: { firstName: true, lastName: true, photoUrl: true } },
         classModel: {
-          include: { classTeacher: { select: { firstName: true, lastName: true, signatureUrl: true } } }
+          include: { section: true, classTeacher: { select: { firstName: true, lastName: true, signatureUrl: true } } }
         }
       }
     });
@@ -2597,6 +2599,7 @@ router.get('/progressive/:studentId/:termId/:assessmentType', authenticate, asyn
         },
         classModel: {
           include: {
+            section: true,
             classTeacher: {
               select: {
                 firstName: true,
@@ -2773,6 +2776,7 @@ router.get('/progressive-enhanced/:studentId/:termId', authenticate, async (req,
         user: { select: { firstName: true, lastName: true, photoUrl: true } },
         classModel: {
           include: {
+            section: true,
             classTeacher: { select: { firstName: true, lastName: true, signatureUrl: true } }
           }
         }
@@ -3177,7 +3181,7 @@ router.get('/bulk-progressive/:classId/:termId', authenticate, authorize(['admin
       where: { classId: parseInt(classId), schoolId: req.schoolId, status: 'active' },
       include: {
         user: { select: { firstName: true, lastName: true, photoUrl: true } },
-        classModel: { include: { classTeacher: { select: { firstName: true, lastName: true, signatureUrl: true } } } }
+        classModel: { include: { section: true, classTeacher: { select: { firstName: true, lastName: true, signatureUrl: true } } } }
       }
     });
     const numStudentsInClass = allStudentsInClass.length;
@@ -3404,7 +3408,7 @@ router.get('/verify/:type/:studentId/:targetId', async (req, res) => {
       where: { id: parseInt(studentId) },
       include: {
         user: { select: { firstName: true, lastName: true, photoUrl: true } },
-        classModel: true,
+        classModel: { include: { section: true } },
         school: { select: { id: true, name: true, logoUrl: true, address: true, primaryColor: true, gradingSystem: true } }
       }
     });
