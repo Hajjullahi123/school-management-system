@@ -399,7 +399,7 @@ const SectionWeightingsConfig = () => {
                   <label className="block text-[9px] uppercase font-black text-slate-500 mb-1">Report Card Display Name (Optional)</label>
                   <input
                     type="text"
-                    placeholder="e.g. OFFICIAL RESULT"
+                    placeholder="e.g. Darul Qur'an - Primary Section"
                     value={sec.reportName || ''}
                     onChange={(e) => setSections(sections.map(s => s.id === sec.id ? { ...s, reportName: e.target.value } : s))}
                     className="w-full text-left px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-900 focus:bg-white focus:ring-2 focus:ring-indigo-500"
@@ -929,7 +929,7 @@ const SectionWeightingsConfig = () => {
                 <label className="block text-xs font-black uppercase text-slate-600 mb-1">Report Card Display Name (Optional)</label>
                 <input
                   type="text"
-                  placeholder="e.g. AL-BAYYINAH BASIC SCHOOL"
+                  placeholder="e.g. Darul Qur'an - Primary Section"
                   value={sectionForm.reportName || ''}
                   onChange={(e) => setSectionForm({ ...sectionForm, reportName: e.target.value })}
                   className="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-2xl font-bold text-slate-900 text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500"
