@@ -1493,22 +1493,30 @@ Note: Password must be changed on first login.
                       </div>
                     )}
 
-                    {editingStudent && (
-                      <div className="bg-gray-50/50 p-4 rounded-2xl border border-dashed border-gray-200">
-                        <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Update Student Photo</h4>
-                        <PhotoUpload
-                          studentId={editingStudent.id}
-                          currentPhotoUrl={editingStudent.photoUrl}
-                          onPhotoUpload={(photoUrl) => {
-                            setEditingStudent({ ...editingStudent, photoUrl });
-                            fetchStudents();
-                          }}
-                        />
-                      </div>
-                    )}
+
                   </div>
                 </div>
 
+
+              {/* ── Student Photo — bottom of form ── */}
+              {editingStudent && (
+                <div className="pt-6 border-t border-gray-100">
+                  <div className="flex items-center gap-2 text-violet-600 font-black uppercase text-[10px] tracking-widest mb-4">
+                    <div className="w-8 h-px bg-violet-600/20"></div>
+                    Student Passport Photo
+                  </div>
+                  <div className="max-w-xs">
+                    <PhotoUpload
+                      studentId={editingStudent.id}
+                      currentPhotoUrl={editingStudent.photoUrl}
+                      onPhotoUpload={(photoUrl) => {
+                        setEditingStudent({ ...editingStudent, photoUrl });
+                        fetchStudents();
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
 
               <div className="flex justify-end gap-4 pt-8 border-t">
                 <button
