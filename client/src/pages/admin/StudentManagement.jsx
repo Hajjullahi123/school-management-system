@@ -1307,15 +1307,14 @@ Note: Password must be changed on first login.
                   {editingStudent && (
                     <div className="space-y-1">
                       <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                        Admission Number (Editable)
+                        Admission Number
                       </label>
-                      <input
-                        type="text"
-                        value={formData.admissionNumber || ''}
-                        onChange={(e) => setFormData({ ...formData, admissionNumber: e.target.value })}
-                        className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all font-bold text-gray-700"
-                        placeholder="Enter Admission Number"
-                      />
+                      <div className="flex items-center gap-2 w-full bg-gray-100 border border-gray-200 rounded-xl px-4 py-3">
+                        <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                        <span className="font-bold text-gray-600 text-sm">{formData.admissionNumber || '—'}</span>
+                      </div>
                     </div>
                   )}
                 </div>
