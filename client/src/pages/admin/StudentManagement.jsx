@@ -74,6 +74,17 @@ const StudentManagement = () => {
   });
 
   useEffect(() => {
+    // After editingStudent is set and form renders (including any photo <img>),
+    // snap back to top so the form header is always the first thing visible.
+    if (showForm) {
+      // rAF ensures this runs after the browser has painted the new DOM
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: 0, behavior: 'instant' });
+      });
+    }
+  }, [editingStudent, showForm]);
+
+  useEffect(() => {
     fetchStudents();
     fetchClasses();
     fetchParents();
@@ -215,7 +226,7 @@ const StudentManagement = () => {
     });
     setShowForm(true);
     // Scroll to top to show the form
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: 'instant' });
   };
 
   const handleDelete = async (id) => {
@@ -1051,7 +1062,7 @@ Note: Password must be changed on first login.
           <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
             {/* + Add Student */}
             <button
-              onClick={() => { setEditingStudent(null); setShowForm(true); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+              onClick={() => { setEditingStudent(null); setShowForm(true); window.scrollTo({ top: 0, behavior: 'instant' }); }}
               className="flex-1 sm:flex-none bg-primary text-white px-4 py-2.5 rounded-xl hover:brightness-110 transition-all flex items-center justify-center gap-2 text-xs font-semibold shadow-md shadow-primary/20 active:scale-95 whitespace-nowrap"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
