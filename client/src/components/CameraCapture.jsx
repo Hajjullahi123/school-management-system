@@ -132,6 +132,7 @@ const CameraCapture = ({ onCapture, onClose }) => {
             <h2 className="text-lg font-bold text-gray-800">Take a Photo</h2>
           </div>
           <button
+            type="button"
             onClick={handleClose}
             className="text-gray-400 hover:text-gray-700 text-2xl leading-none transition-colors"
             aria-label="Close camera"
@@ -147,6 +148,7 @@ const CameraCapture = ({ onCapture, onClose }) => {
               <span className="text-5xl">🚫</span>
               <p className="text-red-600 text-sm font-medium">{error}</p>
               <button
+                type="button"
                 onClick={() => startCamera(facingMode)}
                 className="mt-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-semibold hover:brightness-90 transition"
               >
@@ -192,6 +194,7 @@ const CameraCapture = ({ onCapture, onClose }) => {
                 {/* Switch camera button (only while live) */}
                 {cameraReady && !snapshot && (
                   <button
+                    type="button"
                     onClick={handleSwitchCamera}
                     title="Switch camera"
                     className="absolute top-3 right-3 bg-black/50 hover:bg-black/70 text-white rounded-full w-9 h-9 flex items-center justify-center transition"
@@ -208,6 +211,7 @@ const CameraCapture = ({ onCapture, onClose }) => {
               <div className="flex gap-3 justify-center">
                 {!snapshot ? (
                   <button
+                    type="button"
                     onClick={handleSnap}
                     disabled={!cameraReady}
                     className="flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-xl font-semibold text-sm disabled:opacity-50 hover:brightness-90 transition shadow-md"
@@ -218,12 +222,14 @@ const CameraCapture = ({ onCapture, onClose }) => {
                 ) : (
                   <>
                     <button
+                      type="button"
                       onClick={handleRetake}
                       className="flex items-center gap-2 px-5 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold text-sm hover:bg-gray-200 transition"
                     >
                       🔁 Retake
                     </button>
                     <button
+                      type="button"
                       onClick={handleUsePhoto}
                       className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-xl font-semibold text-sm hover:bg-green-700 transition shadow-md"
                     >
