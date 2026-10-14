@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { api, apiCall, API_BASE_URL } from '../../api';
 import { toast } from '../../utils/toast';
 import { compressImage } from '../../utils/imageCompressor';
+import CameraCapture from '../../components/CameraCapture';
 
 const TeacherProfile = () => {
   const { user } = useAuth();
@@ -11,6 +12,8 @@ const TeacherProfile = () => {
   const [loading, setLoading] = useState(false);
   const [photoFile, setPhotoFile] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
+  const [showCamera, setShowCamera] = useState(false);
+  const photoFileInputRef = useRef(null);
   const [signatureFile, setSignatureFile] = useState(null);
   const [signaturePreview, setSignaturePreview] = useState(null);
   const [formData, setFormData] = useState({
@@ -54,18 +57,26 @@ const TeacherProfile = () => {
 
   const handlePhotoChange = (e) => {
     const file = e.target.files[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
-        setMessage({ type: 'error', text: 'Photo size must be less than 5MB' });
-        return;
-      }
-      setPhotoFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPhotoPreview(reader.result);
-      };
-      reader.readAsDataURL(file);
+    if (file) applyPhotoFile(file);
+    e.target.value = '';
+  };
+
+  const applyPhotoFile = (file) => {
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      setMessage({ type: 'error', text: 'Photo size must be less than 5MB' });
+      return;
     }
+    setPhotoFile(file);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPhotoPreview(reader.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleCameraCapture = (file) => {
+    setShowCamera(false);
+    applyPhotoFile(file);
   };
 
   const handleSignatureChange = (e) => {
@@ -152,6 +163,12 @@ const TeacherProfile = () => {
 
   return (
     <div className="max-w-3xl mx-auto p-6">
+      {showCamera && (
+        <CameraCapture
+          onCapture={handleCameraCapture}
+          onClose={() => setShowCamera(false)}
+        />
+      )}
       <div className="bg-white rounded-lg shadow-lg p-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Complete Your Profile</h1>
         <p className="text-gray-600 mb-6">Update your information and upload a profile picture</p>
@@ -187,12 +204,44 @@ const TeacherProfile = () => {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Profile Photo
               </label>
+
+              {/* Hidden file input */}
               <input
+                ref={photoFileInputRef}
                 type="file"
                 accept="image/*"
                 onChange={handlePhotoChange}
-                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary/5 file:text-primary hover:file:bg-primary/10"
+                className="hidden"
               />
+
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => photoFileInputRef.current?.click()}
+                  className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-all shadow-sm"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                      d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  Choose from Gallery
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowCamera(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-all shadow-sm"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                      d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                      d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  Use Camera
+                </button>
+              </div>
+
               <p className="mt-2 text-xs text-gray-500">Recommended: Square image, at least 400x400px</p>
             </div>
           </div>
