@@ -13,7 +13,8 @@ const ClassManagement = () => {
     showPositionOnReport: true,
     showFeesOnReport: true,
     showAttendanceOnReport: true,
-    reportLayout: ''
+    reportLayout: '',
+    sectionId: null
   });
   const [editingClass, setEditingClass] = useState(null);
   const [selectedClass, setSelectedClass] = useState(null);
@@ -350,7 +351,8 @@ const ClassManagement = () => {
         body: JSON.stringify({
           ...classForm,
           reportLayout: classForm.reportLayout || null,
-          classTeacherId: classForm.classTeacherId ? parseInt(classForm.classTeacherId) : null
+          classTeacherId: classForm.classTeacherId ? parseInt(classForm.classTeacherId) : null,
+          sectionId: classForm.sectionId ? parseInt(classForm.sectionId) : null
         })
       });
 
@@ -364,7 +366,8 @@ const ClassManagement = () => {
           showPositionOnReport: true,
           showFeesOnReport: true,
           showAttendanceOnReport: true,
-          reportLayout: ''
+          reportLayout: '',
+          sectionId: null
         });
         setEditingClass(null);
         setShowClassForm(false);
@@ -819,7 +822,8 @@ const ClassManagement = () => {
                             showPositionOnReport: cls.showPositionOnReport ?? true,
                             showFeesOnReport: cls.showFeesOnReport ?? true,
                             showAttendanceOnReport: cls.showAttendanceOnReport ?? true,
-                            reportLayout: cls.reportLayout || ''
+                            reportLayout: cls.reportLayout || '',
+                            sectionId: cls.sectionId || null
                           });
                           setShowClassForm(true);
                           
@@ -884,7 +888,8 @@ const ClassManagement = () => {
                         showPositionOnReport: true,
                         showFeesOnReport: true,
                         showAttendanceOnReport: true,
-                        reportLayout: ''
+                        reportLayout: '',
+                        sectionId: null
                       });
                     }}
                     className="text-gray-400 hover:text-gray-600 p-1"

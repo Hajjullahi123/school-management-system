@@ -307,11 +307,21 @@ router.post('/', authenticate, authorize(['admin', 'sub_admin', 'principal', 'ac
       }
     }
 
+    // Auto-assign sectionId:
+    // 1. Use explicit sectionId from request body (admin choosing a section).
+    // 2. Fall back to the sub-admin's assigned section so newly created classes
+    //    are immediately visible under their section without manual admin mapping.
+    let resolvedSectionId = req.body.sectionId ? parseInt(req.body.sectionId) : null;
+    if (!resolvedSectionId && req.assignedSectionIds && req.assignedSectionIds.length > 0) {
+      resolvedSectionId = req.assignedSectionIds[0];
+    }
+
     const classData = await prisma.class.create({
       data: {
         schoolId: req.schoolId,
         name,
         arm: arm || null,
+        sectionId: resolvedSectionId || null,
         classTeacherId: classTeacherId ? parseInt(classTeacherId) : null,
         expectedSubjects: req.body.expectedSubjects ? parseInt(req.body.expectedSubjects) : 0,
         showPositionOnReport: req.body.showPositionOnReport !== undefined ? req.body.showPositionOnReport : true,
@@ -347,7 +357,8 @@ router.post('/', authenticate, authorize(['admin', 'sub_admin', 'principal', 'ac
       details: {
         classId: classData.id,
         name: classData.name,
-        arm: classData.arm
+        arm: classData.arm,
+        sectionId: resolvedSectionId
       },
       ipAddress: req.ip
     });
@@ -357,6 +368,7 @@ router.post('/', authenticate, authorize(['admin', 'sub_admin', 'principal', 'ac
     res.status(500).json({ error: 'Failed to create class' });
   }
 });
+
 
 // Update class (Admin/Principal only)
 router.put('/:id', authenticate, authorize(['admin', 'sub_admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin']), async (req, res) => {
