@@ -9,6 +9,8 @@ import { api, API_BASE_URL } from '../../api';
 import useSchoolSettings from '../../hooks/useSchoolSettings';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
+import { QRCodeSVG } from 'qrcode.react';
+
 
 const loadImage = (url) => {
   return new Promise((resolve, reject) => {
@@ -45,6 +47,9 @@ const StudentManagement = () => {
   const [bulkPhotoResults, setBulkPhotoResults] = useState(null);
   const [showBulkPhotoModal, setShowBulkPhotoModal] = useState(false);
   const [isBulkCreatingParents, setIsBulkCreatingParents] = useState(false);
+  const [showQRCardModal, setShowQRCardModal] = useState(false);
+  const [qrCardClassFilter, setQrCardClassFilter] = useState('all');
+
 
   const [formData, setFormData] = useState({
     firstName: '',
@@ -1138,6 +1143,11 @@ Note: Password must be changed on first login.
                       <svg className="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" /></svg>
                       Credential Repository
                     </button>
+                    <div className="border-t border-gray-100 my-1" />
+                    <button onClick={() => { setShowQRCardModal(true); setShowDownloadsMenu(false); }} className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-indigo-50 flex items-center gap-3">
+                      <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h.01M16 12h.01M8 12h.01M8 16h.01M16 16h.01" /></svg>
+                      Print QR ID Cards
+                    </button>
                   </div>
                 </>
               )}
@@ -2151,9 +2161,150 @@ Note: Password must be changed on first login.
           </div>
         </div>
       )}
+
+      {/* ── QR ID Card Print Modal ── */}
+      {showQRCardModal && (() => {
+        const filteredStudents = qrCardClassFilter === 'all'
+          ? students.filter(s => s.admissionNumber)
+          : students.filter(s => String(s.classId) === qrCardClassFilter && s.admissionNumber);
+
+        const handlePrintCards = () => {
+          const schoolName = schoolSettings?.schoolName || 'School';
+          const win = window.open('', '_blank');
+          if (!win) { toast.error('Pop-up blocked. Please allow pop-ups for this site.'); return; }
+
+          const cards = filteredStudents.map(s => {
+            const cls = classes.find(c => c.id === s.classId);
+            return {
+              name: `${s.firstName || ''} ${s.lastName || ''}`.trim(),
+              className: cls ? `${cls.name}${cls.arm ? ' ' + cls.arm : ''}` : 'N/A',
+              admNo: s.admissionNumber
+            };
+          });
+
+          win.document.write(`<!DOCTYPE html><html><head>
+<title>QR ID Cards \u2013 ${schoolName}</title>
+<style>
+  @page { size: A4; margin: 10mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
+  body { background: #fff; }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6mm; padding: 4mm; }
+  .card { border: 1.5px solid #6366f1; border-radius: 8px; padding: 5mm 4mm; display: flex; flex-direction: column; align-items: center; gap: 2.5mm; page-break-inside: avoid; background: linear-gradient(135deg,#f0f0ff 0%,#fff 100%); }
+  .school { font-size: 7pt; font-weight: 700; color: #6366f1; text-align: center; text-transform: uppercase; letter-spacing: 0.5px; }
+  .qr { width: 22mm; height: 22mm; display: flex; align-items: center; justify-content: center; }
+  .name { font-size: 8.5pt; font-weight: 800; color: #1e1b4b; text-align: center; line-height: 1.2; }
+  .class { font-size: 7pt; color: #4f46e5; font-weight: 600; text-align: center; }
+  .adm { font-size: 6.5pt; color: #6b7280; font-family: monospace; letter-spacing: 0.5px; text-align: center; }
+  .divider { width: 80%; height: 0.5px; background: #e0e7ff; }
+  @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+</style></head><body>
+<div class="grid">${cards.map(c => `
+  <div class="card">
+    <div class="school">${schoolName}</div>
+    <div class="qr" id="qr-${c.admNo.replace(/[^a-zA-Z0-9]/g, '_')}"></div>
+    <div class="divider"></div>
+    <div class="name">${c.name}</div>
+    <div class="class">${c.className}</div>
+    <div class="adm">${c.admNo}</div>
+  </div>`).join('')}
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"><\/script>
+<script>
+  window.onload = function() {
+    ${cards.map(c => `new QRCode(document.getElementById('qr-${c.admNo.replace(/[^a-zA-Z0-9]/g, '_')}'),{text:'${c.admNo}',width:84,height:84,correctLevel:QRCode.CorrectLevel.M});`).join('\n    ')}
+    setTimeout(function(){ window.print(); }, 1200);
+  };
+<\/script></body></html>`);
+          win.document.close();
+        };
+
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setShowQRCardModal(false)}>
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden" onClick={e => e.stopPropagation()}>
+              {/* Header */}
+              <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-6 text-white">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h.01M16 12h.01M8 12h.01M8 16h.01M16 16h.01" /></svg>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-black">Print QR ID Cards</h3>
+                    <p className="text-indigo-200 text-xs mt-0.5">A4 grid • 3 cards per row • ready to cut &amp; laminate</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6 space-y-5">
+                {/* Class filter */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Filter by Class</label>
+                  <select
+                    value={qrCardClassFilter}
+                    onChange={e => setQrCardClassFilter(e.target.value)}
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-sm font-medium focus:border-indigo-400 outline-none"
+                  >
+                    <option value="all">All Classes ({students.filter(s => s.admissionNumber).length} students)</option>
+                    {classes.map(c => (
+                      <option key={c.id} value={String(c.id)}>
+                        {c.name}{c.arm ? ` ${c.arm}` : ''} ({students.filter(s => s.classId === c.id && s.admissionNumber).length} students)
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Card previews */}
+                <div className="bg-indigo-50 rounded-xl p-4 border border-indigo-100">
+                  <p className="text-xs font-bold text-indigo-700 uppercase tracking-wide mb-3">Preview (first 3)</p>
+                  <div className="flex gap-2 justify-center flex-wrap">
+                    {filteredStudents.slice(0, 3).map((s, i) => (
+                      <div key={i} className="bg-white border-2 border-indigo-200 rounded-lg p-2.5 flex flex-col items-center gap-1 w-24 shadow-sm">
+                        <p className="text-[7px] font-black text-indigo-600 text-center uppercase leading-tight">{(schoolSettings?.schoolName || 'School').slice(0, 14)}</p>
+                        <QRCodeSVG value={s.admissionNumber} size={52} level="M" />
+                        <div className="w-full h-px bg-indigo-100" />
+                        <p className="text-[7px] font-bold text-gray-800 text-center leading-tight">{`${s.firstName || ''} ${s.lastName || ''}`.trim().slice(0, 16)}</p>
+                        <p className="text-[6.5px] text-indigo-500 font-mono">{s.admissionNumber}</p>
+                      </div>
+                    ))}
+                    {filteredStudents.length === 0 && (
+                      <p className="text-sm text-gray-400 italic py-4 text-center w-full">No students with admission numbers in this class.</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-start gap-2">
+                  <svg className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  <p className="text-xs text-amber-800">
+                    Will print <strong>{filteredStudents.length}</strong> QR card{filteredStudents.length !== 1 ? 's' : ''} across approx. <strong>{Math.ceil(filteredStudents.length / 9) || 1}</strong> A4 page{Math.ceil(filteredStudents.length / 9) !== 1 ? 's' : ''}. QR codes encode each student's admission number — fully compatible with the Gate Scanner.
+                  </p>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="flex gap-3 px-6 pb-6">
+                <button
+                  onClick={() => setShowQRCardModal(false)}
+                  className="flex-1 py-3 rounded-xl border-2 border-gray-200 text-gray-600 text-sm font-bold hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handlePrintCards}
+                  disabled={filteredStudents.length === 0}
+                  className="flex-1 py-3 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200 disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+                  Print {filteredStudents.length} Cards
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
     </div >
   );
 };
+
 
 export default StudentManagement;
 

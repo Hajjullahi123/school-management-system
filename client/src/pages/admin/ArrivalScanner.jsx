@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { api } from '../../api';
 import { toast } from '../../utils/toast';
 import useSchoolSettings from '../../hooks/useSchoolSettings';
@@ -8,23 +8,118 @@ const ArrivalScanner = () => {
   const [loading, setLoading] = useState(false);
   const [lastScan, setLastScan] = useState(null);
   const [scanHistory, setScanHistory] = useState([]);
-  const [dailyStats, setDailyStats] = useState([]); // Array<{ date: string, studentStats: [], staffStats: {} }>
-  const [expandedDays, setExpandedDays] = useState([0]); // Index of expanded days (today expanded by default)
+  const [dailyStats, setDailyStats] = useState([]);
+  const [expandedDays, setExpandedDays] = useState([0]);
+
+  // Camera mode state
+  const [cameraMode, setCameraMode] = useState(false);
+  const [cameraReady, setCameraReady] = useState(false);
+  const [cameraError, setCameraError] = useState(null);
+  const [scanFlash, setScanFlash] = useState(false); // green flash on success
+
   const inputRef = useRef(null);
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
+  const streamRef = useRef(null);
+  const animFrameRef = useRef(null);
+  const lastScannedRef = useRef(''); // debounce: avoid double-scanning same code
+  const lastScannedTimeRef = useRef(0);
+
   const { settings: schoolSettings } = useSchoolSettings();
 
   useEffect(() => {
     fetchStats();
   }, []);
 
-  // Keep input focused for barcode scanners
+  // Keep barcode-scanner input focused when NOT in camera mode
   useEffect(() => {
+    if (cameraMode) return;
     const focusInterval = setInterval(() => {
       if (document.activeElement !== inputRef.current) {
         inputRef.current?.focus();
       }
     }, 1000);
     return () => clearInterval(focusInterval);
+  }, [cameraMode]);
+
+  // Start / stop camera when mode toggles
+  useEffect(() => {
+    if (cameraMode) {
+      startCamera();
+    } else {
+      stopCamera();
+    }
+    return () => stopCamera();
+  }, [cameraMode]);
+
+  const startCamera = async () => {
+    setCameraError(null);
+    setCameraReady(false);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play();
+        videoRef.current.onloadedmetadata = () => {
+          setCameraReady(true);
+          requestAnimationFrame(tickScan);
+        };
+      }
+    } catch (err) {
+      setCameraError('Camera access denied. Please allow camera permission and try again.');
+      console.error('Camera error:', err);
+    }
+  };
+
+  const stopCamera = () => {
+    if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop());
+      streamRef.current = null;
+    }
+    setCameraReady(false);
+  };
+
+  const tickScan = useCallback(async () => {
+    if (!videoRef.current || !canvasRef.current) return;
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+
+    if (video.readyState !== video.HAVE_ENOUGH_DATA) {
+      animFrameRef.current = requestAnimationFrame(tickScan);
+      return;
+    }
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+    try {
+      const jsQR = (await import('jsqr')).default;
+      const code = jsQR(imageData.data, imageData.width, imageData.height, {
+        inversionAttempts: 'dontInvert'
+      });
+
+      if (code && code.data) {
+        const now = Date.now();
+        // Debounce: don't re-scan the same code within 3 seconds
+        if (code.data !== lastScannedRef.current || now - lastScannedTimeRef.current > 3000) {
+          lastScannedRef.current = code.data;
+          lastScannedTimeRef.current = now;
+          await processAdmissionNumber(code.data.trim().toUpperCase());
+        }
+      }
+    } catch (e) {
+      // jsQR not yet loaded or parse error — keep scanning
+    }
+
+    // ~10 fps scan rate
+    animFrameRef.current = setTimeout(() => requestAnimationFrame(tickScan), 100);
   }, []);
 
   const fetchStats = async () => {
@@ -39,13 +134,11 @@ const ArrivalScanner = () => {
     }
   };
 
-  const handleScan = async (e) => {
-    e.preventDefault();
-    if (!admissionNumber) return;
-
+  const processAdmissionNumber = async (id) => {
+    if (!id || loading) return;
     setLoading(true);
     try {
-      const response = await api.post('/api/attendance/scan', { admissionNumber });
+      const response = await api.post('/api/attendance/scan', { admissionNumber: id });
       const data = await response.json();
 
       if (response.ok) {
@@ -60,7 +153,11 @@ const ArrivalScanner = () => {
         const historyItem = data.isStaff
           ? { name: data.staff.name, time: scanResult.time, isStaff: true }
           : { name: data.student.name, time: scanResult.time, isStaff: false };
-        setScanHistory([historyItem, ...scanHistory].slice(0, 10));
+        setScanHistory(prev => [historyItem, ...prev].slice(0, 10));
+
+        // Flash green on camera mode
+        setScanFlash(true);
+        setTimeout(() => setScanFlash(false), 600);
 
         if (data.isStaff) {
           toast.success(`Welcome ${data.staff.name} (Staff)!`);
@@ -68,25 +165,32 @@ const ArrivalScanner = () => {
           toast.success(`Welcome ${data.student.name}! Notification sent to parent.`);
         }
 
-        // Refresh statistics
         fetchStats();
-
-        // Play success sound
         const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3');
-        audio.play().catch(e => console.log('Audio play failed'));
+        audio.play().catch(() => {});
       } else {
         toast.error(data.error || 'Scan failed');
-        // Play error sound
         const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2572/2572-preview.mp3');
-        audio.play().catch(e => console.log('Audio play failed'));
+        audio.play().catch(() => {});
       }
     } catch (error) {
       toast.error('Error processing scan');
     } finally {
       setLoading(false);
       setAdmissionNumber('');
-      inputRef.current?.focus();
+      if (!cameraMode) inputRef.current?.focus();
     }
+  };
+
+  const handleScan = async (e) => {
+    e.preventDefault();
+    await processAdmissionNumber(admissionNumber);
+  };
+
+  const toggleCameraMode = () => {
+    setCameraMode(prev => !prev);
+    lastScannedRef.current = '';
+    lastScannedTimeRef.current = 0;
   };
 
   const toggleDay = (idx) => {
@@ -112,39 +216,165 @@ const ArrivalScanner = () => {
 
         <div className="p-8">
           <div className="mb-12 text-center">
+            {/* Mode Toggle */}
             <div className="flex justify-center mb-6">
-              <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center">
-                <svg className="w-12 h-12 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h.01M16 12h.01M12 12h.01M16 12h.01M8 12h.01M8 16h.01M16 16h.01" />
-                </svg>
+              <div className="inline-flex items-center bg-gray-100 rounded-xl p-1 gap-1">
+                <button
+                  type="button"
+                  onClick={() => setCameraMode(false)}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold transition-all ${!cameraMode ? 'bg-white text-primary shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h.01M16 12h.01M12 12h.01M16 12h.01M8 12h.01M8 16h.01M16 16h.01" />
+                  </svg>
+                  Barcode Scanner
+                </button>
+                <button
+                  type="button"
+                  onClick={toggleCameraMode}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold transition-all ${cameraMode ? 'bg-white text-primary shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  Camera QR Scan
+                </button>
               </div>
             </div>
 
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">Ready to Scan ID Card</h2>
-            <form onSubmit={handleScan} className="max-w-md mx-auto relative">
-              <input
-                ref={inputRef}
-                type="text"
-                value={admissionNumber}
-                onChange={(e) => setAdmissionNumber(e.target.value)}
-                autoFocus
-                placeholder="Scan Card or Type ID"
-                className={`w-full px-6 py-4 text-center text-2xl font-mono tracking-widest border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all outline-none uppercase ${dailyStats[0]?.isHoliday ? 'bg-gray-100 cursor-not-allowed opacity-50' : ''}`}
-                disabled={loading || dailyStats[0]?.isHoliday}
-              />
-              {loading && (
-                <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            {/* BARCODE SCANNER MODE */}
+            {!cameraMode && (
+              <>
+                <div className="flex justify-center mb-6">
+                  <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center">
+                    <svg className="w-12 h-12 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h.01M16 12h.01M12 12h.01M16 12h.01M8 12h.01M8 16h.01M16 16h.01" />
+                    </svg>
+                  </div>
                 </div>
-              )}
-            </form>
-            {dailyStats[0]?.isHoliday && (
-              <div className="mt-4 inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-lg text-sm font-bold border border-blue-100 animate-pulse">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                TODAY IS A {dailyStats[0].holidayName?.toUpperCase() || 'HOLIDAY'} - SCHOOL CLOSED
+                <h2 className="text-xl font-semibold text-gray-800 mb-4">Ready to Scan ID Card</h2>
+                <form onSubmit={handleScan} className="max-w-md mx-auto relative">
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={admissionNumber}
+                    onChange={(e) => setAdmissionNumber(e.target.value)}
+                    autoFocus
+                    placeholder="Scan Card or Type ID"
+                    className={`w-full px-6 py-4 text-center text-2xl font-mono tracking-widest border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all outline-none uppercase ${dailyStats[0]?.isHoliday ? 'bg-gray-100 cursor-not-allowed opacity-50' : ''}`}
+                    disabled={loading || dailyStats[0]?.isHoliday}
+                  />
+                  {loading && (
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                    </div>
+                  )}
+                </form>
+                {dailyStats[0]?.isHoliday && (
+                  <div className="mt-4 inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-lg text-sm font-bold border border-blue-100 animate-pulse">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    TODAY IS A {dailyStats[0].holidayName?.toUpperCase() || 'HOLIDAY'} - SCHOOL CLOSED
+                  </div>
+                )}
+                <p className="text-sm text-gray-500 mt-4 italic font-medium">Auto-focus enabled for barcode scanners.</p>
+              </>
+            )}
+
+            {/* CAMERA QR MODE */}
+            {cameraMode && (
+              <div className="max-w-lg mx-auto">
+                {cameraError ? (
+                  <div className="bg-red-50 border border-red-200 rounded-2xl p-8 text-center">
+                    <svg className="w-12 h-12 text-red-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.834-1.962-.834-2.732 0L3.07 16.5C2.3 17.333 3.262 19 4.8 19z" />
+                    </svg>
+                    <p className="text-red-700 font-bold text-sm">{cameraError}</p>
+                    <button
+                      onClick={startCamera}
+                      className="mt-4 px-6 py-2 bg-red-600 text-white rounded-xl text-sm font-bold hover:bg-red-700 transition-colors"
+                    >
+                      Try Again
+                    </button>
+                  </div>
+                ) : (
+                  <div className="relative rounded-2xl overflow-hidden shadow-2xl border-4 border-primary/20 bg-black">
+                    {/* Live video */}
+                    <video
+                      ref={videoRef}
+                      className="w-full max-h-80 object-cover"
+                      playsInline
+                      muted
+                    />
+                    {/* Hidden canvas for QR decoding */}
+                    <canvas ref={canvasRef} className="hidden" />
+
+                    {/* Scan frame overlay */}
+                    {cameraReady && (
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        {/* Green flash on success */}
+                        {scanFlash && (
+                          <div className="absolute inset-0 bg-green-400/40 animate-pulse z-20 rounded-xl" />
+                        )}
+                        {/* Animated scanning frame */}
+                        <div className={`relative w-48 h-48 transition-colors duration-300 ${scanFlash ? 'border-green-400' : 'border-white'}`}>
+                          {/* Corner brackets */}
+                          <div className={`absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 rounded-tl-lg transition-colors ${scanFlash ? 'border-green-400' : 'border-white'}`} />
+                          <div className={`absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 rounded-tr-lg transition-colors ${scanFlash ? 'border-green-400' : 'border-white'}`} />
+                          <div className={`absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 rounded-bl-lg transition-colors ${scanFlash ? 'border-green-400' : 'border-white'}`} />
+                          <div className={`absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 rounded-br-lg transition-colors ${scanFlash ? 'border-green-400' : 'border-white'}`} />
+                          {/* Scanning line */}
+                          {!scanFlash && (
+                            <div className="absolute left-2 right-2 h-0.5 bg-primary/80 animate-scan-line" />
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Loading overlay */}
+                    {!cameraReady && !cameraError && (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70">
+                        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-white mb-3" />
+                        <p className="text-white text-sm font-medium">Starting camera...</p>
+                      </div>
+                    )}
+
+                    {/* Processing overlay */}
+                    {loading && (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 z-30">
+                        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mb-3" />
+                        <p className="text-white text-sm font-bold">Processing...</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {!cameraError && (
+                  <p className="text-sm text-gray-500 mt-4 font-medium">
+                    📷 Point the camera at a student or staff QR code. It scans automatically.
+                  </p>
+                )}
+
+                {/* Also allow manual entry in camera mode */}
+                <form onSubmit={handleScan} className="flex gap-2 mt-4">
+                  <input
+                    type="text"
+                    value={admissionNumber}
+                    onChange={(e) => setAdmissionNumber(e.target.value)}
+                    placeholder="Or type admission number manually"
+                    className="flex-1 px-4 py-2.5 border-2 border-gray-200 rounded-xl text-sm font-mono focus:border-primary outline-none uppercase"
+                    disabled={loading}
+                  />
+                  <button
+                    type="submit"
+                    disabled={loading || !admissionNumber}
+                    className="px-4 py-2.5 bg-primary text-white rounded-xl text-sm font-bold hover:bg-primary/90 transition-colors disabled:opacity-50"
+                  >
+                    Submit
+                  </button>
+                </form>
               </div>
             )}
-            <p className="text-sm text-gray-500 mt-4 italic font-medium">Auto-focus enabled for barcode scanners.</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -323,6 +553,19 @@ const ArrivalScanner = () => {
       <div className="mt-8 text-center text-gray-400 text-sm">
         <p>&copy; {new Date().getFullYear()} Premium Gate Security System • Built for Excellence</p>
       </div>
+
+      {/* Scanning line keyframe animation */}
+      <style>{`
+        @keyframes scan-line {
+          0% { top: 8px; }
+          50% { top: calc(100% - 8px); }
+          100% { top: 8px; }
+        }
+        .animate-scan-line {
+          animation: scan-line 2s ease-in-out infinite;
+          position: absolute;
+        }
+      `}</style>
     </div>
   );
 };
