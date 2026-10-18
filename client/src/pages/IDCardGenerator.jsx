@@ -111,17 +111,26 @@ const IDCard = ({ data, type, schoolSettings }) => {
               )}
             </div>
 
-            <div className="bg-gray-50 rounded-2xl p-4 flex items-center justify-between border border-gray-100">
-              <div className="flex flex-col">
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">EXPIRES ON</p>
-                <p className="text-sm font-black text-primary">
-                  {isStudent 
-                    ? `SEPT ${schoolSettings?.currentSession?.name?.split('/')?.[1] || schoolSettings?.currentSession?.name?.split('-')?.[1] || (new Date().getFullYear() + 1)}` 
-                    : 'PERMANENT'}
-                </p>
-              </div>
-              <div className="bg-white p-1 rounded-lg border border-gray-100 shadow-sm">
-                <QRCodeCanvas value={idNumber || 'UNKNOWN'} size={50} bgAlpha={0} />
+            <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
+              <div className="flex items-center justify-between">
+                <div className="flex flex-col">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">EXPIRES ON</p>
+                  <p className="text-sm font-black text-primary">
+                    {isStudent 
+                      ? `SEPT ${schoolSettings?.currentSession?.name?.split('/')?.[1] || schoolSettings?.currentSession?.name?.split('-')?.[1] || (new Date().getFullYear() + 1)}` 
+                      : 'PERMANENT'}
+                  </p>
+                </div>
+                <div className="flex flex-col items-center">
+                  <p className="text-[8px] font-bold text-gray-300 uppercase tracking-widest mb-1">SCAN BACK ↓</p>
+                  <div className="w-6 h-6 flex items-center justify-center">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5 text-gray-400">
+                      <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+                      <rect x="3" y="14" width="7" height="7" rx="1"/>
+                      <path d="M14 14h2v2h-2zM18 14h3v2h-3zM14 18h2v3h-2zM18 18h3v3h-3z"/>
+                    </svg>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -155,55 +164,53 @@ const IDCard = ({ data, type, schoolSettings }) => {
             </p>
           </div>
 
-          <div className="p-8 space-y-6">
-            <div className="bg-red-50/50 rounded-2xl p-5 border border-red-100">
-              <h4 className="text-red-700 font-black text-xs uppercase mb-2 flex items-center gap-2">
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                </svg>
-                Legal Terms
-              </h4>
-              <p className="text-[10px] text-gray-600 leading-relaxed font-medium">
-                This identity card is strictly for identification. If lost, please return it to the nearest Police Station or contact the school office immediately. Unauthorized use is punishable by law.
-              </p>
+          <div className="p-6 space-y-4">
+            {/* ── Gate-Scannable QR Code ── */}
+            <div className="flex flex-col items-center bg-gradient-to-b from-primary/5 to-primary/10 rounded-2xl p-5 border border-primary/20">
+              <p className="text-[9px] font-black text-primary uppercase tracking-[0.2em] mb-3">⬡ Scan to Verify / Gate Access</p>
+              <div className="bg-white p-3 rounded-xl shadow-md border border-primary/10">
+                <QRCodeCanvas
+                  value={idNumber || 'UNKNOWN'}
+                  size={110}
+                  bgColor="#ffffff"
+                  fgColor="#1a1a2e"
+                  level="H"
+                />
+              </div>
+              <p className="text-[11px] font-black text-gray-800 mt-3 tracking-widest">{idNumber}</p>
+              <p className="text-[8px] text-gray-400 font-medium mt-0.5">{roleTitle} · {schoolSettings?.schoolName || 'School'}</p>
             </div>
 
-            <div className="space-y-4">
-              <h4 className="text-gray-900 font-bold text-xs uppercase letter-widest">Office Location</h4>
-              <div className="space-y-3">
-                <div className="flex items-start gap-4">
-                  <div className="p-2 bg-gray-50 rounded-lg shrink-0">📍</div>
-                  <p className="text-[10px] text-gray-600 font-bold leading-tight">
-                    {schoolSettings?.schoolAddress || 'School Headquarters, Nigeria'}
-                  </p>
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="p-2 bg-gray-50 rounded-lg shrink-0">📞</div>
-                  <p className="text-[10px] text-gray-600 font-bold">{schoolSettings?.schoolPhone || '+234 XXX XXX XXXX'}</p>
-                </div>
+            {/* Contact + Legal compact row */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
+                <p className="text-[8px] font-black text-gray-400 uppercase mb-1.5">Contact</p>
+                <p className="text-[9px] text-gray-600 font-bold leading-snug">{schoolSettings?.schoolAddress || 'School Headquarters'}</p>
+                <p className="text-[9px] text-primary font-black mt-1">{schoolSettings?.schoolPhone || '+234 XXX XXX XXXX'}</p>
+              </div>
+              <div className="bg-red-50 rounded-xl p-3 border border-red-100">
+                <p className="text-[8px] font-black text-red-500 uppercase mb-1.5">⚠ If Found</p>
+                <p className="text-[8px] text-gray-600 leading-snug">Return to nearest police station or call the school immediately.</p>
               </div>
             </div>
 
             {/* Signature Area */}
-            <div className="pt-8 border-t border-dashed border-gray-200 mt-12">
-               <div className="flex justify-between items-end">
-                  <div className="text-center">
-                    <div className="h-12 flex items-center justify-center italic text-primary font-black text-sm">
-                      Admin
-                    </div>
-                    <div className="w-32 border-t border-gray-900 mx-auto mt-1"></div>
-                    <p className="text-[8px] font-bold text-gray-400 mt-1 uppercase">Principal Sign</p>
+            <div className="pt-3 border-t border-dashed border-gray-200">
+              <div className="flex justify-between items-end">
+                <div className="text-center">
+                  <div className="h-8 flex items-center justify-center italic text-primary font-black text-sm">
+                    Admin
                   </div>
-                  <div className="text-right">
-                    <p className="text-[8px] font-bold text-gray-400 uppercase">Registered Date</p>
-                    <p className="text-[10px] font-black text-gray-900">{formatDateVerbose(new Date())}</p>
-                  </div>
-               </div>
+                  <div className="w-24 border-t border-gray-900 mx-auto mt-1"></div>
+                  <p className="text-[7px] font-bold text-gray-400 mt-0.5 uppercase">Principal Sign</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[7px] font-bold text-gray-400 uppercase">Issued</p>
+                  <p className="text-[9px] font-black text-gray-900">{formatDateVerbose(new Date())}</p>
+                  <p className="text-[7px] font-bold text-gray-300 mt-0.5">Property of {schoolSettings?.schoolName || 'Institution'}</p>
+                </div>
+              </div>
             </div>
-          </div>
-          
-          <div className="absolute bottom-4 left-0 right-0 text-center">
-            <p className="text-[10px] font-bold text-gray-300">Property of {schoolSettings?.schoolName || 'Institution'}</p>
           </div>
         </div>
       </div>
