@@ -22,8 +22,8 @@ router.get('/', authenticate, async (req, res) => {
   }
 });
 
-// Create subject (Admin/Principal only)
-router.post('/', authenticate, authorize(['admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin']), async (req, res) => {
+// Create subject (Admin/Sub-Admin/Principal only)
+router.post('/', authenticate, authorize(['admin', 'sub_admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin']), async (req, res) => {
   try {
     const { name, code } = req.body;
 
@@ -103,8 +103,8 @@ router.post('/', authenticate, authorize(['admin', 'principal', 'accountant', 'e
   }
 });
 
-// Update subject (Admin/Principal only)
-router.put('/:id', authenticate, authorize(['admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin']), async (req, res) => {
+// Update subject (Admin/Sub-Admin/Principal only)
+router.put('/:id', authenticate, authorize(['admin', 'sub_admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin']), async (req, res) => {
   try {
     const { id } = req.params;
     const { name, code, departmentId, sectionId } = req.body;
