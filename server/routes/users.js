@@ -25,7 +25,14 @@ router.get('/', authenticate, authorize(['admin', 'sub_admin', 'principal', 'acc
 
     // SUB-ADMIN SECTION SCOPING
     if (req.user.role === 'sub_admin') {
-      if (req.allowedClassIds && req.allowedClassIds.length > 0) {
+      // Teachers: sub-admins must always see ALL teachers in the school so they
+      // can assign any teacher to their class-subjects. This check is placed
+      // OUTSIDE the allowedClassIds block so it works even when the sub-admin
+      // has no section assignments yet. schoolId (line 14) already limits to
+      // this school only.
+      if (role === 'teacher') {
+        // no extra filter — schoolId + role=teacher is enough
+      } else if (req.allowedClassIds && req.allowedClassIds.length > 0) {
         if (role === 'student') {
           // Students: only show those in the sub-admin's allowed classes
           where.student = { classId: { in: req.allowedClassIds } };
@@ -36,13 +43,6 @@ router.get('/', authenticate, authorize(['admin', 'sub_admin', 'principal', 'acc
               some: { classId: { in: req.allowedClassIds } }
             }
           };
-        } else if (role === 'teacher') {
-          // Teachers: show ALL teachers in the school so a sub-admin can assign
-          // any teacher to their class-subjects. Scoping to only already-assigned
-          // teachers caused a chicken-and-egg problem where new teachers could
-          // never be selected. The schoolId filter at line 14 already limits to
-          // this school only.
-          // (no extra filter needed beyond schoolId + role=teacher)
         } else if (!role) {
           where.AND = [
             {
@@ -57,9 +57,11 @@ router.get('/', authenticate, authorize(['admin', 'sub_admin', 'principal', 'acc
           ];
         }
       } else {
+        // No allowed classes and not a teacher request — only expose the sub-admin's own record
         where.id = req.user.id;
       }
     }
+
 
     const users = await prisma.user.findMany({
       where,
