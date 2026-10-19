@@ -4,13 +4,16 @@ import { api } from '../../api';
 const SubjectManagement = () => {
   const [subjects, setSubjects] = useState([]);
   const [departments, setDepartments] = useState([]);
-  const [subjectForm, setSubjectForm] = useState({ name: '', code: '', departmentId: '' });
+  const [sections, setSections] = useState([]);
+  const [subjectForm, setSubjectForm] = useState({ name: '', code: '', departmentId: '', sectionId: '' });
   const [editingSubject, setEditingSubject] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterSection, setFilterSection] = useState('');
 
   useEffect(() => {
     fetchSubjects();
     fetchDepartments();
+    fetchSections();
   }, []);
 
   const fetchDepartments = async () => {
@@ -18,6 +21,15 @@ const SubjectManagement = () => {
       const response = await api.get('/api/departments');
       if (response.ok) {
         setDepartments(await response.json());
+      }
+    } catch (error) {}
+  };
+
+  const fetchSections = async () => {
+    try {
+      const response = await api.get('/api/sections');
+      if (response.ok) {
+        setSections(await response.json());
       }
     } catch (error) {}
   };
@@ -33,10 +45,17 @@ const SubjectManagement = () => {
   };
 
   const filteredAndSortedSubjects = (subjects || [])
-    .filter(subject =>
-      subject.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (subject.code && subject.code.toLowerCase().includes(searchTerm.toLowerCase()))
-    )
+    .filter(subject => {
+      const matchesSearch =
+        subject.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (subject.code && subject.code.toLowerCase().includes(searchTerm.toLowerCase()));
+      const matchesSection = filterSection === ''
+        ? true
+        : filterSection === 'all'
+          ? !subject.sectionId
+          : subject.sectionId === parseInt(filterSection);
+      return matchesSearch && matchesSection;
+    })
     .sort((a, b) => a.name.localeCompare(b.name));
 
   const handleSubmit = async (e) => {
@@ -52,7 +71,7 @@ const SubjectManagement = () => {
 
       if (response.ok) {
         alert(editingSubject ? 'Subject updated!' : 'Subject created!');
-        setSubjectForm({ name: '', code: '', departmentId: '' });
+        setSubjectForm({ name: '', code: '', departmentId: '', sectionId: '' });
         setEditingSubject(null);
         fetchSubjects();
       } else {
@@ -83,6 +102,17 @@ const SubjectManagement = () => {
       alert('Failed to delete subject');
     }
   };
+
+  // Section badge colours — cycle through a small palette
+  const sectionColors = [
+    'bg-blue-100 text-blue-800',
+    'bg-green-100 text-green-800',
+    'bg-purple-100 text-purple-800',
+    'bg-orange-100 text-orange-800',
+    'bg-pink-100 text-pink-800',
+    'bg-teal-100 text-teal-800',
+  ];
+  const getSectionColor = (sectionId) => sectionColors[(sectionId - 1) % sectionColors.length];
 
   return (
     <div className="space-y-6">
@@ -137,6 +167,22 @@ const SubjectManagement = () => {
                 ))}
               </select>
             </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Restrict to Section
+                <span className="ml-1 text-xs text-gray-400 font-normal">(leave blank for all sections)</span>
+              </label>
+              <select
+                value={subjectForm.sectionId}
+                onChange={(e) => setSubjectForm({ ...subjectForm, sectionId: e.target.value })}
+                className="w-full border rounded-md px-3 py-2 text-gray-900 bg-white"
+              >
+                <option value="">All Sections (school-wide)</option>
+                {sections.map(s => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
+            </div>
           </div>
           <div className="flex gap-2">
             <button
@@ -150,7 +196,7 @@ const SubjectManagement = () => {
                 type="button"
                 onClick={() => {
                   setEditingSubject(null);
-                  setSubjectForm({ name: '', code: '', departmentId: '' });
+                  setSubjectForm({ name: '', code: '', departmentId: '', sectionId: '' });
                 }}
                 className="bg-gray-500 text-white px-6 py-2 rounded-md hover:bg-gray-600"
               >
@@ -166,18 +212,33 @@ const SubjectManagement = () => {
         <div className="p-6">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
             <h3 className="text-lg font-semibold text-gray-900">Existing Subjects ({filteredAndSortedSubjects.length})</h3>
-            <div className="relative w-full md:w-64">
-              <input
-                type="text"
-                placeholder="Search subjects..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border rounded-md focus:ring-primary focus:border-primary text-gray-900 bg-white"
-              />
-              <div className="absolute left-3 top-2.5 text-gray-400">
-                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
+            <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+              {/* Section filter */}
+              <select
+                value={filterSection}
+                onChange={(e) => setFilterSection(e.target.value)}
+                className="border rounded-md px-3 py-2 text-sm text-gray-700 bg-white focus:ring-primary focus:border-primary"
+              >
+                <option value="">All Sections</option>
+                <option value="all">School-wide only</option>
+                {sections.map(s => (
+                  <option key={s.id} value={s.id}>{s.name} only</option>
+                ))}
+              </select>
+              {/* Search */}
+              <div className="relative w-full sm:w-64">
+                <input
+                  type="text"
+                  placeholder="Search subjects..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border rounded-md focus:ring-primary focus:border-primary text-gray-900 bg-white"
+                />
+                <div className="absolute left-3 top-2.5 text-gray-400">
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
               </div>
             </div>
           </div>
@@ -189,7 +250,7 @@ const SubjectManagement = () => {
                 className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
               >
                 <div className="flex justify-between items-start">
-                  <div>
+                  <div className="flex-1 min-w-0 mr-2">
                     <h4 className="font-semibold text-lg text-gray-900">{subject.name}</h4>
                     {subject.code && (
                       <p className="text-sm text-gray-600 mt-1">Code: {subject.code}</p>
@@ -199,15 +260,28 @@ const SubjectManagement = () => {
                         Dept: {departments.find(d => d.id === subject.departmentId)?.name || 'Loading...'}
                       </p>
                     )}
+                    {/* Section badge */}
+                    <div className="mt-2">
+                      {subject.sectionId && subject.section ? (
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getSectionColor(subject.sectionId)}`}>
+                          📚 {subject.section.name}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
+                          🌐 All Sections
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 shrink-0">
                     <button
                       onClick={() => {
                         setEditingSubject(subject);
                         setSubjectForm({
                           name: subject.name,
                           code: subject.code || '',
-                          departmentId: subject.departmentId || ''
+                          departmentId: subject.departmentId || '',
+                          sectionId: subject.sectionId || ''
                         });
                       }}
                       className="text-blue-600 hover:text-blue-900"
@@ -228,6 +302,9 @@ const SubjectManagement = () => {
                 </div>
               </div>
             ))}
+            {filteredAndSortedSubjects.length === 0 && (
+              <div className="col-span-3 text-center text-gray-400 py-10">No subjects found.</div>
+            )}
           </div>
         </div>
       </div>

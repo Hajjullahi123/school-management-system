@@ -7,8 +7,14 @@ const { logAction } = require('../utils/audit');
 // Get all subjects
 router.get('/', authenticate, async (req, res) => {
   try {
+    // Sub-admin scoping: show only subjects for their assigned sections OR school-wide subjects (sectionId = null)
+    const sectionFilter = (req.user?.role === 'sub_admin' && req.assignedSectionIds?.length > 0)
+      ? { OR: [{ sectionId: { in: req.assignedSectionIds } }, { sectionId: null }] }
+      : {};
+
     const subjects = await prisma.subject.findMany({
-      where: { schoolId: req.schoolId }
+      where: { schoolId: req.schoolId, ...sectionFilter },
+      include: { section: { select: { id: true, name: true } } }
     });
     res.json(subjects);
   } catch (error) {
@@ -61,7 +67,8 @@ router.post('/', authenticate, authorize(['admin', 'principal', 'accountant', 'e
         schoolId: req.schoolId,
         name: name.trim(),
         code: code?.trim() === '' ? null : code?.trim(),
-        departmentId: req.body.departmentId ? parseInt(req.body.departmentId) : null
+        departmentId: req.body.departmentId ? parseInt(req.body.departmentId) : null,
+        sectionId: req.body.sectionId ? parseInt(req.body.sectionId) : null
       }
     });
 
@@ -100,7 +107,7 @@ router.post('/', authenticate, authorize(['admin', 'principal', 'accountant', 'e
 router.put('/:id', authenticate, authorize(['admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin']), async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, code, departmentId } = req.body;
+    const { name, code, departmentId, sectionId } = req.body;
     const subject = await prisma.subject.update({
       where: {
         id: parseInt(id),
@@ -109,8 +116,10 @@ router.put('/:id', authenticate, authorize(['admin', 'principal', 'accountant', 
       data: {
         name,
         code: code?.trim() === '' ? null : code,
-        departmentId: departmentId ? parseInt(departmentId) : null
-      }
+        departmentId: departmentId ? parseInt(departmentId) : null,
+        sectionId: sectionId ? parseInt(sectionId) : null
+      },
+      include: { section: { select: { id: true, name: true } } }
     });
     res.json(subject);
   } catch (error) {
