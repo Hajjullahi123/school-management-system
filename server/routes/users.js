@@ -27,18 +27,22 @@ router.get('/', authenticate, authorize(['admin', 'sub_admin', 'principal', 'acc
     if (req.user.role === 'sub_admin') {
       if (req.allowedClassIds && req.allowedClassIds.length > 0) {
         if (role === 'student') {
+          // Students: only show those in the sub-admin's allowed classes
           where.student = { classId: { in: req.allowedClassIds } };
         } else if (role === 'parent') {
+          // Parents: only show those whose children are in allowed classes
           where.Parent = {
             parentChildren: {
               some: { classId: { in: req.allowedClassIds } }
             }
           };
         } else if (role === 'teacher') {
-          where.OR = [
-            { classesAsTeacher: { some: { id: { in: req.allowedClassIds } } } },
-            { teacherAssignments: { some: { classSubject: { classId: { in: req.allowedClassIds } } } } }
-          ];
+          // Teachers: show ALL teachers in the school so a sub-admin can assign
+          // any teacher to their class-subjects. Scoping to only already-assigned
+          // teachers caused a chicken-and-egg problem where new teachers could
+          // never be selected. The schoolId filter at line 14 already limits to
+          // this school only.
+          // (no extra filter needed beyond schoolId + role=teacher)
         } else if (!role) {
           where.AND = [
             {
