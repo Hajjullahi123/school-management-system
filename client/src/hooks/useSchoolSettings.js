@@ -48,13 +48,14 @@ export const useSchoolSettings = () => {
 
         let endpoint = '/api/settings';
         const hostname = window.location.hostname;
-        const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.');
+        const PLATFORM_DOMAINS = ['educatechportal.com', 'www.educatechportal.com'];
+        const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.') || PLATFORM_DOMAINS.includes(hostname);
 
         // 1. Explicit URL Slug always wins
         if (urlSlug) {
           endpoint = `/api/settings?schoolSlug=${urlSlug}`;
         } 
-        // 2. Custom Domain wins over localStorage
+        // 2. Custom Domain wins over localStorage (only for actual school custom domains)
         else if (!isLocalhost) {
           endpoint = `/api/settings?customDomain=${hostname}`;
         } 

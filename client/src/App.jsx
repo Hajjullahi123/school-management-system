@@ -176,19 +176,22 @@ import useSchoolSettings from './hooks/useSchoolSettings';
 // Do NOT remove settings?.schoolSlug check.
 // - On custom domains (e.g. schoolName.com), it must load PublicSchoolLandingPage.
 // - On the main platform domain (educatechportal.com), it must redirect to /login.
+const PLATFORM_DOMAINS = ['educatechportal.com', 'www.educatechportal.com'];
+
 const RootHandler = () => {
   const { settings, loading } = useSchoolSettings();
   if (loading) return <LoadingFallback />;
   
   const hostname = window.location.hostname;
-  const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.');
+  const isMainPlatform = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.') || PLATFORM_DOMAINS.includes(hostname);
   
-  // If we fetched a school based on customDomain and we are at the root
-  if (settings?.schoolSlug && !isLocalhost && settings.schoolId !== 'global-superadmin') {
+  // Only show a school's custom landing page when on an actual school custom domain,
+  // never when the user is on the main platform domain (educatechportal.com).
+  if (settings?.schoolSlug && !isMainPlatform && settings.schoolId !== 'global-superadmin') {
     return <PublicSchoolLandingPage overrideSlug={settings.schoolSlug} />;
   }
   
-  // Always redirect root to login page
+  // Always redirect root to login page on the main platform
   return <Navigate to="/login" replace />;
 };
 
