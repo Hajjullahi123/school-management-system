@@ -12,8 +12,14 @@ router.get('/', authenticate, async (req, res) => {
     });
     const termFilter = activeTerm ? { OR: [{ termId: activeTerm.id }, { termId: null }] } : {};
 
+    // Sub-admin scoping: only return assignments for their allowed classes
+    const classScope = (req.user?.role === 'sub_admin' && req.allowedClassIds?.length > 0)
+      ? { classSubject: { classId: { in: req.allowedClassIds } } }
+      : {};
+
     const assignments = await prisma.teacherAssignment.findMany({
-      where: { schoolId: req.schoolId, ...termFilter },
+      where: { schoolId: req.schoolId, ...termFilter, ...classScope },
+
       include: {
         teacher: {
           select: {

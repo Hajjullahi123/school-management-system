@@ -11,8 +11,13 @@ router.get('/', authenticate, async (req, res) => {
       where: { schoolId: req.schoolId, isCurrent: true }
     });
 
+    // Sub-admin scoping: only return class-subjects for their allowed classes
+    const classFilter = (req.user?.role === 'sub_admin' && req.allowedClassIds?.length > 0)
+      ? { classId: { in: req.allowedClassIds } }
+      : {};
+
     const classSubjects = await prisma.classSubject.findMany({
-      where: { schoolId: req.schoolId },
+      where: { schoolId: req.schoolId, ...classFilter },
       include: {
         class: {
           select: {
@@ -49,6 +54,7 @@ router.get('/', authenticate, async (req, res) => {
         { subject: { name: 'asc' } }
       ]
     });
+
 
     // Add isAssigned and mapping for frontend compatibility
     const mapped = classSubjects.map(cs => ({
