@@ -33,8 +33,12 @@ router.get('/', authenticate, async (req, res) => {
       ];
     }
 
-    // Section scope: restrict to classes within the sub-admin's assigned sections
-    if (req.assignedSectionIds && req.assignedSectionIds.length > 0) {
+    // Section scope: restrict to classes within the sub-admin's assigned sections.
+    // Admins, principals, and superadmins always see ALL classes regardless of
+    // section scope — including classes created by sub-admins that were
+    // auto-assigned a sectionId on creation.
+    const isSectionScopedRole = !['admin', 'principal', 'superadmin'].includes(req.user.role);
+    if (isSectionScopedRole && req.assignedSectionIds && req.assignedSectionIds.length > 0) {
       const allowedIds = req.allowedClassIds || [];
       where.OR = [
         { sectionId: { in: req.assignedSectionIds } },
