@@ -2,13 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { toast } from '../../utils/toast';
 import { api, API_BASE_URL } from '../../api';
+import { useAuth } from '../../context/AuthContext';
 import EarlyYearsDomainConfig from './EarlyYearsDomainConfig';
 import SectionWeightingsConfig from './SectionWeightingsConfig';
 
 const ExamConfig = () => {
   const location = useLocation();
+  const { user } = useAuth();
+  const isSubAdmin = user?.role === 'sub_admin';
   const queryParams = new URLSearchParams(location.search);
-  const requestedTab = queryParams.get('tab') || 'academic';
+  // Sub-admins cannot touch global settings — land them on section weights by default
+  const requestedTab = queryParams.get('tab') || (isSubAdmin ? 'sections' : 'academic');
   const [activeTab, setActiveTab] = useState(requestedTab);
 
   useEffect(() => {
@@ -246,17 +250,20 @@ const ExamConfig = () => {
 
     {/* Tab Navigation */}
     <div className="flex bg-slate-100 dark:bg-gray-800 p-1.5 rounded-2xl border border-slate-200 dark:border-gray-700">
-      <button
-        type="button"
-        onClick={() => setActiveTab('academic')}
-        className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
-          activeTab === 'academic'
-            ? 'bg-white dark:bg-gray-700 text-primary shadow-md'
-            : 'text-slate-500 hover:text-slate-800 dark:text-gray-400'
-        }`}
-      >
-        Global Framework
-      </button>
+      {/* Global Framework tab — hidden for sub-admins (they use PUT /api/sections/:id, not PUT /api/settings) */}
+      {!isSubAdmin && (
+        <button
+          type="button"
+          onClick={() => setActiveTab('academic')}
+          className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
+            activeTab === 'academic'
+              ? 'bg-white dark:bg-gray-700 text-primary shadow-md'
+              : 'text-slate-500 hover:text-slate-800 dark:text-gray-400'
+          }`}
+        >
+          Global Framework
+        </button>
+      )}
       <button
         type="button"
         onClick={() => setActiveTab('sections')}
@@ -285,7 +292,22 @@ const ExamConfig = () => {
   {activeTab === 'early-years' ? (
     <EarlyYearsDomainConfig />
   ) : activeTab === 'sections' ? (
-    <SectionWeightingsConfig />
+    <>
+      {/* Info banner for sub-admins so they know they're editing their section's weights */}
+      {isSubAdmin && (
+        <div className="mb-6 flex items-start gap-3 bg-blue-50 border border-blue-200 text-blue-800 rounded-2xl px-5 py-4">
+          <span className="text-blue-500 mt-0.5 text-lg">ℹ️</span>
+          <div>
+            <p className="font-black text-sm uppercase tracking-tight">Section-Level Weights</p>
+            <p className="text-xs font-medium mt-0.5">
+              You are configuring assessment weights for your assigned section(s) only.
+              These override the school's global defaults for classes in your section.
+            </p>
+          </div>
+        </div>
+      )}
+      <SectionWeightingsConfig />
+    </>
   ) : (
   <form onSubmit={handleSaveSettings} className="space-y-8">
  {/* Exam Mode Section */}
