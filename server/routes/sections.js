@@ -77,6 +77,7 @@ router.get('/', authenticate, async (req, res) => {
       where,
       include: {
         classes: {
+          where: { isActive: true },
           select: { id: true, name: true, arm: true }
         }
       },

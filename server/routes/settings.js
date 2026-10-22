@@ -86,9 +86,15 @@ router.get('/stats-summary', authenticate, async (req, res) => {
         select: { id: true }
       }).then(cs => cs.map(c => c.id));
 
+      // Student count: scoped to section classes if any exist
+      // Use case-insensitive status match ('active' or 'ACTIVE')
+      const studentWhere = classIds.length > 0
+        ? { schoolId, classId: { in: classIds }, status: { in: ['active', 'ACTIVE'] }, isDeleted: false }
+        : { schoolId, status: { in: ['active', 'ACTIVE'] }, isDeleted: false };
+
       const [classCount, studentCount, subjectCount] = await Promise.all([
         Promise.resolve(classIds.length),
-        prisma.student.count({ where: { schoolId, classId: { in: classIds }, status: 'active', isDeleted: false } }),
+        prisma.student.count({ where: studentWhere }),
         prisma.subject.count({ where: { schoolId } })
       ]);
 
