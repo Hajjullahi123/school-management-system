@@ -67,6 +67,39 @@ router.get('/stats-summary', authenticate, async (req, res) => {
       });
     }
 
+    // For sub_admin: scope class/student counts to their assigned sections only
+    if (role === 'sub_admin') {
+      // Fetch the section IDs this sub-admin manages
+      const sectionAssignments = await prisma.sectionAdminAccess.findMany({
+        where: { userId },
+        select: { sectionId: true }
+      });
+      const sectionIds = sectionAssignments.map(a => a.sectionId);
+
+      // Build class filter — if assigned sections exist, scope to them; else full school
+      const classWhere = sectionIds.length > 0
+        ? { schoolId, isActive: true, sectionId: { in: sectionIds } }
+        : { schoolId, isActive: true };
+
+      const classIds = await prisma.class.findMany({
+        where: classWhere,
+        select: { id: true }
+      }).then(cs => cs.map(c => c.id));
+
+      const [classCount, studentCount, subjectCount] = await Promise.all([
+        Promise.resolve(classIds.length),
+        prisma.student.count({ where: { schoolId, classId: { in: classIds }, status: 'active', isDeleted: false } }),
+        prisma.subject.count({ where: { schoolId } })
+      ]);
+
+      return res.json({
+        students: studentCount,
+        subjects: subjectCount,
+        teachers: null,
+        classes: classCount
+      });
+    }
+
     // For admin/principal/superadmin, return full school metrics
     const [studentCount, subjectCount, teacherCount, classCount] = await Promise.all([
       prisma.student.count({ where: { schoolId, status: 'active', isDeleted: false } }),
