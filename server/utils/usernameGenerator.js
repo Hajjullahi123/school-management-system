@@ -24,20 +24,31 @@ async function generateAlumniUsername(schoolId, schoolCode, firstName, lastName,
   let uniqueId = baseId;
   let counter = 1;
 
-  // Keep checking until we find a unique username
+  // Keep checking until we find a unique username in BOTH the user table
+  // AND the alumni table (which has @@unique([schoolId, alumniId])).
+  // Without checking alumni, two students with similar names would generate
+  // the same alumniId, causing a unique constraint violation on upsert.
   while (true) {
-    const existing = await prisma.user.findFirst({
-      where: {
-        schoolId: parseInt(schoolId),
-        username: uniqueId
-      }
-    });
+    const [existingUser, existingAlumni] = await Promise.all([
+      prisma.user.findFirst({
+        where: {
+          schoolId: parseInt(schoolId),
+          username: uniqueId
+        }
+      }),
+      prisma.alumni.findFirst({
+        where: {
+          schoolId: parseInt(schoolId),
+          alumniId: uniqueId
+        }
+      })
+    ]);
 
-    if (!existing) {
+    if (!existingUser && !existingAlumni) {
       break;
     }
 
-    // If exists, append counter: AAM/ABDL/2026/1
+    // If exists in either table, append counter: AAM/ABDL/2026/1
     uniqueId = `${baseId}/${counter}`;
     counter++;
   }
