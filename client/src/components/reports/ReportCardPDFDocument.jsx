@@ -1753,7 +1753,7 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
                               {wT2 > 0 && <Text style={styles.tdScore}></Text>}
                               {wEx > 0 && <Text style={[styles.tdScore, { fontSize: 5.5, color: '#555' }]}>{scoredSubs.length} subj</Text>}
                               <Text style={[styles.tdTotal, { backgroundColor: '#fef9c3', fontSize: 6.5, fontWeight: 700 }]}>{totalObtained.toFixed(0)}/{totalObtainable}</Text>
-                              <Text style={[styles.tdGrade, { fontSize: 6.5, fontWeight: 700 }]}>{avg.toFixed(1)}%</Text>
+                              <Text style={[styles.tdGrade, { fontSize: 6.5 }]}></Text>
                               {showPosition && <Text style={styles.tdPos}></Text>}
                               <Text style={[styles.tdRemark, { fontStyle: 'normal', fontWeight: 700, fontSize: 5.5 }]}>AVG: {avg.toFixed(1)}%</Text>
                             </View>

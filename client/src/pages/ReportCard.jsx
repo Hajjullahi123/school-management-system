@@ -726,8 +726,7 @@ const ReportCard = () => {
                               <tr className="bg-gray-200 font-black uppercase text-[8px] border-t-2 border-black">
                                 <td className="border border-black px-2 py-0.5 font-black text-[9px]">TOTAL MARKS</td>
                                 {colSpanCA > 0 && <td className="border border-black text-center text-[8px] italic" colSpan={colSpanCA}>({scoredSubs.length} subjects)</td>}
-                                <td className="border border-black text-center bg-yellow-50 font-black text-[10px]">{totalObtained.toFixed(0)}/{totalObtainable}</td>
-                                <td className="border border-black text-center font-black text-[9px]">{avg.toFixed(1)}%</td>
+                                <td className="border border-black text-center bg-yellow-50 font-black text-[10px]" colSpan={2}>{totalObtained.toFixed(0)}/{totalObtainable}</td>
                                 {showPosition && <td className="border border-black"></td>}
                                 <td className="border border-black px-1 text-[8px] italic">AVG: {avg.toFixed(1)}%</td>
                               </tr>
