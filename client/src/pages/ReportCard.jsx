@@ -714,6 +714,25 @@ const ReportCard = () => {
                               <td className="border border-black px-2 italic text-[8px] leading-tight font-medium">{sub.isEmpty ? '' : (sub.remark || '')}</td>
                             </tr>
                           ))}
+                          {/* Total Marks Summary Row */}
+                          {(() => {
+                            const scoredSubs = subs.filter(s => !s.isEmpty && s.total != null);
+                            if (scoredSubs.length === 0) return null;
+                            const totalObtained = scoredSubs.reduce((acc, s) => acc + Number(s.total), 0);
+                            const totalObtainable = scoredSubs.length * 100;
+                            const avg = totalObtained / scoredSubs.length;
+                            const colSpanCA = (wA1 > 0 ? 1 : 0) + (wA2 > 0 ? 1 : 0) + (wT1 > 0 ? 1 : 0) + (wT2 > 0 ? 1 : 0) + (wEx > 0 ? 1 : 0);
+                            return (
+                              <tr className="bg-gray-200 font-black uppercase text-[8px] border-t-2 border-black">
+                                <td className="border border-black px-2 py-0.5 font-black text-[9px]">TOTAL MARKS</td>
+                                {colSpanCA > 0 && <td className="border border-black text-center text-[8px] italic" colSpan={colSpanCA}>({scoredSubs.length} subjects)</td>}
+                                <td className="border border-black text-center bg-yellow-50 font-black text-[10px]">{totalObtained.toFixed(0)}/{totalObtainable}</td>
+                                <td className="border border-black text-center font-black text-[9px]">{avg.toFixed(1)}%</td>
+                                {showPosition && <td className="border border-black"></td>}
+                                <td className="border border-black px-1 text-[8px] italic">AVG: {avg.toFixed(1)}%</td>
+                              </tr>
+                            );
+                          })()}
                         </tbody>
                       </table>
                     );

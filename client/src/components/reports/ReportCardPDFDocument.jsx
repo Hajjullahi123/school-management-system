@@ -1737,6 +1737,28 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
                             <Text style={styles.tdRemark}>{(sub.remark || '').toUpperCase()}</Text>
                           </View>
                         ))}
+                        {/* Total Marks Summary Row */}
+                        {(() => {
+                          const scoredSubs = subjects.filter(s => s.total != null);
+                          if (scoredSubs.length === 0) return null;
+                          const totalObtained = scoredSubs.reduce((acc, s) => acc + Number(s.total), 0);
+                          const totalObtainable = scoredSubs.length * 100;
+                          const avg = totalObtained / scoredSubs.length;
+                          return (
+                            <View style={[styles.tableRow, { backgroundColor: '#e5e7eb', borderTopWidth: 1.5, borderTopColor: '#000000' }]}>
+                              <Text style={[styles.tdSubject, { flex: 1, fontWeight: 700, fontSize: 6.5 }]}>TOTAL MARKS</Text>
+                              {wA1 > 0 && <Text style={styles.tdScore}></Text>}
+                              {wA2 > 0 && <Text style={styles.tdScore}></Text>}
+                              {wT1 > 0 && <Text style={styles.tdScore}></Text>}
+                              {wT2 > 0 && <Text style={styles.tdScore}></Text>}
+                              {wEx > 0 && <Text style={[styles.tdScore, { fontSize: 5.5, color: '#555' }]}>{scoredSubs.length} subj</Text>}
+                              <Text style={[styles.tdTotal, { backgroundColor: '#fef9c3', fontSize: 6.5, fontWeight: 700 }]}>{totalObtained.toFixed(0)}/{totalObtainable}</Text>
+                              <Text style={[styles.tdGrade, { fontSize: 6.5, fontWeight: 700 }]}>{avg.toFixed(1)}%</Text>
+                              {showPosition && <Text style={styles.tdPos}></Text>}
+                              <Text style={[styles.tdRemark, { fontStyle: 'normal', fontWeight: 700, fontSize: 5.5 }]}>AVG: {avg.toFixed(1)}%</Text>
+                            </View>
+                          );
+                        })()}
                       </View>
                     );
                   })()}
