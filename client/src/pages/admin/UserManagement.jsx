@@ -60,6 +60,8 @@ const UserManagement = () => {
   const [generatedCredentials, setGeneratedCredentials] = useState(null);
   const [deleteModal, setDeleteModal] = useState({ show: false, userId: null, userName: '', loading: false, dependencies: null, confirmName: '', forceDeleting: false });
   const [deactivating, setDeactivating] = useState(null);
+  const [subAdminSections, setSubAdminSections] = useState([]);
+  const [subAdminPanelExpanded, setSubAdminPanelExpanded] = useState(true);
   const handlePrintCredentials = () => {
     const originalTitle = document.title;
     if (generatedCredentials?.username) {
@@ -73,6 +75,7 @@ const UserManagement = () => {
     fetchUsers();
     fetchClasses();
     fetchSections();
+    fetchSubAdminSections();
 
     // Read role from URL if present
     const params = new URLSearchParams(location.search);
@@ -109,6 +112,31 @@ const UserManagement = () => {
       }
     } catch (error) {
       console.error('Failed to fetch sections:', error);
+    }
+  };
+
+  const fetchSubAdminSections = async () => {
+    try {
+      const [assignRes, classRes] = await Promise.all([
+        api.get('/api/sections/admin-assignments'),
+        api.get('/api/classes')
+      ]);
+      if (assignRes.ok && classRes.ok) {
+        const assignments = await assignRes.json();
+        const allClasses = await classRes.json();
+        // Group by sub-admin user
+        const byUser = {};
+        assignments.forEach(a => {
+          const uid = a.User?.id;
+          if (!uid) return;
+          if (!byUser[uid]) byUser[uid] = { user: a.User, sections: [] };
+          const sectionClasses = allClasses.filter(c => c.sectionId === a.Section?.id);
+          byUser[uid].sections.push({ ...a.Section, classes: sectionClasses });
+        });
+        setSubAdminSections(Object.values(byUser));
+      }
+    } catch (error) {
+      console.error('Failed to fetch sub-admin sections:', error);
     }
   };
 
@@ -508,6 +536,89 @@ const UserManagement = () => {
           <option value="student">Academy Pool</option>
         </select>
       </div>
+
+      {/* Sub-Admin Section Overview Panel — visible to admin/principal only */}
+      {['admin', 'principal', 'superadmin'].includes(currentUser?.role) && subAdminSections.length > 0 && (
+        <div className="bg-white rounded-2xl shadow-sm border border-indigo-100 overflow-hidden print:hidden">
+          {/* Header */}
+          <button
+            onClick={() => setSubAdminPanelExpanded(prev => !prev)}
+            className="w-full flex items-center justify-between px-5 py-4 bg-gradient-to-r from-indigo-600 to-violet-600 text-white"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-white/20 rounded-xl">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
+              </div>
+              <div className="text-left">
+                <div className="text-sm font-black uppercase tracking-widest">Sub-Admin Section Overview</div>
+                <div className="text-[10px] text-white/70 font-semibold mt-0.5">{subAdminSections.length} sub-admin{subAdminSections.length !== 1 ? 's' : ''} managing {subAdminSections.reduce((t, s) => t + s.sections.reduce((a, sec) => a + sec.classes.length, 0), 0)} classes across {subAdminSections.reduce((t, s) => t + s.sections.length, 0)} sections</div>
+              </div>
+            </div>
+            <svg className={`w-5 h-5 transition-transform duration-300 ${subAdminPanelExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
+          {/* Collapsible Body */}
+          <div className={`transition-all duration-300 overflow-hidden ${subAdminPanelExpanded ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}`}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-5">
+              {subAdminSections.map(({ user, sections }) => {
+                const totalClasses = sections.reduce((acc, sec) => acc + sec.classes.length, 0);
+                const initials = `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`.toUpperCase() || user.username?.[0]?.toUpperCase();
+                return (
+                  <div key={user.id} className="bg-gradient-to-br from-indigo-50 to-violet-50 border border-indigo-100 rounded-2xl p-4 flex flex-col gap-3 hover:shadow-md transition-shadow">
+                    {/* Sub-admin identity */}
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-black text-sm shadow-md shrink-0">
+                        {initials}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="font-black text-gray-900 text-sm truncate">{[user.firstName, user.lastName].filter(Boolean).join(' ') || user.username}</div>
+                        <div className="text-[10px] text-indigo-600 font-bold font-mono">@{user.username}</div>
+                      </div>
+                    </div>
+
+                    {/* Stats row */}
+                    <div className="flex gap-2">
+                      <div className="flex-1 bg-white rounded-xl px-3 py-2 text-center border border-indigo-100">
+                        <div className="text-lg font-black text-indigo-600">{sections.length}</div>
+                        <div className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Sections</div>
+                      </div>
+                      <div className="flex-1 bg-white rounded-xl px-3 py-2 text-center border border-violet-100">
+                        <div className="text-lg font-black text-violet-600">{totalClasses}</div>
+                        <div className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Classes</div>
+                      </div>
+                    </div>
+
+                    {/* Sections & classes breakdown */}
+                    <div className="flex flex-col gap-2">
+                      {sections.map(sec => (
+                        <div key={sec.id} className="bg-white rounded-xl px-3 py-2 border border-gray-100">
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span className="text-[10px] font-black text-indigo-700 uppercase tracking-wide">{sec.name || sec.code}</span>
+                            <span className="text-[9px] bg-indigo-100 text-indigo-700 font-black px-2 py-0.5 rounded-full">{sec.classes.length} class{sec.classes.length !== 1 ? 'es' : ''}</span>
+                          </div>
+                          {sec.classes.length > 0 && (
+                            <div className="flex flex-wrap gap-1">
+                              {sec.classes.map(cls => (
+                                <span key={cls.id} className="text-[9px] bg-violet-50 text-violet-700 border border-violet-100 font-bold px-2 py-0.5 rounded-full">
+                                  {cls.name}{cls.arm ? ` ${cls.arm}` : ''}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="space-y-10">
         {loading ? (
