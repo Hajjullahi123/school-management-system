@@ -388,7 +388,7 @@ app.use('/api/academic-sessions', authenticate, checkSubscription, academicSessi
 app.use('/api/terms', authenticate, checkSubscription, termRoutes);
 app.use('/api/classes', authenticate, attachSectionScope, checkSubscription, classRoutes);
 app.use('/api/sections', authenticate, attachSectionScope, checkSubscription, sectionRoutes);
-app.use('/api/class-subjects', authenticate, checkSubscription, classSubjectRoutes);
+app.use('/api/class-subjects', authenticate, attachSectionScope, checkSubscription, classSubjectRoutes);
 app.use('/api/assignments', authenticate, checkSubscription, assignmentRoutes);
 app.use('/api/bulk-results', authenticate, checkSubscription, bulkResultRoutes);
 app.use('/api/email', authenticate, checkSubscription, emailRoutes);

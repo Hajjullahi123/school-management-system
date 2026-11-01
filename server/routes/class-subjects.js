@@ -204,13 +204,20 @@ router.get('/class/:classId/unassigned-count', authenticate, async (req, res) =>
   }
 });
 
-// Add a subject to a class (Admin/Principal only)
-router.post('/', authenticate, authorize(['admin', 'principal']), async (req, res) => {
+// Add a subject to a class (Admin/Principal/Sub-Admin only)
+router.post('/', authenticate, authorize(['admin', 'principal', 'sub_admin']), async (req, res) => {
   try {
     const { classId, subjectId } = req.body;
 
     if (!classId || !subjectId) {
       return res.status(400).json({ error: 'Class and subject are required' });
+    }
+
+    // Sub-admin scope check: only allowed classes
+    if (req.user.role === 'sub_admin' && req.allowedClassIds?.length > 0) {
+      if (!req.allowedClassIds.includes(parseInt(classId))) {
+        return res.status(403).json({ error: 'You do not have permission to modify this class' });
+      }
     }
 
     // Check if already exists
@@ -264,13 +271,20 @@ router.post('/', authenticate, authorize(['admin', 'principal']), async (req, re
   }
 });
 
-// Batch add subjects to a class (Admin/Principal only)
-router.post('/batch', authenticate, authorize(['admin', 'principal']), async (req, res) => {
+// Batch add subjects to a class (Admin/Principal/Sub-Admin only)
+router.post('/batch', authenticate, authorize(['admin', 'principal', 'sub_admin']), async (req, res) => {
   try {
     const { classId, subjectIds } = req.body;
 
     if (!classId || !subjectIds || !Array.isArray(subjectIds)) {
       return res.status(400).json({ error: 'Class and subject IDs array are required' });
+    }
+
+    // Sub-admin scope check: only allowed classes
+    if (req.user.role === 'sub_admin' && req.allowedClassIds?.length > 0) {
+      if (!req.allowedClassIds.includes(parseInt(classId))) {
+        return res.status(403).json({ error: 'You do not have permission to modify this class' });
+      }
     }
 
     const created = [];
@@ -340,8 +354,8 @@ router.post('/batch', authenticate, authorize(['admin', 'principal']), async (re
   }
 });
 
-// Remove a subject from a class (Admin/Principal only)
-router.delete('/:id', authenticate, authorize(['admin', 'principal']), async (req, res) => {
+// Remove a subject from a class (Admin/Principal/Sub-Admin only)
+router.delete('/:id', authenticate, authorize(['admin', 'principal', 'sub_admin']), async (req, res) => {
   try {
     const id = parseInt(req.params.id);
 
@@ -360,6 +374,13 @@ router.delete('/:id', authenticate, authorize(['admin', 'principal']), async (re
 
     if (!classSubject) {
       return res.status(404).json({ error: 'Class subject not found' });
+    }
+
+    // Sub-admin scope check: only allowed classes
+    if (req.user.role === 'sub_admin' && req.allowedClassIds?.length > 0) {
+      if (!req.allowedClassIds.includes(classSubject.classId)) {
+        return res.status(403).json({ error: 'You do not have permission to modify this class' });
+      }
     }
 
     if (classSubject.assignments.length > 0) {
@@ -396,8 +417,8 @@ router.delete('/:id', authenticate, authorize(['admin', 'principal']), async (re
   }
 });
 
-// Update periods per week (Admin/Principal only)
-router.patch('/:id/periods', authenticate, authorize(['admin', 'principal']), async (req, res) => {
+// Update periods per week (Admin/Principal/Sub-Admin only)
+router.patch('/:id/periods', authenticate, authorize(['admin', 'principal', 'sub_admin']), async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     const { periodsPerWeek } = req.body;
