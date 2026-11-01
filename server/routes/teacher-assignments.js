@@ -145,8 +145,8 @@ router.get('/teacher/:teacherId', authenticate, async (req, res) => {
   }
 });
 
-// Create a new teacher assignment (Admin/Principal only)
-router.post('/', authenticate, authorize(['admin', 'principal']), async (req, res) => {
+// Create a new teacher assignment (Admin/Principal/Sub-Admin only)
+router.post('/', authenticate, authorize(['admin', 'principal', 'sub_admin']), async (req, res) => {
   try {
     const { teacherId, classSubjectId } = req.body;
 
@@ -189,6 +189,13 @@ router.post('/', authenticate, authorize(['admin', 'principal']), async (req, re
 
     if (!classSubject) {
       return res.status(404).json({ error: 'Class subject not found. Please ensure the subject is added to the class first.' });
+    }
+
+    // Sub-admin scope check: only allowed classes
+    if (req.user.role === 'sub_admin' && req.allowedClassIds?.length > 0) {
+      if (!req.allowedClassIds.includes(classSubject.classId)) {
+        return res.status(403).json({ error: 'You do not have permission to assign teachers in this class' });
+      }
     }
 
     // Create assignment
@@ -256,8 +263,8 @@ router.post('/', authenticate, authorize(['admin', 'principal']), async (req, re
   }
 });
 
-// Update assignment (Edit) (Admin/Principal only)
-router.put('/:id', authenticate, authorize(['admin', 'principal']), async (req, res) => {
+// Update assignment (Edit) (Admin/Principal/Sub-Admin only)
+router.put('/:id', authenticate, authorize(['admin', 'principal', 'sub_admin']), async (req, res) => {
   try {
     const assignmentId = parseInt(req.params.id);
     const { teacherId, classSubjectId } = req.body;
@@ -276,6 +283,13 @@ router.put('/:id', authenticate, authorize(['admin', 'principal']), async (req, 
 
     if (!classSubject) {
       return res.status(404).json({ error: 'Class subject not found' });
+    }
+
+    // Sub-admin scope check: only allowed classes
+    if (req.user.role === 'sub_admin' && req.allowedClassIds?.length > 0) {
+      if (!req.allowedClassIds.includes(classSubject.classId)) {
+        return res.status(403).json({ error: 'You do not have permission to modify assignments in this class' });
+      }
     }
 
     // Verify the assignment exists AND belongs to this school
@@ -353,8 +367,8 @@ router.put('/:id', authenticate, authorize(['admin', 'principal']), async (req, 
   }
 });
 
-// Delete a teacher assignment (Admin/Principal only)
-router.delete('/:id', authenticate, authorize(['admin', 'principal']), async (req, res) => {
+// Delete a teacher assignment (Admin/Principal/Sub-Admin only)
+router.delete('/:id', authenticate, authorize(['admin', 'principal', 'sub_admin']), async (req, res) => {
   try {
     const assignmentId = parseInt(req.params.id);
 
@@ -362,11 +376,21 @@ router.delete('/:id', authenticate, authorize(['admin', 'principal']), async (re
       where: {
         id: assignmentId,
         schoolId: req.schoolId
+      },
+      include: {
+        classSubject: { select: { classId: true } }
       }
     });
 
     if (!assignment) {
       return res.status(404).json({ error: 'Assignment not found' });
+    }
+
+    // Sub-admin scope check: only allowed classes
+    if (req.user.role === 'sub_admin' && req.allowedClassIds?.length > 0) {
+      if (!req.allowedClassIds.includes(assignment.classSubject?.classId)) {
+        return res.status(403).json({ error: 'You do not have permission to remove assignments in this class' });
+      }
     }
 
     await prisma.teacherAssignment.delete({
@@ -392,8 +416,8 @@ router.delete('/:id', authenticate, authorize(['admin', 'principal']), async (re
   }
 });
 
-// Batch create assignments for a teacher (Admin/Principal only)
-router.post('/batch', authenticate, authorize(['admin', 'principal']), async (req, res) => {
+// Batch create assignments for a teacher (Admin/Principal/Sub-Admin only)
+router.post('/batch', authenticate, authorize(['admin', 'principal', 'sub_admin']), async (req, res) => {
   try {
     const { teacherId, classSubjectIds } = req.body;
 
@@ -407,10 +431,22 @@ router.post('/batch', authenticate, authorize(['admin', 'principal']), async (re
     const termId = activeTerm?.id || null;
     const academicSessionId = activeTerm?.academicSessionId || null;
 
+    // Sub-admin scope: pre-fetch classSubjects to validate allowed classes
+    let allowedClassSubjectIds = classSubjectIds;
+    if (req.user.role === 'sub_admin' && req.allowedClassIds?.length > 0) {
+      const classSubjects = await prisma.classSubject.findMany({
+        where: { id: { in: classSubjectIds.map(id => parseInt(id)) }, schoolId: req.schoolId },
+        select: { id: true, classId: true }
+      });
+      allowedClassSubjectIds = classSubjects
+        .filter(cs => req.allowedClassIds.includes(cs.classId))
+        .map(cs => cs.id);
+    }
+
     const created = [];
     const errors = [];
 
-    for (const classSubjectId of classSubjectIds) {
+    for (const classSubjectId of allowedClassSubjectIds) {
       try {
         const existing = await prisma.teacherAssignment.findFirst({
           where: {

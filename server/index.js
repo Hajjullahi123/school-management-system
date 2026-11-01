@@ -393,7 +393,7 @@ app.use('/api/assignments', authenticate, checkSubscription, assignmentRoutes);
 app.use('/api/bulk-results', authenticate, checkSubscription, bulkResultRoutes);
 app.use('/api/email', authenticate, checkSubscription, emailRoutes);
 app.use('/api/upload', authenticate, checkSubscription, uploadRoutes);
-app.use('/api/teacher-assignments', authenticate, checkSubscription, teacherAssignmentRoutes);
+app.use('/api/teacher-assignments', authenticate, attachSectionScope, checkSubscription, teacherAssignmentRoutes);
 app.use('/api/bulk-upload', authenticate, attachSectionScope, checkSubscription, bulkUploadRoutes);
 app.use('/api/school-setup', authenticate, checkSubscription, schoolSetupRoutes);
 app.use('/api/scoresheet', authenticate, checkSubscription, scoresheetRoutes);
