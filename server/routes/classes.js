@@ -456,12 +456,28 @@ router.put('/:id', authenticate, authorize(['admin', 'sub_admin', 'principal', '
 });
 
 // Delete class (Admin/Principal only)
-router.delete('/:id', authenticate, authorize(['admin', 'sub_admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin']), async (req, res) => {
+router.delete('/:id', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const { id } = req.params;
     const classId = parseInt(id);
 
-    // Implement soft delete: set isActive to false instead of deleting records
+    // Safety guard: block deletion if the class has active students
+    const studentCount = await prisma.student.count({
+      where: {
+        classId,
+        schoolId: req.schoolId,
+        status: 'active',
+        isDeleted: false
+      }
+    });
+
+    if (studentCount > 0) {
+      return res.status(400).json({
+        error: `Cannot delete this class — it still has ${studentCount} active student(s) enrolled. Please move or reassign all students before deleting the class.`
+      });
+    }
+
+    // Soft delete: set isActive to false
     const classData = await prisma.class.update({
       where: {
         id: classId,
@@ -478,9 +494,8 @@ router.delete('/:id', authenticate, authorize(['admin', 'sub_admin', 'principal'
       userId: req.user.id,
       action: 'DELETE',
       resource: 'CLASS',
-      details: {
-        classId: classId
-      },
+      details: { classId }
+      ,
       ipAddress: req.ip
     });
   } catch (error) {

@@ -383,7 +383,16 @@ const ClassManagement = () => {
   };
 
   const handleDeleteClass = async (id) => {
-    if (!confirm('Are you sure you want to delete this class?')) return;
+    // Find the class to check its student count before attempting deletion
+    const cls = classes.find(c => c.id === id);
+    const studentCount = cls?._count?.students ?? cls?.students?.length ?? null;
+
+    if (studentCount > 0) {
+      alert(`Cannot delete this class — it still has ${studentCount} active student(s) enrolled.\n\nPlease move or reassign all students to another class first.`);
+      return;
+    }
+
+    if (!confirm('Are you sure you want to delete this class? This action cannot be undone.')) return;
 
     try {
       const response = await fetch(`${API_BASE_URL}/api/classes/${id}`, {
@@ -394,6 +403,9 @@ const ClassManagement = () => {
       if (response.ok) {
         alert('Class deleted!');
         fetchClasses();
+      } else {
+        const err = await response.json();
+        alert(err.error || 'Failed to delete class');
       }
     } catch (error) {
       console.error('Error deleting class:', error);
