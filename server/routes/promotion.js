@@ -94,7 +94,8 @@ router.post('/promote', authenticate, checkSubscription, authorize(['admin', 'pr
             },
             data: {
               classId: parseInt(targetClassId),
-              class: classString // Sync legacy string field
+              class: classString, // Sync legacy string field
+              status: 'active'   // Ensure student is visible in the target class after promotion
             }
           });
 
