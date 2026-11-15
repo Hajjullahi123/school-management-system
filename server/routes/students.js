@@ -509,16 +509,21 @@ router.delete('/my-photo', authenticate, async (req, res) => {
       return res.status(403).json({ error: 'Access denied. Students only.' });
     }
 
-    // Find student
+    // Find student — include user so we can check BOTH photoUrl fields
     const student = await prisma.student.findUnique({
-      where: { userId: parseInt(req.user.id) }
+      where: { userId: parseInt(req.user.id) },
+      include: {
+        user: { select: { id: true, photoUrl: true } }
+      }
     });
 
     if (!student) {
       return res.status(404).json({ error: 'Student profile not found' });
     }
 
-    if (!student.photoUrl) {
+    // A photo may be stored on either the Student or User model — check both
+    const hasPhoto = student.photoUrl || student.user?.photoUrl;
+    if (!hasPhoto) {
       return res.status(400).json({ error: 'No photo to delete' });
     }
 
