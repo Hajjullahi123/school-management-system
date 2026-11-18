@@ -134,9 +134,9 @@ router.post('/', authenticate, authorize(['admin', 'sub_admin', 'principal', 'ac
       password,
       email,
       role,
-      firstName,
-      middleName,
-      lastName,
+      firstName: _firstName,
+      middleName: _middleName,
+      lastName: _lastName,
       // Student-specific
       admissionNumber,
       classId,
@@ -151,6 +151,11 @@ router.post('/', authenticate, authorize(['admin', 'sub_admin', 'principal', 'ac
       photoUrl,
       permissions
     } = req.body;
+
+    // Normalize names — trim whitespace so passwords and usernames are consistent
+    const firstName = (_firstName || '').trim();
+    const lastName = (_lastName || '').trim();
+    const middleName = (_middleName || '').trim() || null;
 
     let finalUsername;
 
@@ -279,8 +284,9 @@ router.post('/', authenticate, authorize(['admin', 'sub_admin', 'principal', 'ac
       if (role === 'student') {
         finalPassword = '123456';
       } else {
-        const lastInitial = lastName ? lastName.charAt(0).toUpperCase() : '';
-        finalPassword = `${firstName}${lastInitial}@123`;
+        const cleanFirst = (firstName || '').trim();
+        const lastInitial = (lastName || '').trim().charAt(0).toUpperCase();
+        finalPassword = `${cleanFirst}${lastInitial}@123`;
       }
     }
 
@@ -402,8 +408,9 @@ router.post('/', authenticate, authorize(['admin', 'sub_admin', 'principal', 'ac
       const generatedStaffId = `${role === 'higher_student' ? 'HE-' : ''}${schoolInitials}/${currentYear}/${nextSequence}`;
 
       // Auto-generate password based on new requirements
-      const lastInitial = lastName ? lastName.charAt(0).toUpperCase() : '';
-      const generatedPassword = `${firstName}${lastInitial}@123`;
+      const cleanFirst = (firstName || '').trim();
+      const lastInitial = (lastName || '').trim().charAt(0).toUpperCase();
+      const generatedPassword = `${cleanFirst}${lastInitial}@123`;
       const autoPasswordHash = await bcrypt.hash(generatedPassword, 10);
 
       // Use auto-generated credentials
@@ -436,8 +443,9 @@ router.post('/', authenticate, authorize(['admin', 'sub_admin', 'principal', 'ac
       };
     } else if (role === 'accountant') {
       // Auto-generate password for accountant
-      const lastInitial = lastName ? lastName.charAt(0).toUpperCase() : '';
-      const generatedPassword = `${firstName}${lastInitial}@123`;
+      const cleanFirst = (firstName || '').trim();
+      const lastInitial = (lastName || '').trim().charAt(0).toUpperCase();
+      const generatedPassword = `${cleanFirst}${lastInitial}@123`;
       const finalPasswordHash = password ? await bcrypt.hash(password, 10) : await bcrypt.hash(generatedPassword, 10);
 
       user = await prisma.user.create({
@@ -454,8 +462,9 @@ router.post('/', authenticate, authorize(['admin', 'sub_admin', 'principal', 'ac
         role: 'Financial Accountant'
       };
     } else {
-      const lastInitial = lastName ? lastName.charAt(0).toUpperCase() : '';
-      const generatedPassword = `${firstName}${lastInitial}@123`;
+      const cleanFirst = (firstName || '').trim();
+      const lastInitial = (lastName || '').trim().charAt(0).toUpperCase();
+      const generatedPassword = `${cleanFirst}${lastInitial}@123`;
       const finalPasswordHash = password ? await bcrypt.hash(password, 10) : await bcrypt.hash(generatedPassword, 10);
 
       user = await prisma.user.create({
