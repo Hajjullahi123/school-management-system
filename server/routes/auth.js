@@ -1160,6 +1160,104 @@ router.post('/reset-password', authenticate, authorize(['admin', 'principal']), 
     res.status(500).json({ error: 'Failed to reset password' });
   }
 });
+
+/**
+ * @route   POST /api/auth/bulk-reset-passwords
+ * @desc    Admin bulk-reset all teacher (or all staff) passwords to their default (FirstNameL@123)
+ * @access  Private (Admin/Principal only)
+ * @body    { role?: 'teacher' | 'all' }  — defaults to 'teacher'
+ */
+router.post('/bulk-reset-passwords', authenticate, authorize(['admin', 'principal']), async (req, res) => {
+  try {
+    const { role: targetRole = 'teacher' } = req.body;
+
+    // Determine which roles to reset
+    const rolesToReset = targetRole === 'all'
+      ? ['teacher', 'admin', 'sub_admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin']
+      : ['teacher'];
+
+    // Fetch all matching users in this school
+    const users = await prisma.user.findMany({
+      where: {
+        schoolId: req.schoolId,
+        role: { in: rolesToReset },
+        isActive: true
+      },
+      select: { id: true, firstName: true, lastName: true, username: true, role: true }
+    });
+
+    if (users.length === 0) {
+      return res.json({ success: true, message: 'No users found to reset', resetCount: 0, results: [] });
+    }
+
+    const results = [];
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const user of users) {
+      try {
+        const cleanFirst = (user.firstName || '').trim();
+        const lastInitial = (user.lastName || '').trim().charAt(0).toUpperCase();
+        const defaultPassword = `${cleanFirst}${lastInitial}@123`;
+        const passwordHash = await bcrypt.hash(defaultPassword, 8);
+
+        await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            passwordHash,
+            mustChangePassword: true  // Prompt them to change on next login
+          }
+        });
+
+        results.push({
+          userId: user.id,
+          username: user.username,
+          role: user.role,
+          defaultPassword,
+          status: 'reset'
+        });
+        successCount++;
+      } catch (err) {
+        console.error(`[BulkReset] Failed for user ${user.username}:`, err.message);
+        results.push({
+          userId: user.id,
+          username: user.username,
+          role: user.role,
+          status: 'failed',
+          error: err.message
+        });
+        failCount++;
+      }
+    }
+
+    // Audit log
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'UPDATE',
+      resource: 'BULK_PASSWORD_RESET',
+      details: {
+        targetRoles: rolesToReset,
+        resetBy: req.user.username,
+        successCount,
+        failCount
+      },
+      ipAddress: req.ip
+    });
+
+    res.json({
+      success: true,
+      message: `Bulk reset complete. ${successCount} reset, ${failCount} failed.`,
+      resetCount: successCount,
+      failCount,
+      results  // Admin can download/print this list showing each teacher's new password
+    });
+  } catch (error) {
+    console.error('Bulk reset passwords error:', error);
+    res.status(500).json({ error: 'Failed to bulk reset passwords' });
+  }
+});
+
 /**
  * @route   POST /api/auth/impersonate
  * @desc    Admin impersonate a user account (Ghost Login)

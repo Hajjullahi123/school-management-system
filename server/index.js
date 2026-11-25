@@ -376,7 +376,7 @@ app.get('/api/public/global-settings', async (req, res) => {
 
 // Use Routes
 app.use('/api/auth', authLimiter, authRoutes);
-app.use('/api/users', authenticate, checkSubscription, userRoutes);
+app.use('/api/users', authenticate, attachSectionScope, checkSubscription, userRoutes);
 app.use('/api/students', authenticate, attachSectionScope, checkSubscription, studentRoutes);
 app.use('/api/subjects', authenticate, checkSubscription, subjectRoutes);
 app.use('/api/exams', authenticate, checkSubscription, examRoutes);
