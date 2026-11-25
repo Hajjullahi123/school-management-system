@@ -940,11 +940,11 @@ router.post('/', authenticate, authorize(['admin', 'sub_admin', 'principal', 'ac
       return res.status(400).json({ error: 'First name, last name, and class are required' });
     }
 
-    // Section Scope check for sub-admin
-    if (req.user.role === 'sub_admin') {
-      if (!req.allowedClassIds || req.allowedClassIds.length === 0) {
-        return res.status(403).json({ error: 'You are not authorized to add students to any classes.' });
-      }
+    // Section Scope check for sub-admin.
+    // Per middleware contract: req.allowedClassIds === undefined means the sub-admin
+    // has NO section assignments → full school access.
+    // Only restrict when allowedClassIds IS defined (sub-admin has assigned sections).
+    if (req.user.role === 'sub_admin' && req.allowedClassIds !== undefined) {
       if (!req.allowedClassIds.includes(parseInt(classId))) {
         return res.status(403).json({ error: 'You are not authorized to add students to this class (outside your assigned section scope).' });
       }
@@ -1249,11 +1249,11 @@ router.put('/:id', authenticate, authorize(['admin', 'sub_admin', 'principal', '
 
     const studentId = parseInt(req.params.id);
 
-    // Section Scope check for sub-admin
-    if (req.user.role === 'sub_admin') {
-      if (!req.allowedClassIds || req.allowedClassIds.length === 0) {
-        return res.status(403).json({ error: 'You are not authorized to modify students in any classes.' });
-      }
+    // Section Scope check for sub-admin.
+    // Per middleware contract: req.allowedClassIds === undefined means the sub-admin
+    // has NO section assignments → full school access.
+    // Only restrict when allowedClassIds IS defined (sub-admin has assigned sections).
+    if (req.user.role === 'sub_admin' && req.allowedClassIds !== undefined) {
       if (classId && !req.allowedClassIds.includes(parseInt(classId))) {
         return res.status(403).json({ error: 'You are not authorized to move students to this class (outside your assigned section scope).' });
       }

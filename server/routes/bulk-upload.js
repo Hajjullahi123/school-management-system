@@ -427,11 +427,12 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher', 'principal',
       });
       allowedClassIds = new Set(assignedClasses.map(c => c.id));
     } else if (req.user.role === 'sub_admin') {
-      if (req.allowedClassIds && req.allowedClassIds.length > 0) {
+      if (req.allowedClassIds !== undefined) {
+        // Sub-admin has explicit section assignments — restrict to those classes
         allowedClassIds = new Set(req.allowedClassIds);
-      } else {
-        allowedClassIds = new Set(); // Prevent assigning to any class
       }
+      // If req.allowedClassIds is undefined: sub-admin has no section assignments
+      // → full school access; allowedClassIds stays null (no restriction applied below)
     }
 
     for (const studentData of studentsRaw) {
